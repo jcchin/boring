@@ -1,0 +1,2 @@
+*.pyc
+/boring_battery.egg-info/*
