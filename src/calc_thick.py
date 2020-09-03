@@ -19,7 +19,7 @@ class tempODE(om.ExplicitComponent):
         self.add_input('A', val=.102*.0003*np.ones(nn), desc='area', units='m**2') #static
         self.add_input('d', val=0.03*np.ones(nn), desc='insulation thickness', units='m') #static
         self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg') #static
-        self.add_input('Cp', val=0.03*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
+        self.add_input('Cp', val=3.56*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
         self.add_input('Th', val=773.*np.ones(nn), desc='hot side temp', units='K') #static
         self.add_input('T', val=293.*np.ones(nn), desc='cold side temp', units='K')
 
@@ -70,6 +70,7 @@ phase.set_time_options(fix_initial=True, fix_duration=True)
 
 phase.add_state('T', rate_source='Tdot', units='K', ref=333.15, defect_ref=333.15,
                 fix_initial=True, fix_final=False, solve_segments=False)
+
 
 phase.add_boundary_constraint('T', loc='final', units='K', upper=333.15, lower=293.15, shape=(1,))
 phase.add_parameter('d', opt=True, lower=0.001, upper=0.5, val=0.001, units='m', ref0=0, ref=1)
