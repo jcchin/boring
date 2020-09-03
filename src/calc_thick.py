@@ -8,9 +8,6 @@ from dymos.examples.plotting import plot_results
 
 class tempODE(om.ExplicitComponent):
 
-    states = {'T': {'rate_source': 'Tdot', 'units': 'K'}}
-    parameters = {'d': {'units': 'm'}}
-
     def initialize(self):
         self.options.declare('num_nodes', types=int)
 
@@ -20,37 +17,41 @@ class tempODE(om.ExplicitComponent):
         # Inputs
         self.add_input('K', val=0.03*np.ones(nn), desc='insulation conductivity', units='W/m*K') #static
         self.add_input('A', val=.102*.0003*np.ones(nn), desc='area', units='m**2') #static
-        self.add_input('d', val=0.003*np.ones(nn), desc='insulation thickness', units='m') #static
+        self.add_input('d', val=0.03*np.ones(nn), desc='insulation thickness', units='m') #static
         self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg') #static
-        self.add_input('Cp', val=0.03*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
-        self.add_input('Th', val=900.*np.ones(nn), desc='hot side temp', units='K') #static
-        self.add_input('Tc', val=293.15*np.ones(nn), desc='cold side temp', units='K')
+        self.add_input('Cp', val=3.56*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
+        self.add_input('Th', val=773.*np.ones(nn), desc='hot side temp', units='K') #static
+        self.add_input('T', val=293.*np.ones(nn), desc='cold side temp', units='K')
 
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
 
-        # # Setup partials
+        # Setup partials
         # arange = np.arange(self.options['num_nodes'])
         # c = np.zeros(self.options['num_nodes'])
-        # self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=c) #static
-        # self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=c) #static
-        # self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=c) #static
-        # self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=c) #static
-        # self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=c) #static
-        # self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=c) #static
-        # self.declare_partials(of='Tdot', wrt='Tc', rows=arange, cols=arange)
-
+        # self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
+        # self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
         self.declare_partials(of='*', wrt='*', method='cs')
 
     def compute(self, i, o):
-        dT_num = i['K']*i['A']*(i['Th']-i['Tc'])/i['d']
+
+        dT_num = i['K']*i['A']*(i['Th']-i['T'])/i['d']
         dT_denom = i['m']*i['Cp']
         o['Tdot'] = dT_num/dT_denom
 
-    # def compute_partials(self, inputs, partials):
+    # def compute_partials(self, i, partials):
     #
-    #     partials['Tdot', 'Tc'] = -inputs['K']*inputs['A']/(inputs['d']*inputs['m']*inputs['Cp'])
-    #
+    #     partials['Tdot','T'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
+    #     partials['Tdot','d']  = i['K']*i['A']*(i['Th']-i['T'])/(i['m']*i['Cp']*i['d']**2)
+    #     partials['Tdot','K']  = i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+    #     partials['Tdot','A']  = i['K']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+    #     partials['Tdot','m']  = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['Cp']*i['m']**2)
+    #     partials['Tdot','Cp'] = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp']**2)
 
 
 p = om.Problem(model=om.Group())
@@ -77,7 +78,7 @@ p.model.linear_solver = om.DirectSolver()
 p.setup()
 p['traj.phase0.t_initial'] = 0.0
 p['traj.phase0.t_duration'] = 45
-p['traj.phase0.states:T'] = phase.interpolate(ys=[20, 60], nodes='state_input')
+p['traj.phase0.states:T'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
 p['traj.phase0.parameters:d'] = 0.001
 
 p.run_model()
