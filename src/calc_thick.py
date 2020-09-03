@@ -24,58 +24,67 @@ class tempODE(om.ExplicitComponent):
         self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg') #static
         self.add_input('Cp', val=0.03*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
         self.add_input('Th', val=900.*np.ones(nn), desc='hot side temp', units='K') #static
-        self.add_input('Tc', val=900.*np.ones(nn), desc='cold side temp', units='K')
+        self.add_input('Tc', val=293.15*np.ones(nn), desc='cold side temp', units='K')
 
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
 
-        # Setup partials
-        arange = np.arange(self.options['num_nodes'])
-        c = np.zeros(self.options['num_nodes'])
-        self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='Tc', rows=arange, cols=arange)
+        # # Setup partials
+        # arange = np.arange(self.options['num_nodes'])
+        # c = np.zeros(self.options['num_nodes'])
+        # self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=c) #static
+        # self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=c) #static
+        # self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=c) #static
+        # self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=c) #static
+        # self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=c) #static
+        # self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=c) #static
+        # self.declare_partials(of='Tdot', wrt='Tc', rows=arange, cols=arange)
+
+        self.declare_partials(of='*', wrt='*', method='cs')
 
     def compute(self, i, o):
-
         dT_num = i['K']*i['A']*(i['Th']-i['Tc'])/i['d']
         dT_denom = i['m']*i['Cp']
         o['Tdot'] = dT_num/dT_denom
 
-    def compute_partials(self, inputs, partials):
-
-        partials['Tdot', 'Tc'] = -inputs['K']*inputs['A']/(inputs['d']*inputs['m']*inputs['Cp'])
-
+    # def compute_partials(self, inputs, partials):
+    #
+    #     partials['Tdot', 'Tc'] = -inputs['K']*inputs['A']/(inputs['d']*inputs['m']*inputs['Cp'])
+    #
 
 
 p = om.Problem(model=om.Group())
 p.driver = om.ScipyOptimizeDriver()
+p.driver = om.pyOptSparseDriver(optimizer='SLSQP')
+# p.driver.opt_settings['iSumm'] = 6
 p.driver.declare_coloring()
 
 traj = p.model.add_subsystem('traj', dm.Trajectory())
 
 phase = traj.add_phase('phase0',
                        dm.Phase(ode_class=tempODE,
-                                transcription=dm.GaussLobatto(num_segments=10)))
+                                transcription=dm.GaussLobatto(num_segments=20, order=3, compressed=False)))
 
-phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(45, 45))
+phase.set_time_options(fix_initial=True, fix_duration=True)
 
-phase.add_state('T', rate_source=tempODE.states['T']['rate_source'],
-                units=tempODE.states['T']['units'],
-                fix_initial=True, fix_final=True, solve_segments=False)
+phase.add_state('T', rate_source='Tdot', units='K', ref=333.15, defect_ref=333.15,
+                fix_initial=True, fix_final=False, solve_segments=False)
 
-phase.add_boundary_constraint('T', loc='final', units='K', upper=60, lower=20, shape=(1,))
-phase.add_parameter('d', opt=True, lower=0.00001, upper=0.1)
-phase.add_objective('d', loc='final',scaler=1)
+phase.add_boundary_constraint('T', loc='final', units='K', upper=333.15, lower=293.15, shape=(1,))
+phase.add_parameter('d', opt=True, lower=0.001, upper=0.5, val=0.001, units='m', ref0=0, ref=1)
+phase.add_objective('d', loc='final', ref=1)
 p.model.linear_solver = om.DirectSolver()
 p.setup()
 p['traj.phase0.t_initial'] = 0.0
+p['traj.phase0.t_duration'] = 45
 p['traj.phase0.states:T'] = phase.interpolate(ys=[20, 60], nodes='state_input')
+p['traj.phase0.parameters:d'] = 0.001
+
+p.run_model()
 dm.run_problem(p)
+
+
+
 exp_out = traj.simulate()
 plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:T','time (s)','temp (K)')],
              title='Temps', p_sol=p, p_sim=exp_out)
