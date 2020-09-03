@@ -38,22 +38,22 @@ class tempODE(om.ExplicitComponent):
         self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) #static
         self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) #static
         self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
-        self.declare_partials(of='Tdot', wrt='Tc', rows=arange, cols=arange)
+        self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
 
     def compute(self, i, o):
 
-        dT_num = i['K']*i['A']*(i['Th']-i['Tc'])/i['d']
+        dT_num = i['K']*i['A']*(i['Th']-i['T'])/i['d']
         dT_denom = i['m']*i['Cp']
         o['Tdot'] = dT_num/dT_denom
 
     def compute_partials(self, i, partials):
 
-        partials['Tdot','Tc'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
-        partials['Tdot','d']  = i['K']*i['A']*(i['Th']-i['Tc'])/(i['m']*i['Cp']*i['d']**2)
-        partials['Tdot','K']  = i['A']*(i['Th']-i['Tc'])/(i['d']*i['m']*i['Cp'])
-        partials['Tdot','A']  = i['K']*(i['Th']-i['Tc'])/(i['d']*i['m']*i['Cp'])
-        partials['Tdot','m']  = i['K']*i['A']*(i['Th']-i['Tc'])/(i['d']*i['Cp']*i['m']**2)
-        partials['Tdot','Cp'] = i['K']*i['A']*(i['Th']-i['Tc'])/(i['d']*i['m']*i['Cp']**2)
+        partials['Tdot','T'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','d']  = i['K']*i['A']*(i['Th']-i['T'])/(i['m']*i['Cp']*i['d']**2)
+        partials['Tdot','K']  = i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','A']  = i['K']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','m']  = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['Cp']*i['m']**2)
+        partials['Tdot','Cp'] = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp']**2)
 
 
 
@@ -96,14 +96,14 @@ plt.show()
 # def dT_calc(Ts,t):
 
 #     Tf = Ts[0]
-#     Tc = Ts[1]
+#     T = Ts[1]
 #     K = 0.03 # W/mk
 #     A = .102*.0003 # m^2
 #     d = 0.003 #m
 #     m = 0.06 #kg
 #     Cp = 3.58 #kJ/kgK
 
-#     dT_num = K*A*(Tf-Tc)/d
+#     dT_num = K*A*(Tf-T)/d
 #     dT_denom = m*Cp
 
 #     return [0, (dT_num/dT_denom)]
