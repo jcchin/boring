@@ -32,12 +32,12 @@ class tempODE(om.ExplicitComponent):
         # Setup partials
         arange = np.arange(self.options['num_nodes'])
         c = np.zeros(self.options['num_nodes'])
-        self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=c) #static
-        self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=c) #static
+        self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) #static
+        self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) #static
+        self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) #static
+        self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) #static
+        self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) #static
+        self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
         self.declare_partials(of='Tdot', wrt='Tc', rows=arange, cols=arange)
 
     def compute(self, i, o):
@@ -46,9 +46,14 @@ class tempODE(om.ExplicitComponent):
         dT_denom = i['m']*i['Cp']
         o['Tdot'] = dT_num/dT_denom
 
-    def compute_partials(self, inputs, partials):
+    def compute_partials(self, i, partials):
 
-        partials['Tdot', 'Tc'] = -inputs['K']*inputs['A']/(inputs['d']*inputs['m']*inputs['Cp'])
+        partials['Tdot','Tc'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','d']  = i['K']*i['A']*(i['Th']-i['Tc'])/(i['m']*i['Cp']*i['d']**2)
+        partials['Tdot','K']  = i['A']*(i['Th']-i['Tc'])/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','A']  = i['K']*(i['Th']-i['Tc'])/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','m']  = i['K']*i['A']*(i['Th']-i['Tc'])/(i['d']*i['Cp']*i['m']**2)
+        partials['Tdot','Cp'] = i['K']*i['A']*(i['Th']-i['Tc'])/(i['d']*i['m']*i['Cp']**2)
 
 
 
@@ -69,7 +74,7 @@ phase.add_state('T', rate_source=tempODE.states['T']['rate_source'],
                 fix_initial=True, fix_final=True, solve_segments=False)
 
 phase.add_boundary_constraint('T', loc='final', units='K', upper=60, lower=20, shape=(1,))
-phase.add_parameter('d', opt=True, lower=0.00001, upper=0.1)
+phase.add_parameter('d', val=0.001, opt=True, lower=0.00001, upper=0.1)
 phase.add_objective('d', loc='final',scaler=1)
 p.model.linear_solver = om.DirectSolver()
 p.setup()
