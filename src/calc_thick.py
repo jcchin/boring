@@ -74,7 +74,7 @@ phase.add_state('T', rate_source=tempODE.states['T']['rate_source'],
                 fix_initial=True, fix_final=True, solve_segments=False)
 
 phase.add_boundary_constraint('T', loc='final', units='K', upper=60, lower=20, shape=(1,))
-phase.add_parameter('d', val=0.001, opt=True, lower=0.00001, upper=0.1)
+phase.add_parameter('d', val=0.001, opt=True, lower=0.00001, upper=0.1, units='m')
 phase.add_objective('d', loc='final',scaler=1)
 p.model.linear_solver = om.DirectSolver()
 p.setup()
