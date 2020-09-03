@@ -27,35 +27,39 @@ class packSize(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('L', 1, units='m', desc='max length')
-        self.add_input('W', 40, units='m', desc='max width')
-        self.add_input('H', 8, units='m', desc='max height')
-        self.add_input('cell_w', 0.059*2, units='m', desc='cell width (2"*2 Amprius)')
-        self.add_input('cell_l', 0.0571, units='m' , desc='cell length (2.0" Amprius)')
+        self.add_input('L', 2, units='m', desc='max length')
+        self.add_input('W', 0.4, units='m', desc='max width')
+        self.add_input('energy', 70000., units='W*h', desc='nominal total pack energy')
+        self.add_input('cell_l', 0.102, units='m', desc='cell width (4" Amprius)')
+        self.add_input('cell_w', 0.0571, units='m' , desc='cell length (2.0" Amprius)')
         self.add_input('cell_h', 0.00635, units='m' , desc='cell thickness (0.25" Amprius)')
         self.add_input('cell_s_w', 0.003, units='m', desc='cell spacing, width')
         self.add_input('cell_s_h', 0.001, units='m', desc='cell spacing, height')
         self.add_input('cell_s_l', 0.001, units='m', desc='cell spacing, height')
         self.add_input('v_n_c', 3.4, units='V', desc='nominal cell voltage')
-        self.add_input('q_max', 3.5*2, units='A*h', desc='nominal cell amp-hr capacity')
+        self.add_input('q_max', 7., units='A*h', desc='nominal cell amp-hr capacity')
+        self.add_input('t_PCM', 0.006, units='m', desc='PCM pad thickness')
+        self.add_input('t_OHP', 0.006, units='m', desc='OHP thickness')
         
 
         self.add_output('cell_area', units='m**2', desc='cell area')
-        self.add_output('n_modules', desc='number of modules')
-        self.add_output('n_stacks', desc='number of stacks')
-        self.add_output('n_cpm', desc='number of cells per module')
+        self.add_output('n_bps', desc='number of bars per stack')
+        self.add_output('n_stacks', desc='number of stacks per battery shipset')
+        self.add_output('n_cpb', desc='number of cells per bar')
         self.add_output('n_cells', desc='number of cells')
-        self.add_output('energy', desc='nominal total pack energy')
+        self.add_output('H', 0.8, units='m', desc='height')
+
 
 
     def compute(self, i, o):
 
+        o['n_cells'] = i['energy'] / (i['q_max'] * i['v_n_c'])
         o['cell_area'] = i['cell_w'] * i['cell_l']
-        o['n_cpm'] = i['L']/(i['cell_w']+i['cell_s_w'])  # modules have cells side-by-side, across their width
-        o['n_modules'] = i['H']/(i['cell_h']+i['cell_s_h']) # stacks have vertically concatenated modules, driven by cell height
-        o['n_stacks'] = i['W']/(i['cell_l']+i['cell_s_l']) # packs have stacks, each the width of a cell length
-        o['n_cells'] = o['n_modules']*o['n_cpm']*o['n_stacks']
-        o['energy'] = o['n_cells'] * i['q_max'] * i['v_n_c']
+        o['n_cpb'] = 2.*i['L']/(i['cell_w']+i['cell_s_w'])  # bars have cells side-by-side, across their width (like a candy bar)
+        o['n_bps'] = i['W']/(i['cell_l']+i['cell_s_l']) # packs have stacks, each the width of a cell length
+        o['n_stacks'] = o['n_cells']/(o['n_cpb']*o['n_bps']) # the number of stacks is driven by the max cells that can be fit into bars and stacks
+        o['H'] = o['n_stacks']*(i['cell_h']*2.+i['cell_s_h']+i['t_PCM']*2.+i['t_OHP']) # stacks have vertically stacked bars, driven by cell, pad, and OHP height/thickness
+
 
     def compute_partials(self, inputs, J):
         pass #ToDo once calculations are complete
@@ -69,28 +73,29 @@ class pcmSize(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('frame_mass', 10, units='g', desc='frame mass per cell')
-        self.add_input('LH_PCM', 190., units='J/g', desc='Latent Heat of the Phase change material')
-        self.add_input('rho_PCM', 190., units='kg/m**3', desc='Density of the Phase change material')
+        self.add_input('frame_mass', 0.01, units='kg', desc='frame mass per cell')
+        self.add_input('LH_PCM', 190., units='kJ/kg', desc='Latent Heat of the Phase change material')
+        self.add_input('rho_PCM', 900., units='kg/m**3', desc='Density of the Phase change material')
         self.add_input('n_cells', 320, desc='number of cells')
         self.add_input('ext_cooling', 0, units='W', desc='external cooling')
-        self.add_input('missionJ', 1200, units='J', desc='Energy rejected in a normal mission')
+        self.add_input('missionJ', 1.2, units='kJ', desc='Energy rejected in a normal mission per cell')
         self.add_input('frac_absorb', 1.0, desc='fraction of energy absorbed during runaway')
-        self.add_input('runawayJ', 48000, units='J', desc='Runaway heat of a 18650 battery')
+        self.add_input('runawayJ', 48.0, units='kJ', desc='Runaway heat of a 18650 battery')
         self.add_input('cell_area', 0.059*2*0.0571, units='m**2', desc='cell area')
-        self.add_input('n_modules', 1, desc='number of modules')
-        self.add_input('n_cpm', 8, desc='number of cells per module')
+        self.add_input('n_bps', 1, desc='number of bars per stack')
+        self.add_input('n_cpb', 8, desc='number of cells per bar')
         self.add_input('n_stacks', 40, desc='number of stacks')
 
-        self.add_output('t_PCM', desc='PCM thickness')
+        self.add_output('t_PCM', units='mm', desc='PCM thickness')
         self.add_output('k_PCM', desc='PCM pad conductivity')
-        self.add_output('mass_PCM', units='kg', desc='Total Pack PCM mass')
+        self.add_output('PCM_bar_mass', units='kg', desc='Bar PCM mass')
+        self.add_output('PCM_tot_mass', units='kg', desc='Total Pack PCM mass')
 
 
     def compute(self, inputs, outputs):
 
-        n_modules = inputs['n_modules']
-        n_cpm = inputs['n_cpm']
+        n_bps = inputs['n_bps']
+        n_cpb = inputs['n_cpb']
         n_stacks = inputs['n_stacks']
         n_cells = inputs['n_cells']
         rho_PCM = inputs['rho_PCM']
@@ -102,8 +107,9 @@ class pcmSize(om.ExplicitComponent):
         cell_area = inputs['cell_area']
 
 
-        outputs['mass_PCM'] = n_modules*n_stacks*runawayJ*frac_absorb/LH + missionJ/LH - ext_cooling
-        outputs['t_PCM'] = outputs['mass_PCM']/(rho_PCM*n_cells*cell_area)
+        outputs['PCM_bar_mass'] = (runawayJ*frac_absorb + n_cpb*missionJ - ext_cooling)/LH
+        outputs['t_PCM'] = outputs['PCM_bar_mass']/(rho_PCM*n_cpb*cell_area)
+        outputs['PCM_tot_mass'] = outputs['PCM_bar_mass']*n_bps*n_cpb
 
 
     def compute_partials(self, inputs, J):
@@ -118,9 +124,9 @@ class ohpSize(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
         # inputs
-        self.add_input('frame_mass', 10, units='g', desc='frame mass per cell')
-        self.add_input('cell_area', 0.059*2*0.0571, units='m**2', desc='cell area')
-        self.add_input('runawayJ', 48000, units='J', desc='Runaway heat of a 18650 battery')
+        self.add_input('frame_mass', 0.01, units='kg', desc='frame mass per cell')
+        self.add_input('cell_area', 0.102*0.0571, units='m**2', desc='cell area')
+        self.add_input('runawayJ', 48.0, units='kJ', desc='Runaway heat of a 18650 battery')
         self.add_input('dur', units='s', desc='runaway event duration')
         self.add_input('n_cells', 320, desc='number of cells')
 
@@ -148,11 +154,11 @@ class packMass(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('mass_PCM', units='kg', desc='total pack PCM mass') 
+        self.add_input('PCM_tot_mass', units='kg', desc='total pack PCM mass') 
         self.add_input('mass_OHP', units='kg', desc='total pack OHP mass')
         self.add_input('frame_mass', units='kg', desc='frame mass per cell')
         self.add_input('n_cells', desc='number of cells')
-        self.add_input('cell_mass', units='kg', desc='individual cell mass')
+        self.add_input('cell_mass', 0.0316*2, units='kg', desc='individual cell mass')
         self.add_input('ext_cool_mass', units='kg', desc='mass from external cooling')
 
         self.add_output('p_mass', desc='inactive pack mass')
@@ -161,7 +167,7 @@ class packMass(om.ExplicitComponent):
 
     def compute(self,i,o):
 
-        o['p_mass'] = i['mass_PCM'] + i['mass_OHP'] + i['frame_mass']*i['n_cells'] + i['ext_cool_mass']
+        o['p_mass'] = i['PCM_tot_mass'] + i['mass_OHP'] + i['frame_mass']*i['n_cells'] + i['ext_cool_mass']
         o['tot_mass'] = o['p_mass'] + i['cell_mass']*i['n_cells']
         o['mass_frac'] = o['p_mass']/o['tot_mass']
 
@@ -206,6 +212,15 @@ if __name__ == "__main__":
     model = p.model
     nn = 1
 
+    record_file = 'geometry.sql'
+    p.add_recorder(om.SqliteRecorder(record_file))
+    p.recording_options['includes'] = ['*']
+    p.recording_options['record_objectives'] = True
+    p.recording_options['record_constraints'] = True
+    p.recording_options['record_desvars'] = True
+    p.recording_options['record_inputs'] = True
+
+
     model.add_subsystem('sizing', SizingGroup(num_nodes=nn), promotes=['*'])
     #model.add_design_var('sizing.L', lower=-1, upper=1)
     #model.add_objective('OD1.Eff')
@@ -215,26 +230,28 @@ if __name__ == "__main__":
     #p.set_val('DESIGN.rot_ir' , 60)
 
     p.run_model()
+    p.record('final') #trigger problem record (or call run_driver if it's attached to the driver)
 
     # p.run_driver()
     # p.cleanup()
 
+    model.list_inputs(prom_name=True)
     model.list_outputs(prom_name=True)
     # p.check_partials(compact_print=True, method='cs')
 
     print("num of cells: ", p['n_cells'])
     print("flux: ", p['flux'])
-    print("PCM mass: ", p['mass_PCM'])
+    print("PCM mass: ", p['PCM_tot_mass'])
     print("PCM thickness (mm): ", p['t_PCM'])
     print("OHP mass: ", p['mass_OHP'])
     print("packaging mass: ", p['p_mass'])
     print("total mass: ", p['tot_mass'])
     print("package mass fraction: ", p['mass_frac'])
-    print("pack energy density: ", p['energy']/(p['tot_mass']/1000.))
-    print("cell energy density: ", (p['q_max'] * p['v_n_c']) / (p['cell_mass']/1000.))
+    print("pack energy density: ", p['energy']/(p['tot_mass']))
+    print("cell energy density: ", (p['q_max'] * p['v_n_c']) / (p['cell_mass']))
     print("pack energy (kWh): ", p['energy']/1000.)
     print("pack cost ($K): ", p['n_cells']*0.4)
-    #print("overall pack dimensions: %.3f  ft x %.3f ft x %.3f ft" % (cell_l*s_h*n_cpm*3.28, stack_h*s_v*n_stacks*3.28, cell_w*s_h*2*3.28))
+    #print("overall pack dimensions: %.3f  ft x %.3f ft x %.3f ft" % (cell_l*s_h*n_cpb*3.28, stack_h*s_v*n_stacks*3.28, cell_w*s_h*2*3.28))
 
     #from terminal run:
     #openmdao n2 PCM_size.py
@@ -242,15 +259,15 @@ if __name__ == "__main__":
 
 
 # # Starting with copper foam and Eicosane
-# n_modules = 1 # arches
-# n_cpm = 8 # cells per module
+# n_bps = 1 # arches
+# n_cpb = 8 # cells per module
 # n_stacks = 40 # stacks
 # n_stacks_show = 3
 # s_h = 1.1 # horizontal spacing
 # s_v = 1.3 # vertical spacing
 # s_h2 = ((s_h-1)/2 +1)
 
-# n_cells = n_modules*n_cpm*n_stacks*4 # number of prismatic cells
+# n_cells = n_bps*n_cpb*n_stacks*4 # number of prismatic cells
 # frame_mass = 10 # grams, frame mass per cell
 # k_pcm = 3.06 # W/m*K, Conductivity of Eicosane with copper foam
 # LH = 190 # J/g, Latent Heat of Eicosane
