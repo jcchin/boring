@@ -20,11 +20,11 @@ class tempODE(om.ExplicitComponent):
         # Inputs
         self.add_input('K', val=0.03*np.ones(nn), desc='insulation conductivity', units='W/m*K') #static
         self.add_input('A', val=.102*.0003*np.ones(nn), desc='area', units='m**2') #static
-        self.add_input('d', val=0.003*np.ones(nn), desc='insulation thickness', units='m') #static
+        self.add_input('d', val=0.03*np.ones(nn), desc='insulation thickness', units='m') #static
         self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg') #static
-        self.add_input('Cp', val=0.03*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
-        self.add_input('Th', val=900.*np.ones(nn), desc='hot side temp', units='K') #static
-        self.add_input('T', val=20.*np.ones(nn), desc='cold side temp', units='K')
+        self.add_input('Cp', val=3.56*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
+        self.add_input('Th', val=773.*np.ones(nn), desc='hot side temp', units='K') #static
+        self.add_input('T', val=293.*np.ones(nn), desc='cold side temp', units='K')
 
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
@@ -73,13 +73,13 @@ phase.add_state('T', rate_source=tempODE.states['T']['rate_source'],
                 units=tempODE.states['T']['units'],
                 fix_initial=True, fix_final=True, solve_segments=False)
 
-phase.add_boundary_constraint('T', loc='final', units='K', upper=60, lower=20, shape=(1,))
-phase.add_parameter('d', val=0.001, opt=True, lower=0.00001, upper=0.1, units='m')
-phase.add_objective('d', loc='final',scaler=1)
+phase.add_boundary_constraint('T', loc='final', units='K', upper=333, lower=293, shape=(1,))
+phase.add_parameter('d', val=0.001, opt=True, lower=0.001, upper=0.5, units='m')
+phase.add_objective('T', loc='final',scaler=1)
 p.model.linear_solver = om.DirectSolver()
 p.setup()
 p['traj.phase0.t_initial'] = 0.0
-p['traj.phase0.states:T'] = phase.interpolate(ys=[20, 60], nodes='state_input')
+p['traj.phase0.states:T'] = phase.interpolate(ys=[293, 333], nodes='state_input')
 dm.run_problem(p)
 exp_out = traj.simulate()
 plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:T','time (s)','temp (K)')],
