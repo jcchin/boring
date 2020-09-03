@@ -8,9 +8,6 @@ from dymos.examples.plotting import plot_results
 
 class tempODE(om.ExplicitComponent):
 
-    states = {'T': {'rate_source': 'Tdot', 'units': 'K'}}
-    parameters = {'d': {'units': 'm'}}
-
     def initialize(self):
         self.options.declare('num_nodes', types=int)
 
@@ -30,15 +27,16 @@ class tempODE(om.ExplicitComponent):
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
 
         # Setup partials
-        arange = np.arange(self.options['num_nodes'])
-        c = np.zeros(self.options['num_nodes'])
-        self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) #static
-        self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) #static
-        self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) #static
-        self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) #static
-        self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) #static
-        self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
-        self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
+        # arange = np.arange(self.options['num_nodes'])
+        # c = np.zeros(self.options['num_nodes'])
+        # self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) #static
+        # self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
+        # self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
+        self.declare_partials(of='*', wrt='*', method='cs')
 
     def compute(self, i, o):
 
@@ -46,41 +44,49 @@ class tempODE(om.ExplicitComponent):
         dT_denom = i['m']*i['Cp']
         o['Tdot'] = dT_num/dT_denom
 
-    def compute_partials(self, i, partials):
-
-        partials['Tdot','T'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
-        partials['Tdot','d']  = i['K']*i['A']*(i['Th']-i['T'])/(i['m']*i['Cp']*i['d']**2)
-        partials['Tdot','K']  = i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
-        partials['Tdot','A']  = i['K']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
-        partials['Tdot','m']  = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['Cp']*i['m']**2)
-        partials['Tdot','Cp'] = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp']**2)
-
+    # def compute_partials(self, i, partials):
+    #
+    #     partials['Tdot','T'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
+    #     partials['Tdot','d']  = i['K']*i['A']*(i['Th']-i['T'])/(i['m']*i['Cp']*i['d']**2)
+    #     partials['Tdot','K']  = i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+    #     partials['Tdot','A']  = i['K']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+    #     partials['Tdot','m']  = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['Cp']*i['m']**2)
+    #     partials['Tdot','Cp'] = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp']**2)
 
 
 p = om.Problem(model=om.Group())
 p.driver = om.ScipyOptimizeDriver()
+p.driver = om.pyOptSparseDriver(optimizer='SLSQP')
+# p.driver.opt_settings['iSumm'] = 6
 p.driver.declare_coloring()
 
 traj = p.model.add_subsystem('traj', dm.Trajectory())
 
 phase = traj.add_phase('phase0',
                        dm.Phase(ode_class=tempODE,
-                                transcription=dm.GaussLobatto(num_segments=10)))
+                                transcription=dm.GaussLobatto(num_segments=20, order=3, compressed=False)))
 
-phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(45, 45))
+phase.set_time_options(fix_initial=True, fix_duration=True)
 
-phase.add_state('T', rate_source=tempODE.states['T']['rate_source'],
-                units=tempODE.states['T']['units'],
-                fix_initial=True, fix_final=True, solve_segments=False)
+phase.add_state('T', rate_source='Tdot', units='K', ref=333.15, defect_ref=333.15,
+                fix_initial=True, fix_final=False, solve_segments=False)
 
-phase.add_boundary_constraint('T', loc='final', units='K', upper=333, lower=293, shape=(1,))
-phase.add_parameter('d', val=0.001, opt=True, lower=0.001, upper=0.5, units='m')
-phase.add_objective('T', loc='final',scaler=1)
+
+phase.add_boundary_constraint('T', loc='final', units='K', upper=333.15, lower=293.15, shape=(1,))
+phase.add_parameter('d', opt=True, lower=0.001, upper=0.5, val=0.001, units='m', ref0=0, ref=1)
+phase.add_objective('d', loc='final', ref=1)
 p.model.linear_solver = om.DirectSolver()
 p.setup()
 p['traj.phase0.t_initial'] = 0.0
-p['traj.phase0.states:T'] = phase.interpolate(ys=[293, 333], nodes='state_input')
+p['traj.phase0.t_duration'] = 45
+p['traj.phase0.states:T'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
+p['traj.phase0.parameters:d'] = 0.001
+
+p.run_model()
 dm.run_problem(p)
+
+
+
 exp_out = traj.simulate()
 plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:T','time (s)','temp (K)')],
              title='Temps', p_sol=p, p_sim=exp_out)
@@ -96,14 +102,14 @@ plt.show()
 # def dT_calc(Ts,t):
 
 #     Tf = Ts[0]
-#     T = Ts[1]
+#     Tc = Ts[1]
 #     K = 0.03 # W/mk
 #     A = .102*.0003 # m^2
 #     d = 0.003 #m
 #     m = 0.06 #kg
 #     Cp = 3.58 #kJ/kgK
 
-#     dT_num = K*A*(Tf-T)/d
+#     dT_num = K*A*(Tf-Tc)/d
 #     dT_denom = m*Cp
 
 #     return [0, (dT_num/dT_denom)]
