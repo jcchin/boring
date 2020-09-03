@@ -24,7 +24,7 @@ class tempODE(om.ExplicitComponent):
         self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg') #static
         self.add_input('Cp', val=0.03*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
         self.add_input('Th', val=900.*np.ones(nn), desc='hot side temp', units='K') #static
-        self.add_input('Tc', val=900.*np.ones(nn), desc='cold side temp', units='K')
+        self.add_input('T', val=20.*np.ones(nn), desc='cold side temp', units='K')
 
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
