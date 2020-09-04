@@ -85,7 +85,7 @@ p['traj.phase0.parameters:d'] = 0.001
 p.run_model()
 dm.run_problem(p)
 
-
+print(p['traj.phase0.parameters:d'])
 
 exp_out = traj.simulate()
 plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:T','time (s)','temp (K)')],
