@@ -2,12 +2,15 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import numpy as np
 import openmdao.api as om
+from openmdao.utils.assert_utils import assert_check_partials
+
 import dymos as dm
 from dymos.examples.plotting import plot_results
 
 
 class tempODE(om.ExplicitComponent):
-
+    """Calculate the temperature rise between cells with heat flux across the insulation thickness
+    """
     def initialize(self):
         self.options.declare('num_nodes', types=int)
 
@@ -27,16 +30,16 @@ class tempODE(om.ExplicitComponent):
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
 
         # Setup partials
-        # arange = np.arange(self.options['num_nodes'])
-        # c = np.zeros(self.options['num_nodes'])
-        # self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) #static
-        # self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) #static
-        # self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) #static
-        # self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) #static
-        # self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) #static
-        # self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
-        # self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
-        self.declare_partials(of='*', wrt='*', method='cs')
+        arange = np.arange(self.options['num_nodes'])
+        c = np.zeros(self.options['num_nodes'])
+        self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) 
+        self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) 
+        self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) 
+        self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) 
+        self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) 
+        self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
+        self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
+        #self.declare_partials(of='*', wrt='*', method='cs')
 
     def compute(self, i, o):
 
@@ -44,14 +47,15 @@ class tempODE(om.ExplicitComponent):
         dT_denom = i['m']*i['Cp']
         o['Tdot'] = dT_num/dT_denom
 
-    # def compute_partials(self, i, partials):
-    #
-    #     partials['Tdot','T'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
-    #     partials['Tdot','d']  = i['K']*i['A']*(i['Th']-i['T'])/(i['m']*i['Cp']*i['d']**2)
-    #     partials['Tdot','K']  = i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
-    #     partials['Tdot','A']  = i['K']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
-    #     partials['Tdot','m']  = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['Cp']*i['m']**2)
-    #     partials['Tdot','Cp'] = i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp']**2)
+    def compute_partials(self, i, partials):
+    
+        partials['Tdot','T'] = -i['K']*i['A']/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','K']  = i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','A']  = i['K']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','Th'] = i['K']*i['A']/(i['d']*i['m']*i['Cp'])
+        partials['Tdot','d']  = -i['K']*i['A']*(i['Th']-i['T'])/(i['m']*i['Cp']*i['d']**2)
+        partials['Tdot','m']  = -i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['Cp']*i['m']**2)
+        partials['Tdot','Cp'] = -i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp']**2)
 
 
 p = om.Problem(model=om.Group())
@@ -83,6 +87,10 @@ p['traj.phase0.states:T'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_
 p['traj.phase0.parameters:d'] = 0.001
 
 p.run_model()
+# cpd = p.check_partials(method='cs', compact_print=True)
+# assert_check_partials(cpd)
+# quit()
+
 dm.run_problem(p)
 
 print(p['traj.phase0.parameters:d'])
@@ -96,6 +104,7 @@ plt.show()
 
 
 
+# Vanilla python approach to the ODE integration, no optimization
 # t = np.linspace(0, 45, 101)
 
 
