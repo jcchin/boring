@@ -18,13 +18,13 @@ class tempODE(om.ExplicitComponent):
         nn = self.options['num_nodes']
 
         # Inputs
-        self.add_input('K', val=0.03*np.ones(nn), desc='insulation conductivity', units='W/m*K') #static
-        self.add_input('A', val=.102*.0003*np.ones(nn), desc='area', units='m**2') #static
-        self.add_input('d', val=0.03*np.ones(nn), desc='insulation thickness', units='m') #static
-        self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg') #static
-        self.add_input('Cp', val=3.56*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K') #static
-        self.add_input('Th', val=773.*np.ones(nn), desc='hot side temp', units='K') #static
-        self.add_input('T', val=293.*np.ones(nn), desc='cold side temp', units='K')
+        self.add_input('K', val=0.03*np.ones(nn), desc='insulation conductivity', units='W/m*K')
+        self.add_input('A', val=.102*.0003*np.ones(nn), desc='area', units='m**2')
+        self.add_input('d', val=0.03*np.ones(nn), desc='insulation thickness', units='m')
+        self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg')
+        self.add_input('Cp', val=3.56*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K')
+        self.add_input('Th', val=773.*np.ones(nn), desc='hot side temp', units='K')
+        self.add_input('T', val=373.*np.ones(nn), desc='cold side temp', units='K')
 
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
@@ -39,7 +39,7 @@ class tempODE(om.ExplicitComponent):
         self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) 
         self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
         self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
-        #self.declare_partials(of='*', wrt='*', method='cs')
+        #self.declare_partials(of='*', wrt='*', method='cs') # use this if you don't provide derivatives
 
     def compute(self, i, o):
 
@@ -57,6 +57,11 @@ class tempODE(om.ExplicitComponent):
         partials['Tdot','m']  = -i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['Cp']*i['m']**2)
         partials['Tdot','Cp'] = -i['K']*i['A']*(i['Th']-i['T'])/(i['d']*i['m']*i['Cp']**2)
 
+
+'''
+Use Dymos to minimize the thickness of the insulator,
+while still maintaining a temperature below 100degC after a 45 second transient
+'''
 
 p = om.Problem(model=om.Group())
 p.driver = om.ScipyOptimizeDriver()
@@ -87,7 +92,7 @@ p['traj.phase0.states:T'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_
 p['traj.phase0.parameters:d'] = 0.001
 
 p.run_model()
-# cpd = p.check_partials(method='cs', compact_print=True)
+# cpd = p.check_partials(method='cs', compact_print=True) #check partial derivatives
 # assert_check_partials(cpd)
 # quit()
 
@@ -95,7 +100,7 @@ dm.run_problem(p)
 
 print(p['traj.phase0.parameters:d'])
 
-exp_out = traj.simulate()
+exp_out = traj.simulate() # this is equivalent to the scipy odeint function, with some extra features
 plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:T','time (s)','temp (K)')],
              title='Temps', p_sol=p, p_sim=exp_out)
 plt.show()

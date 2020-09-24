@@ -3,7 +3,7 @@ This file sizes the battery pack structure
 """
 
 import openmdao.api as om
-
+from src.mass import packMass
 
 #                        Insulation 
 #         --------- --------- --------- --------- 
@@ -126,8 +126,8 @@ class ohpSize(om.ExplicitComponent):
         # inputs
         self.add_input('frame_mass', 0.01, units='kg', desc='frame mass per cell')
         self.add_input('cell_area', 0.102*0.0571, units='m**2', desc='cell area')
-        self.add_input('runawayJ', 48.0, units='kJ', desc='Runaway heat of a 18650 battery')
-        self.add_input('dur', units='s', desc='runaway event duration')
+        self.add_input('runawayJ', 48., units='kJ', desc='Runaway heat of a 18650 battery')
+        self.add_input('dur', 45.0, units='s', desc='runaway event duration')
         self.add_input('n_cells', 320, desc='number of cells')
 
         # outputs
@@ -137,39 +137,13 @@ class ohpSize(om.ExplicitComponent):
 
     def compute(self, i, o):
 
-        o['flux'] = i['runawayJ']/i['dur'] #heat flux during runaway
+        o['flux'] = i['runawayJ']*1000/i['dur'] #heat flux during runaway
         o['Areal_weight'] = 0.3866*o['flux']+1.7442 # NH3   kg/m^2
         o['mass_OHP'] = o['Areal_weight']*i['cell_area']*i['n_cells']/2
 
     def compute_partials(self, inputs, J):
         pass #ToDo once calculations are complete
 
-
-class packMass(om.ExplicitComponent):
-    """sum all individual masses to estimate total mass and mass fractions"""
-
-    def initialize(self):
-        self.options.declare('num_nodes', types=int) #argument for eventual dymos transient model
-
-    def setup(self):
-        nn = self.options['num_nodes']
-
-        self.add_input('PCM_tot_mass', units='kg', desc='total pack PCM mass') 
-        self.add_input('mass_OHP', units='kg', desc='total pack OHP mass')
-        self.add_input('frame_mass', units='kg', desc='frame mass per cell')
-        self.add_input('n_cells', desc='number of cells')
-        self.add_input('cell_mass', 0.0316*2, units='kg', desc='individual cell mass')
-        self.add_input('ext_cool_mass', units='kg', desc='mass from external cooling')
-
-        self.add_output('p_mass', desc='inactive pack mass')
-        self.add_output('tot_mass', desc='total pack mass')
-        self.add_output('mass_frac', desc='fraction of mass not fromt the battery cells')
-
-    def compute(self,i,o):
-
-        o['p_mass'] = i['PCM_tot_mass'] + i['mass_OHP'] + i['frame_mass']*i['n_cells'] + i['ext_cool_mass']
-        o['tot_mass'] = o['p_mass'] + i['cell_mass']*i['n_cells']
-        o['mass_frac'] = o['p_mass']/o['tot_mass']
 
 
 class SizingGroup(om.Group): 

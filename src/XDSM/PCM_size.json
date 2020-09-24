@@ -1,0 +1,30 @@
+{
+  "inputs": [
+    "L",
+    "W",
+    "energy",
+    "cell_w",
+    "ext_cool_mass",
+    "LH_PCM",
+    "dur",
+    "runawayJ",
+    "rho_PCM",
+    "t_OHP",
+    "cell_mass",
+    "frac_absorb",
+    "ext_cooling",
+    "cell_l",
+    "cell_s_h",
+    "cell_s_l",
+    "q_max",
+    "cell_h",
+    "frame_mass",
+    "cell_s_w",
+    "missionJ",
+    "v_n_c"
+  ],
+  "outputs": [
+    "PCM_tot_mass",
+    "mass_frac"
+  ]
+}

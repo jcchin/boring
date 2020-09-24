@@ -3,7 +3,10 @@ from distutils.core import setup
 setup(name='boring_battery',
       version='1.0.0',
       packages=[
-          'src'
+          'src',
+          'test',
+          'util',
+          'XDSM'
       ],
 
       install_requires=[
