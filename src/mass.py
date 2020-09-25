@@ -16,7 +16,6 @@ class MassGroup(om.Group):
                            promotes_outputs=['*'])
 
 
-
         self.add_subsystem(name='mass',
                            subsys=packMass(num_nodes=nn),
                            promotes_inputs=['*'],

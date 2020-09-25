@@ -27,7 +27,6 @@ x.add_system('TMS', func, ['TMS'])
 x.connect('Optimizer','cell', [r'energy_{required}',r'eta_{batt}','I_{batt}'])
 
 
-
 # Cell
 x.add_input('cell', ['mass_{cell}','voltage_{low,cell}','voltage_{nom,cell}','dischargeRate_{cell}','Q_{max}','V_{batt}'])
 x.connect('cell', 'PCM', ['n_{series}','n_{parallel}'])
