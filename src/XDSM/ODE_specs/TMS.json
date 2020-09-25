@@ -1,0 +1,9 @@
+{
+  "inputs": [
+    "T_{cold}",
+    "A_{cold}"
+  ],
+  "outputs": [
+    "Q_{rej}"
+  ]
+}

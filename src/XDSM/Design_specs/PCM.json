@@ -1,0 +1,9 @@
+{
+  "inputs": [
+    "n_{parallel}",
+    "n_{series}"
+  ],
+  "outputs": [
+    "mass_{PCM}"
+  ]
+}

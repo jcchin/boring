@@ -63,3 +63,30 @@ class FHP(om.ExplicitComponent):
         o['fhp_mass'] = o['n_pipes']*o['p_mass'] 
 
 
+class OHP(om.ExplicitComponent):
+    """ Sizing the Heat Pipe """
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+
+    def setup(self):
+        nn = self.options['num_nodes']
+        # inputs
+        self.add_input('frame_mass', 0.01, units='kg', desc='frame mass per cell')
+        self.add_input('cell_area', 0.102*0.0571, units='m**2', desc='cell area')
+        self.add_input('runawayJ', 48., units='kJ', desc='Runaway heat of a 18650 battery')
+        self.add_input('dur', 45.0, units='s', desc='runaway event duration')
+        self.add_input('n_cells', 320, desc='number of cells')
+
+        # outputs
+        self.add_output('flux', units='W', desc='Heat Load through Heat Pipe')
+        self.add_output('mass_OHP', units='kg', desc='Total Pack OHP mass')
+        self.add_output('Areal_weight', units='kg/m**2', desc='Oscillating Heat Pipe Areal Weight')
+
+    def compute(self, i, o):
+
+        o['flux'] = i['runawayJ']*1000/i['dur'] #heat flux during runaway
+        o['Areal_weight'] = 0.3866*o['flux']+1.7442 # NH3   kg/m^2
+        o['mass_OHP'] = o['Areal_weight']*i['cell_area']*i['n_cells']/2
+
+    def compute_partials(self, inputs, J):
+        pass #ToDo once calculations are complete

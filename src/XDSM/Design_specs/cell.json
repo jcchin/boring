@@ -1,0 +1,18 @@
+{
+  "inputs": [
+    "eta_{batt}",
+    "V_{batt}",
+    "I_{batt}",
+    "energy_{required}",
+    "voltage_{low,cell}",
+    "voltage_{nom,cell}",
+    "dischargeRate_{cell}",
+    "Q_{max}",
+    "mass_{cell}"
+  ],
+  "outputs": [
+    "mass_{cell}",
+    "n_{parallel}",
+    "n_{series}"
+  ]
+}
