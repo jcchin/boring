@@ -4,7 +4,7 @@ setup(name='boring_battery',
       version='1.0.0',
       packages=[
           'src',
-          'example'
+          'examples'
       ],
 
       install_requires=[
