@@ -44,10 +44,10 @@ class FHP(om.ExplicitComponent):
         self.add_input('d_init', val=12, units='mm', desc='initial diameter of the heat pipe before flattening') 
         self.add_input('ref_len', val=240, units='mm', desc='reference length for the regression')
         self.add_input('tot_len', val=600, units='mm', desc='total heat pipe length')
-        self.add_input('flux', val=50, units='W', desc='required heat flux')
+        self.add_input('req_flux', val=50, units='W', desc='required heat flux')
         self.add_input('rho_FHP', val=200, units='kg/m**3', desc='bulk density of the flat heat pipe')
 
-        self.add_input('p_flux', units='W', desc='single FHP flux capability')
+        self.add_output('p_flux', units='W', desc='single FHP flux capability')
         self.add_output('p_mass', units='kg', desc='mass of a single pipe')
         self.add_output('n_pipes')
         self.add_output('fhp_mass')
@@ -59,7 +59,7 @@ class FHP(om.ExplicitComponent):
         
         o['p_flux'] = (0.7335*D**2 - 2.3294*D + 8.7876)/L_scale
         o['p_mass'] = i['tot_len']*pi/4.*i['d_init']**2
-        o['n_pipes'] = i['req_flux']/p_flux
+        o['n_pipes'] = i['req_flux']/o['p_flux']
         o['fhp_mass'] = o['n_pipes']*o['p_mass'] 
 
 

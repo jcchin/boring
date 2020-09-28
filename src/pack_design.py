@@ -40,7 +40,7 @@ class packSize(om.ExplicitComponent):
         self.add_input('v_n_c', 3.4, units='V', desc='nominal cell voltage')
         self.add_input('q_max', 7., units='A*h', desc='nominal cell amp-hr capacity')
         self.add_input('t_PCM', 0.006, units='m', desc='PCM pad thickness')
-        self.add_input('t_OHP', 0.006, units='m', desc='OHP thickness')
+        self.add_input('t_HP', 0.006, units='m', desc='OHP thickness')
         
 
         self.add_output('cell_area', units='m**2', desc='cell area')
@@ -59,7 +59,7 @@ class packSize(om.ExplicitComponent):
         o['n_cpb'] = 2.*i['L']/(i['cell_w']+i['cell_s_w'])  # bars have cells side-by-side, across their width (like a candy bar)
         o['n_bps'] = i['W']/(i['cell_l']+i['cell_s_l']) # packs have stacks, each the width of a cell length
         o['n_stacks'] = o['n_cells']/(o['n_cpb']*o['n_bps']) # the number of stacks is driven by the max cells that can be fit into bars and stacks
-        o['H'] = o['n_stacks']*(i['cell_h']*2.+i['cell_s_h']+i['t_PCM']*2.+i['t_OHP']) # stacks have vertically stacked bars, driven by cell, pad, and OHP height/thickness
+        o['H'] = o['n_stacks']*(i['cell_h']*2.+i['cell_s_h']+i['t_PCM']*2.+i['t_HP']) # stacks have vertically stacked bars, driven by cell, pad, and OHP height/thickness
 
 
     def compute_partials(self, inputs, J):

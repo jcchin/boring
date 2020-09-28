@@ -1,10 +1,11 @@
 {
   "inputs": [
-    "mass_{cell}",
     "mass_{HP}",
-    "mass_{PCM}"
+    "mass_{PCM}",
+    "mass_{cell}"
   ],
   "outputs": [
+    "t_{wall}",
     "mass_{battery}"
   ]
 }

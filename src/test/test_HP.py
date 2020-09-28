@@ -7,32 +7,38 @@ from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from src.util.spec_test import assert_match_spec
-from src.pack_design import SizingGroup
+from src.heat_pipe import OHP, FHP
 
 
-class TestPCM(unittest.TestCase):
+class TestHP(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('pcm', subsys=SizingGroup(num_nodes=1))
+        p1.model.add_subsystem('ohp', subsys=OHP(num_nodes=1))
+        p1.model.add_subsystem('fhp', subsys=FHP(num_nodes=1))
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()
+        p1.model.list_outputs(values=True, prom_name=True)
 
  
-    def test_num_cells(self):
+    def test_OHP(self):
 
-        assert_near_equal(self.prob.get_val('pcm.n_cells'), 2941.17647059, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('ohp.mass_OHP'), 385.90453402, tolerance=1.0E-5)
+
+    def test_FHP(self):
+
+        assert_near_equal(self.prob.get_val('fhp.fhp_mass'), 1066.66666667, tolerance=1.0E-5)
 
     # def test_partials(self):
 
     #     data = self.prob.check_partials(out_stream=None, method='cs')
     #     assert_check_partials(data, atol=1e-10, rtol=1e-10)
 
-    def test_io_spec(self): 
+    def test_FHP_io_spec(self): 
 
-        subsystem = SizingGroup(num_nodes=1)
-        assert_match_spec(subsystem, 'Design_specs/PCM.json')
+        subsystem = FHP(num_nodes=1)
+        assert_match_spec(subsystem, 'Design_specs/heat_pipe.json')
 
 
 if __name__ =='__main__':

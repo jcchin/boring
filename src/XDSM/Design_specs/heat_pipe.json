@@ -1,0 +1,11 @@
+{
+  "inputs": [
+    "d_{init}",
+    "L_{pack}",
+    "rho_{HP}"
+  ],
+  "outputs": [
+    "mass_{HP}",
+    "t_{HP}"
+  ]
+}

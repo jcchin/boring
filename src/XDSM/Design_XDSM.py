@@ -18,27 +18,34 @@ x = XDSM()
 # spec_name = 'xyz' (changes the spec name from defalt 'e_comp' to 'xyz')
 x.add_system('Optimizer', opt, ['Optimizer'], spec_name=False)
 x.add_system('e_solver', solver, ['Solver'], spec_name=False)
-x.add_system('cell', func, ['cell'])
+x.add_system('pack_design', func, ['Pack'])
 x.add_system('PCM', func, ['PCM'])
-x.add_system('HP', func, ['HP'])
+x.add_system('heat_pipe', func, ['Heat pipe'])
 x.add_system('Struct', func, ['Struct'])
-x.add_system('TMS', func, ['TMS'])
-
-x.connect('Optimizer','cell', [r'energy_{required}',r'eta_{batt}','I_{batt}'])
 
 
-# Cell
-x.add_input('cell', ['mass_{cell}','voltage_{low,cell}','voltage_{nom,cell}','dischargeRate_{cell}','Q_{max}','V_{batt}'])
-x.connect('cell', 'PCM', ['n_{series}','n_{parallel}'])
-x.connect('cell', 'Struct','mass_{cell}')
-x.add_output('cell', ['n_{series}','n_{parallel}'], side='right')
+# Optimizer
+x.connect('Optimizer','pack_design', ['energy_{required}','eta_{batt}','I_{batt}'])
+
+
+# Pack Size
+x.add_input('pack_design', ['L_{pack}', 'W_{pack}','L_{cell}', 'W_{cell}', 'H_{cell}',
+            'mass_{cell}','voltage_{low,cell}','voltage_{nom,cell}','dischargeRate_{cell}','Q_{max}','V_{batt}'])
+x.connect('pack_design', 'PCM', ['n_{cpk}','n_{kps}'])
+x.connect('pack_design', 'Struct','mass_{cell}')
+x.add_output('pack_design', ['n_{series}','n_{parallel}'], side='right')
 
 # PCM
+x.connect('PCM', 'pack_design', 't_{PCM}')
 x.connect('PCM', 'Struct','mass_{PCM}')
 
 # HP
-x.connect('HP', 'Struct','mass_{HP}')
+x.add_input('heat_pipe', ['d_{init}','rho_{HP}', 'L_{pack}'])
+x.connect('heat_pipe', 'Struct','mass_{HP}')
+x.connect('heat_pipe', 'pack_design','t_{HP}')
 
+# Struct
+x.connect('Struct','pack_design','t_{wall}')
 
 
 # Connect Battery outputs to subsystems
