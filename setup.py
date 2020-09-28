@@ -3,10 +3,9 @@ from distutils.core import setup
 setup(name='boring_battery',
       version='1.0.0',
       packages=[
-          'src',
-          'examples'
+          'src'
       ],
-
+      py_modules=['examples']
       install_requires=[
         'openmdao>=2.0.0',
       ]
