@@ -3,7 +3,8 @@ from src.mass import packMass
 from src.heat_pipe import OHP
 from src.pack_design import packSize, pcmSize, SizingGroup
 
-class Example1():
+
+class Example1:
     
     def test_run():
         p = om.Problem()
