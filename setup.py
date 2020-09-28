@@ -5,7 +5,7 @@ setup(name='boring_battery',
       packages=[
           'src'
       ],
-      py_modules=['examples']
+      py_modules=['examples'],
       install_requires=[
         'openmdao>=2.0.0',
       ]
