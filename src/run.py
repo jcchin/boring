@@ -1,47 +1,55 @@
+import openmdao.api as om
+from src.mass import packMass
+from src.heat_pipe import OHP
+from src.pack_design import packSize, pcmSize, SizingGroup
 
 
+def test_run():
+    p = om.Problem()
+    model = p.model
+    nn = 1
+
+    record_file = 'geometry.sql'
+    p.add_recorder(om.SqliteRecorder(record_file))
+    p.recording_options['includes'] = ['*']
+    p.recording_options['record_objectives'] = True
+    p.recording_options['record_constraints'] = True
+    p.recording_options['record_desvars'] = True
+    p.recording_options['record_inputs'] = True
 
 
+    model.add_subsystem('sizing', SizingGroup(num_nodes=nn), promotes=['*'])
+    #model.add_design_var('sizing.L', lower=-1, upper=1)
+    #model.add_objective('OD1.Eff')
+
+    p.setup(force_alloc_complex=True)
+
+    #p.set_val('DESIGN.rot_ir' , 60)
+
+    p.run_model()
+    p.record('final') #trigger problem record (or call run_driver if it's attached to the driver)
+
+    # p.run_driver()
+    # p.cleanup()
+
+    model.list_inputs(prom_name=True)
+    model.list_outputs(prom_name=True)
+    # p.check_partials(compact_print=True, method='cs')
+
+    print("num of cells: ", p['n_cells'])
+    print("flux: ", p['flux'])
+    print("PCM mass: ", p['PCM_tot_mass'])
+    print("PCM thickness (mm): ", p['t_PCM'])
+    print("OHP mass: ", p['mass_OHP'])
+    print("packaging mass: ", p['p_mass'])
+    print("total mass: ", p['tot_mass'])
+    print("package mass fraction: ", p['mass_frac'])
+    print("pack energy density: ", p['energy']/(p['tot_mass']))
+    print("cell energy density: ", (p['q_max'] * p['v_n_c']) / (p['cell_mass']))
+    print("pack energy (kWh): ", p['energy']/1000.)
+    print("pack cost ($K): ", p['n_cells']*0.4)
 
 
+if __name__ == "__main__":
 
-# ODE I/O
-# self.promotes('interp_group', inputs=[('T_batt', 'T_{batt}')])
-# self.promotes('interp_group', inputs=['SOC'])
-# self.promotes('cell', inputs=[('U_Th', 'V_{thev}'), 
-#                              ('I_pack', 'I_{batt}'),
-#                              ('n_series','n_{series}'), 
-#                              ('n_parallel', 'n_{parallel}'),
-#                              ('Q_max','Q_{max}')])
-
-# #promote outputs to match XDSM markdown spec
-# self.promotes('cell', outputs=[('U_pack', 'V_{batt,actual}'),
-#                                ('dXdt:U_Th', 'dXdt:V_{thev}'),
-#                                ('dXdt:SOC', 'dXdt:SOC'),
-#                                ('Q_pack', 'Q_{batt}')])
-
-
-
-
-
-# static I/O
-# {
-#   "inputs": [
-#     "weightFrac_{case}",
-#     "energy_{required}",
-#     "voltage_{nom,cell}",
-#     "mass_{cell}",
-#     "Q_{max}",
-#     "I_{batt}",
-#     "dischargeRate_{cell}",
-#     "V_{batt}",
-#     "voltage_{low,cell}",
-#     "eta_{batt}"
-#   ],
-#   "outputs": [
-#     "C_{p,batt}",
-#     "n_{parallel}",
-#     "n_{series}",
-#     "mass_{battery}"
-#   ]
-# }
+    test_run()
