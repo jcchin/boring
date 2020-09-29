@@ -7,6 +7,8 @@ setup(name='boring_battery',
       install_requires=[
         'openmdao>=2.0.0',
         'dymos @ git+https://git@github.com/OpenMDAO/dymos',
-        'pyoptsparse @ git+https://github.com/mdolab/pyoptsparse'
+        'pyoptsparse @ git+https://github.com/mdolab/pyoptsparse',
+        'matplotlib',
+        'scipy'
       ]
 )
