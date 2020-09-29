@@ -53,6 +53,8 @@ class packMass(om.ExplicitComponent):
         o['tot_mass'] = o['p_mass'] + i['cell_mass']*i['n_cells']
         o['mass_frac'] = o['p_mass']/o['tot_mass']
 
+    def setup_partials(self, inputs, J):
+        self.declare_partials('*', '*', method='cs')
 
 class frameMass(om.ExplicitComponent):
     """Calculate the mass of the frame per cell"""
@@ -68,6 +70,9 @@ class frameMass(om.ExplicitComponent):
 
         # Outputs
         self.add_output('frame_mass', desc='inactive structural mass per cell', units='kg')
+    
+    def setup_partials(self, inputs, J):
+        self.declare_partials('*', '*', method='cs')
 
 
 class busMass(om.ExplicitComponent):
@@ -95,4 +100,6 @@ class busMass(om.ExplicitComponent):
         o['bar_mass'] = i['t_bar']*lead_area*i['rho_bar']
 
 
+    def setup_partials(self, inputs, J):
+        self.declare_partials('*', '*', method='cs')
 

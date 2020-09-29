@@ -62,6 +62,9 @@ class FHP(om.ExplicitComponent):
         o['n_pipes'] = i['req_flux']/o['p_flux']
         o['fhp_mass'] = o['n_pipes']*o['p_mass'] 
 
+    def setup_partials(self, inputs, J):
+        self.declare_partials('*', '*', method='cs')
+
 
 class OHP(om.ExplicitComponent):
     """ Sizing the Heat Pipe """
@@ -88,5 +91,5 @@ class OHP(om.ExplicitComponent):
         o['Areal_weight'] = 0.3866*o['flux']+1.7442 # NH3   kg/m^2
         o['mass_OHP'] = o['Areal_weight']*i['cell_area']*i['n_cells']/2
 
-    def compute_partials(self, inputs, J):
-        pass #ToDo once calculations are complete
+    def setup_partials(self, inputs, J):
+        self.declare_partials('*', '*', method='cs')

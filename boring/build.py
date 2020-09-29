@@ -16,9 +16,19 @@ class Build_Pack():
     '''
 
     p = om.Problem(model=om.Group())
+    model = p.model
+    nn = 1
     p.driver = om.ScipyOptimizeDriver()
     p.driver = om.pyOptSparseDriver(optimizer='SLSQP')
     # p.driver.opt_settings['iSumm'] = 6
+    #record_file = 'geometry.sql'
+    #p.add_recorder(om.SqliteRecorder(record_file))
+    #p.recording_options['includes'] = ['*']
+    #p.recording_options['record_objectives'] = True
+    #p.recording_options['record_constraints'] = True
+    #p.recording_options['record_desvars'] = True
+    #p.recording_options['record_inputs'] = True
+
     p.driver.declare_coloring()
 
     traj = p.model.add_subsystem('traj', dm.Trajectory())
@@ -38,25 +48,18 @@ class Build_Pack():
     phase.add_objective('d', loc='final', ref=1)
 
     model.add_subsystem('sizing', SizingGroup(num_nodes=nn), promotes=['*'])
+
+    p.model.connect('traj.phase0.timeseries.parameters:d','cell_s_w',src_indices=[-1]) #connect final value of d with cell_s_w
     #model.add_design_var('sizing.L', lower=-1, upper=1)
     #model.add_objective('OD1.Eff')
     p.model.linear_solver = om.DirectSolver()
+    p.setup(force_alloc_complex=True)
 
     p['traj.phase0.t_initial'] = 0.0
     p['traj.phase0.t_duration'] = 45
     p['traj.phase0.states:T'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
     p['traj.phase0.parameters:d'] = 0.001
-
-    nn = 1
-
-    record_file = 'geometry.sql'
-    p.add_recorder(om.SqliteRecorder(record_file))
-    p.recording_options['includes'] = ['*']
-    p.recording_options['record_objectives'] = True
-    p.recording_options['record_constraints'] = True
-    p.recording_options['record_desvars'] = True
-    p.recording_options['record_inputs'] = True
-    p.setup(force_alloc_complex=True)
+    
 
     #p.set_val('DESIGN.rot_ir' , 60)
 
@@ -67,7 +70,7 @@ class Build_Pack():
 
     dm.run_problem(p)
 
-    p.record('final') #trigger problem record (or call run_driver if it's attached to the driver)
+    #p.record('final') #trigger problem record (or call run_driver if it's attached to the driver)
 
     # p.run_driver()
     # p.cleanup()

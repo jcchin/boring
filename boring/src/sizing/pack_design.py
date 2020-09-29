@@ -4,8 +4,8 @@ This file sizes the battery pack structure
 
 import openmdao.api as om
 from openmdao.api import ArmijoGoldsteinLS, DirectSolver, NewtonSolver
-from boring.src.mass import packMass
-from boring.src.heat_pipe import OHP
+from boring.src.sizing.mass import packMass
+from boring.src.sizing.heat_pipe import OHP
 
 #                        Insulation 
 #         --------- --------- --------- --------- 
