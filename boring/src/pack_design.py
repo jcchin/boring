@@ -3,6 +3,7 @@ This file sizes the battery pack structure
 """
 
 import openmdao.api as om
+from openmdao.api import ArmijoGoldsteinLS, DirectSolver, NewtonSolver
 from boring.src.mass import packMass
 from boring.src.heat_pipe import OHP
 
@@ -19,6 +20,45 @@ from boring.src.heat_pipe import OHP
 #        | Battery | Battery | Battery | Battery |
 #         --------- --------- --------- ---------
 #                       Insulation 
+
+
+class SizingGroup(om.Group): 
+    
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+
+    def setup(self):
+        nn = self.options['num_nodes']
+
+        self.add_subsystem(name='pack',
+                           subsys=packSize(num_nodes=nn),
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
+
+        self.add_subsystem(name='pcm',
+                           subsys=pcmSize(num_nodes=nn),
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
+
+        self.add_subsystem(name='ohp',
+                           subsys=OHP(num_nodes=nn),
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
+
+        self.add_subsystem(name='mass',
+                           subsys=packMass(num_nodes=nn),
+                           promotes_inputs=['*'],
+                           promotes_outputs=['*'])
+
+
+        self.set_input_defaults('frame_mass', 0.01, units='kg')
+
+        self.nonlinear_solver = NewtonSolver(maxiter=30, atol=1e-10, rtol=1e-100)
+        self.nonlinear_solver.options['solve_subsystems'] = True
+        self.nonlinear_solver.options['max_sub_solves'] = 500
+        self.nonlinear_solver.linesearch = ArmijoGoldsteinLS()
+        self.linear_solver = DirectSolver()
+        self.nonlinear_solver.options['err_on_non_converge'] = True
 
 class packSize(om.ExplicitComponent):
     """ Sizing the Overall Size of the Battery Pack"""
@@ -62,8 +102,8 @@ class packSize(om.ExplicitComponent):
         o['H'] = o['n_stacks']*(i['cell_h']*2.+i['cell_s_h']+i['t_PCM']*2.+i['t_HP']) # stacks have vertically stacked bars, driven by cell, pad, and OHP height/thickness
 
 
-    def compute_partials(self, inputs, J):
-        pass #ToDo once calculations are complete
+    def setup_partials(self, inputs, J):
+        self.declare_partials('*', '*', method='cs')
 
 
 class pcmSize(om.ExplicitComponent):
@@ -113,41 +153,9 @@ class pcmSize(om.ExplicitComponent):
         outputs['PCM_tot_mass'] = outputs['PCM_bar_mass']*n_bps*n_cpb
 
 
-    def compute_partials(self, inputs, J):
-        pass #ToDo once calculations are complete
+    def setup_partials(self, inputs, J):
+        self.declare_partials('*', '*', method='cs')
 
-
-
-class SizingGroup(om.Group): 
-    
-    def initialize(self):
-        self.options.declare('num_nodes', types=int)
-
-    def setup(self):
-        nn = self.options['num_nodes']
-
-        self.add_subsystem(name='pack',
-                           subsys=packSize(num_nodes=nn),
-                           promotes_inputs=['*'],
-                           promotes_outputs=['*'])
-
-        self.add_subsystem(name='pcm',
-                           subsys=pcmSize(num_nodes=nn),
-                           promotes_inputs=['*'],
-                           promotes_outputs=['*'])
-
-        self.add_subsystem(name='ohp',
-                           subsys=OHP(num_nodes=nn),
-                           promotes_inputs=['*'],
-                           promotes_outputs=['*'])
-
-        self.add_subsystem(name='mass',
-                           subsys=packMass(num_nodes=nn),
-                           promotes_inputs=['*'],
-                           promotes_outputs=['*'])
-
-
-        self.set_input_defaults('frame_mass', 0.01, units='kg')
 
 
 
@@ -163,33 +171,6 @@ if __name__ == "__main__":
 
 
 # # Starting with copper foam and Eicosane
-# n_bps = 1 # arches
-# n_cpb = 8 # cells per module
-# n_stacks = 40 # stacks
-# n_stacks_show = 3
-# s_h = 1.1 # horizontal spacing
-# s_v = 1.3 # vertical spacing
-# s_h2 = ((s_h-1)/2 +1)
-
-# n_cells = n_bps*n_cpb*n_stacks*4 # number of prismatic cells
-# frame_mass = 10 # grams, frame mass per cell
-# k_pcm = 3.06 # W/m*K, Conductivity of Eicosane with copper foam
-# LH = 190 # J/g, Latent Heat of Eicosane
-# rho_pcm = 900 #kg/m^3
-# melt = 60 # degC, Metling Point of Eicosane
-# missionJ = 1200 #J, Energy rejected in a normal mission
-# runawayJ = 48000 # J, Runaway heat of a 18650 battery
-# frac_absorb = 1.0 # fraction of energy absorbed during runaway
-# dur = 45 # seconds, of runaway duration
-# v_n_c = 3.4 #  nominal voltage
-# q_max = 3.5*2. # A-h cells
-# cell_mass = 31.6*2. #g, cell mass Dimensions: 57mm x 50mm x 6.35mm
-# cell_w = 0.059*2. #m , (2.25")
-# cell_l = 0.0571 #m , (2.0")
-# cell_h = 0.00635 #m , (0.25")
-# cell_area = cell_w*cell_l # Dimensions: 2.25" x 2" x 0.25"
-# ext_cooling = 0 # W, external cooling
-# ext_cool_mass = 0 # g, mass of external cooling
 # #mass_OHP = 26 # g,  #2.5mm x 50mm x 250mm (< 270W) 0.2C/W
 # #https://amecthermasol.co.uk/datasheets/MHP-2550A-250A.pdf
 
