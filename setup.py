@@ -7,5 +7,5 @@ setup(name='boring_battery',
       install_requires=[
         'openmdao>=2.0.0',
       ],
-      dependency_links=['https://github.com/OpenMDAO/dymos/tarball/master']
+      dependency_links=['https://github.com/OpenMDAO/dymos/tarball/master#egg=package-1.0']
 )
