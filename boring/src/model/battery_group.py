@@ -16,8 +16,8 @@ Tarun Huria, Massimo Ceraolo, Javier Gazzarri, Robyn Jackey
 """
 
 from openmdao.api import Group
-from .cell_comp import CellComp
-from .reg_thevenin_interp_group import RegTheveninInterpGroup
+from boring.src.model.cell_comp import CellComp
+from boring.src.model.reg_thevenin_interp_group import RegTheveninInterpGroup
 
 import numpy as np
 

@@ -6,8 +6,8 @@ import numpy as np
 from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
-from aviary_quadrotor.test_util.spec_test import assert_match_spec, assert_match_vals
-from aviary_quadrotor.subsystems.battery.battery_statics import BatteryStatics, BatteryStaticsGroup
+from boring.util.spec_test import assert_match_spec, assert_match_vals
+from boring.src.model.battery_statics import BatteryStatics, BatteryStaticsGroup
 
 
 class TestBatteryStatics(unittest.TestCase):

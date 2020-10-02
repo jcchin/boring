@@ -3,8 +3,8 @@ from __future__ import print_function, division, absolute_import
 import unittest
 
 import numpy as np
-from aviary_quadrotor.subsystems.battery.reg_thevenin_interp_group import RegTheveninInterpGroup
-from aviary_quadrotor.subsystems.battery.maps.s18650_battery import battery
+from boring.src.model.reg_thevenin_interp_group import RegTheveninInterpGroup
+from boring.src.model.maps.s18650_battery import battery
 from numpy.testing import assert_almost_equal
 from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_rel_error, assert_check_partials

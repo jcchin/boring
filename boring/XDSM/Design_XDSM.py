@@ -46,10 +46,8 @@ x.connect('heat_pipe', 'pack_design','t_{HP}')
 
 # Struct
 x.connect('Struct','pack_design','t_{wall}')
-
-
-# Connect Battery outputs to subsystems
 x.add_output('Struct', ['mass_{battery}'], side='right')
+
 
 x.write('Design_XDSM')
 

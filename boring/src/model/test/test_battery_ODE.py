@@ -14,7 +14,7 @@ from openmdao.utils.general_utils import set_pyoptsparse_opt
 
 from dymos import Phase, Radau
 
-from aviary_quadrotor.subsystems.battery.battery_group import BatteryGroup
+from boring.src.model.battery_group import BatteryGroup
 
 
 class TestBatteryODE(unittest.TestCase):
