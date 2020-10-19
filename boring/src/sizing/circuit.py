@@ -4,23 +4,27 @@ import openmdao.api as om
 class Resistor(om.ExplicitComponent):
     """Computes flux across a resistor using Ohm's law."""
 
-    def initialize(self):
-        self.options.declare('R', default=1., desc='Thermal Resistance in m*k/W')
+    # def initialize(self):
+    #     self.options.declare('R', default=1., desc='Thermal Resistance in m*k/W')
 
     def setup(self):
         self.add_input('T_in', units='K')
         self.add_input('T_out', units='K')
+        self.add_input('R', 10., units='m*K/W')
         self.add_output('q', units='W')
 
         self.declare_partials('q', 'T_in', method='fd')
         self.declare_partials('q', 'T_out', method='fd')
+        self.declare_partials('q', 'R', method='fd')
 
     def compute(self, inputs, outputs):
         deltaT = inputs['T_in'] - inputs['T_out']
-        outputs['q'] = deltaT / self.options['R']
+        outputs['q'] = deltaT / inputs['R']
 
     def compute_partials(self, inputs, J):
-        J['']
+        J['q','T_in'] = 1./inputs['R']
+        J['q','T_out'] = -1./inputs['R']
+        J['q','R'] = -(inputs['T_in'] - inputs['T_out'])/inputs['R']**2
 
 class Node(om.ImplicitComponent):
     """Computes temperature residual across a node based on incoming and outgoing flux."""
@@ -52,6 +56,13 @@ class Node(om.ImplicitComponent):
         for q_conn in range(self.options['n_out']):
             residuals['T'] -= inputs['q_out:{}'.format(q_conn)]
 
+    def compute_partials(self, inputs, J):
+
+        for q_conn in range(self.options['n_in']):
+            J['T','q_in:{}'.format(q_conn)] = 1.
+        for q_conn in range(self.options['n_out']):
+            J['T','q_out:{}'.format(q_conn)] = -1.   
+
 
 class Circuit(om.Group):
     """ Thermal equivalent circuit """
@@ -67,15 +78,15 @@ class Circuit(om.Group):
         self.add_subsystem('n8', Node(n_in=2, n_out=1), promotes_inputs=[('q_out:0', 'q_out')])  # 2 in
 
 
-        self.add_subsystem('Rwe', Resistor(R=10.), promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
-        self.add_subsystem('Rwke', Resistor(R=10.)) # evaporator wick
-        self.add_subsystem('Rinter_e', Resistor(R=10.))
-        self.add_subsystem('Rv', Resistor(R=10.)) # vapor
-        self.add_subsystem('Rwka', Resistor(R=10.)) # wick adiabatic
-        self.add_subsystem('Rwa', Resistor(R=10.)) # wall adiabatic
-        self.add_subsystem('Rinter_c', Resistor(R=10.)) #
-        self.add_subsystem('Rwkc', Resistor(R=10.)) # condensor wick
-        self.add_subsystem('Rwc', Resistor(R=10.), promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
+        self.add_subsystem('Rwe', Resistor(), promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
+        self.add_subsystem('Rwke', Resistor()) # evaporator wick
+        self.add_subsystem('Rinter_e', Resistor())
+        self.add_subsystem('Rv', Resistor()) # vapor
+        self.add_subsystem('Rwka', Resistor()) # wick adiabatic
+        self.add_subsystem('Rwa', Resistor()) # wall adiabatic
+        self.add_subsystem('Rinter_c', Resistor()) #
+        self.add_subsystem('Rwkc', Resistor()) # condensor wick
+        self.add_subsystem('Rwc', Resistor(), promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
 
         # node 1 (q_in promoted, 'Rwe.T_in',  3 additional connections)
         self.connect('n1.T', ['Rwa.T_in']) # define temperature node as resitor inputs
