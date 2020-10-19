@@ -147,8 +147,8 @@ if __name__ == "__main__":
 
     # model.add_subsystem('T_hot', om.IndepVarComp('T', 500., units='K'))
     # model.add_subsystem('T_cold', om.IndepVarComp('T', 60, units='K'))
-    model.add_subsystem('q_hot', om.IndepVarComp('q', 70., units='W'))
-    model.add_subsystem('q_cold', om.IndepVarComp('q', 50, units='W'))
+    #model.add_subsystem('q_hot', om.IndepVarComp('q', 70., units='W'))
+    #model.add_subsystem('q_cold', om.IndepVarComp('q', 50, units='W'))
     model.add_subsystem('circuit', Circuit())
 
     # model.connect('T_hot.T', 'circuit.n1.T')
