@@ -13,9 +13,9 @@ class Resistor(om.ExplicitComponent):
         self.add_input('R', 10., units='m*K/W')
         self.add_output('q', units='W')
 
-        self.declare_partials('q', 'T_in', method='fd')
-        self.declare_partials('q', 'T_out', method='fd')
-        self.declare_partials('q', 'R', method='fd')
+        self.declare_partials('q', 'T_in')
+        self.declare_partials('q', 'T_out')
+        self.declare_partials('q', 'R')
 
     def compute(self, inputs, outputs):
         deltaT = inputs['T_in'] - inputs['T_out']
@@ -47,7 +47,7 @@ class Node(om.ImplicitComponent):
     def setup_partials(self):
         #note: we don't declare any partials wrt `T` here,
         #      because the residual doesn't directly depend on it
-        self.declare_partials('T', 'q*', method='fd')
+        self.declare_partials('T', 'q*')
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         residuals['T'] = 0.
@@ -56,12 +56,12 @@ class Node(om.ImplicitComponent):
         for q_conn in range(self.options['n_out']):
             residuals['T'] -= inputs['q_out:{}'.format(q_conn)]
 
-    def compute_partials(self, inputs, J):
+    def linearize(self, inputs, outputs, partials):
 
         for q_conn in range(self.options['n_in']):
-            J['T','q_in:{}'.format(q_conn)] = 1.
+            partials['T','q_in:{}'.format(q_conn)] = 1.
         for q_conn in range(self.options['n_out']):
-            J['T','q_out:{}'.format(q_conn)] = -1.   
+            partials['T','q_out:{}'.format(q_conn)] = -1.   
 
 
 class Circuit(om.Group):
@@ -150,7 +150,8 @@ if __name__ == "__main__":
 
     p.setup()
 
-    p.check_partials(compact_print=True)
+    print('hello')
+    #p.check_partials(compact_print=True)
     #om.n2(p)
 
     # set some initial guesses
@@ -163,4 +164,4 @@ if __name__ == "__main__":
     p['circuit.n7.T'] = 100.
     p['circuit.n8.T'] = 60.
 
-    #p.run_model()        
+    p.run_model()        
