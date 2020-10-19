@@ -1,21 +1,21 @@
 {
   "inputs": [
     "I_{batt}",
+    "Q_{rej}",
     "n_{parallel}",
+    "SOC",
+    "V_{thev}",
     "Q_{max}",
     "n_{series}",
     "PCM_{sat}",
-    "Q_{fire}",
-    "Q_{rej}",
-    "V_{thev}",
-    "SOC"
+    "Q_{fire}"
   ],
   "outputs": [
-    "T_{cold}",
-    "T_{batt}",
     "V_{batt,actual}",
+    "T_{batt}",
     "dXdt:V_{thev}",
-    "dXdt:PCM_{sat}",
-    "dXdt:SOC"
+    "dXdt:SOC",
+    "T_{cold}",
+    "dXdt:PCM_{sat}"
   ]
 }

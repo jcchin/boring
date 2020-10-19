@@ -1,10 +1,10 @@
 {
   "inputs": [
-    "n_{cpk}",
-    "n_{kps}"
+    "n_{kps}",
+    "n_{cpk}"
   ],
   "outputs": [
-    "mass_{PCM}",
-    "t_{PCM}"
+    "t_{PCM}",
+    "mass_{PCM}"
   ]
 }
