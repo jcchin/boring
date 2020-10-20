@@ -27,11 +27,11 @@ class SizeComp(om.ExplicitComponent):
 
 
     def setup_partials(self):
-        # self.declare_partials('*', '*', method='fd')
-        self.declare_partials('r_i', ['D_od', 't_w'])
-        self.declare_partials('A_cond', ['D_od', 'L_cond'])
-        self.declare_partials('A_evap', ['D_od', 'L_evap'])
-        self.declare_partials('L_eff', ['L_evap', 'L_cond', 'L_adiabatic'])
+        self.declare_partials('*', '*', method='fd')
+        # self.declare_partials('r_i', ['D_od', 't_w'])
+        # self.declare_partials('A_cond', ['D_od', 'L_cond'])
+        # self.declare_partials('A_evap', ['D_od', 'L_evap'])
+        # self.declare_partials('L_eff', ['L_evap', 'L_cond', 'L_adiabatic'])
 
 
     def compute(self,inputs, outputs):
