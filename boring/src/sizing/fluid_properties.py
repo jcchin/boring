@@ -16,23 +16,32 @@ class FluidPropertiesComp(om.ExplicitComponent):
         nn=self.options['num_nodes']
 
         self.add_input('Q_hp', 1,  desc='')
-        self.add_input('A_cond', 1,  desc='')
+        self.add_input('A_cond', 1, units='m**2', desc='')
         self.add_input('h_c', 1200,  desc='')
-        self.add_input('T_coolant', 293,  desc='')
+        self.add_input('T_coolant', 293, units='K', desc='')
 
-        self.add_output('R_g', 1, desc='')
-        self.add_output('P_v', 1, desc='')
-        self.add_output('T_cond', 1, desc='')
-        self.add_output('T_hp', 1, desc='')
-        self.add_output('rho_v', 1, desc='')
-        self.add_output('mu_v', 1, desc='')
-        self.add_output('h_fg', 1,  desc='')
+        self.add_output('R_g', 1, units='J/kg/K', desc='gas constant of the vapor')
+        self.add_output('P_v', 1, units='Pa', desc='pressure')
+        self.add_output('T_cond', 1, units='K', desc='')
+        self.add_output('T_hp', 1,units='k', desc='')
+        self.add_output('rho_v', 1, units='kg/m**3', desc='density of vapor')
+        self.add_output('mu_v', 1, units='N*s/m**2', desc='vapor viscosity')
+        self.add_output('h_fg', 1, units='J/kg', desc='latent heat')
         self.add_output('hp_fluid_T_hp', 1, desc='')
         self.add_output('hp_fluid_T_hp__P_v', 1, desc='')
 
 
     def setup_partials(self):
         self.declare_partials('*', '*', method='fd')
+        # self.declare_partials('R_g', [''])
+        # self.declare_partials('P_v', [''])
+        # self.declare_partials('T_cond', [''])
+        # self.declare_partials('T_hp', [''])
+        # self.declare_partials('rho_v', [''])
+        # self.declare_partials('mu_v', [''])
+        # self.declare_partials('h_fg', [''])
+        # self.declare_partials('hp_fluid_T_hp', [''])
+        # self.declare_partials('hp_fluid_T_hp__P_v', [''])
 
 
     def compute(self, inputs, outputs):
