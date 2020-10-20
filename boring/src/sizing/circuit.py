@@ -34,7 +34,7 @@ class Node(om.ImplicitComponent):
         self.options.declare('n_out', default=1, types=int, desc='number of current connections + assumed out')
 
     def setup(self):
-        self.add_output('T', val=5., units='K')
+        self.add_output('T', val=5., units='K',lower=1e-5)
 
         for i in range(self.options['n_in']):
             q_name = 'q_in:{}'.format(i)
@@ -53,8 +53,10 @@ class Node(om.ImplicitComponent):
         residuals['T'] = 0.
         for q_conn in range(self.options['n_in']):
             residuals['T'] += inputs['q_in:{}'.format(q_conn)]
+            print("in", inputs['q_in:{}'.format(q_conn)])
         for q_conn in range(self.options['n_out']):
             residuals['T'] -= inputs['q_out:{}'.format(q_conn)]
+            print("out", inputs['q_in:{}'.format(q_conn)])
 
     def linearize(self, inputs, outputs, partials):
 
@@ -68,8 +70,7 @@ class Circuit(om.Group):
     """ Thermal equivalent circuit """
     def setup(self):
 
-        self.add_subsystem('n1', Node(n_in=1, n_out=1))#, promotes_inputs=[('q_in:0', 'q_in')])  # 2 out
-        self.add_subsystem('n2', Node(n_in=1, n_out=1))  # 2 out
+
         # self.add_subsystem('n3', Node(n_in=1, n_out=1))  # 1
         # self.add_subsystem('n4', Node(n_in=1, n_out=1))  # 1
         # self.add_subsystem('n5', Node(n_in=1, n_out=1))  # 1
@@ -78,7 +79,8 @@ class Circuit(om.Group):
         # self.add_subsystem('n8', Node(n_in=2, n_out=1))#, promotes_inputs=[('q_out:0', 'q_out')])  # 2 in
 
 
-        self.add_subsystem('Rwe', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
+        self.add_subsystem('R1', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
+        self.add_subsystem('R2', Resistor())
         # self.add_subsystem('Rwke', Resistor()) # evaporator wick
         # self.add_subsystem('Rinter_e', Resistor())
         # self.add_subsystem('Rv', Resistor()) # vapor
@@ -88,13 +90,14 @@ class Circuit(om.Group):
         # self.add_subsystem('Rwkc', Resistor()) # condensor wick
         # self.add_subsystem('Rwc', Resistor())#, promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
 
-        # node 1 (q_in promoted, 'Rwe.T_in',  3 additional connections)
-        self.connect('n1.T', ['Rwe.T_in']) # define temperature node as resitor inputs
-        self.connect('Rwe.q', 'n1.q_out:0') # connect resistor flux to each node port
-        # node 2 (6 connections)
-        self.connect('Rwe.q', 'n2.q_in:0')
-        self.connect('n2.T', ['Rwe.T_out'])
+        self.add_subsystem('n_mid', Node(n_in=1, n_out=1))#, promotes_inputs=[('q_in:0', 'q_in')])  # 2 out
+        # self.add_subsystem('n2', Node(n_in=1, n_out=1))  # 2 out
 
+
+        # node 1 (q_in promoted, 'Rwe.T_in',  3 additional connections)
+        self.connect('n_mid.T', ['R1.T_out','R2.T_in']) # define temperature node as resitor inputs
+        self.connect('R1.q','n_mid.q_in:0')
+        self.connect('R2.q','n_mid.q_out:0')
 
         # # node 1 (q_in promoted, 'Rwe.T_in',  3 additional connections)
         # self.connect('n1.T', ['Rwa.T_in','Rwe.T_in']) # define temperature node as resitor inputs
@@ -158,15 +161,14 @@ if __name__ == "__main__":
 
     p.setup()
 
-    p.set_val('circuit.Rwe.T_out', 60.)
-    #p.set_val('circuit.n1.q_in:0', 40.)
+    p.set_val('circuit.R1.T_in', 100.)
+    p.set_val('circuit.R2.T_out', 20.)
     print('hello')
     #p.check_partials(compact_print=True)
     #om.n2(p)
 
     # set some initial guesses
-    p['circuit.n1.T'] = 500.
-    p['circuit.n2.T'] = 350.
+
     # p['circuit.n3.T'] = 300.
     # p['circuit.n4.T'] = 250.
     # p['circuit.n5.T'] = 200.
@@ -174,4 +176,7 @@ if __name__ == "__main__":
     # p['circuit.n7.T'] = 100.
     # p['circuit.n8.T'] = 60.
 
-    p.run_model()        
+    p.run_model() 
+
+    p.model.list_outputs()   
+    #om.n2(p)    
