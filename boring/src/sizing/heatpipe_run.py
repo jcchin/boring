@@ -30,7 +30,6 @@ if __name__ == "__main__":
 
 p.setup()
 
-p.set_val('L_evap', 0.2)
 p.set_val('L_evap',0.01)
 p.set_val('L_cond',0.02)
 p.set_val('L_adiabatic',0.03)
