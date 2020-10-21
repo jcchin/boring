@@ -20,17 +20,18 @@ if __name__ == "__main__":
                           subsys = FluidPropertiesComp(num_nodes=nn),
                           promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
                           # promotes_inputs=['A_cond'],
-                          promotes_outputs=['R_g', 'P_v', 'T_cond', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
+                          promotes_outputs=['P_v', 'T_cond', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
     
     p.model.add_subsystem(name = 'vapors',
                           subsys = VapThermResComp(num_nodes=nn),
-                          promotes_inputs=['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_eff', 'D_v'],
+                          promotes_inputs=['mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_eff', 'D_v'],
                           promotes_outputs=['r_h', 'R_v'])
+
+    p.model.connect('fluids.R_g', 'vapors.R_g')
     
 
 p.setup()
 
-p.set_val('L_evap', 0.2)
 p.set_val('L_evap',0.01)
 p.set_val('L_cond',0.02)
 p.set_val('L_adiabatic',0.03)
@@ -42,6 +43,9 @@ p.set_val('Q_hp',1)
 p.set_val('h_c',1200)
 p.set_val('T_coolant',293)
 
+# p.check_partials(compact_print=True)
+
+om.n2(p)
 
 p.run_model()
 
