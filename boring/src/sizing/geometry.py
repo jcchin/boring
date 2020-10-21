@@ -27,9 +27,20 @@ class SizeComp(om.ExplicitComponent):
 
 
     def setup_partials(self):
-        self.declare_partials('*', '*', method='fd')
-
-
+        #self.declare_partials('*', '*', method='fd')
+        self.declare_partials('r_i', 'D_od')
+        self.declare_partials('r_i', 't_w')
+        
+        self.declare_partials('A_cond', 'D_od')
+        self.declare_partials('A_cond', 'L_cond')
+        
+        self.declare_partials('A_evap', 'D_od')      
+        self.declare_partials('A_evap', 'L_evap')
+        
+        self.declare_partials('L_eff', 'L_evap')
+        self.declare_partials('L_eff', 'L_cond')
+        self.declare_partials('L_eff', 'L_adiabatic')
+    
     def compute(self,inputs, outputs):
         L_evap = inputs['L_evap']
         L_cond = inputs['L_cond']
@@ -45,4 +56,17 @@ class SizeComp(om.ExplicitComponent):
         outputs['A_evap'] =  np.pi*D_od*L_evap
         outputs['L_eff'] =  (L_evap+L_cond)/2+L_adiabatic
 
-    # def compute_partials(self, inputs, J):
+    def compute_partials(self, inputs, partials):
+        partials['r_i','D_od'] = 1/2
+        partials['r_i','t_w'] = -1
+        
+        partials['A_cond','D_od'] = np.pi*inputs['L_cond']
+        partials['A_cond','L_cond'] = np.pi*inputs['D_od']
+        
+        partials['A_evap','D_od'] = np.pi*inputs['L_evap']
+        partials['A_evap','L_evap'] = np.pi*inputs['D_od']
+        
+        partials['L_eff','L_evap'] = 1/2
+        partials['L_eff','L_cond'] = 1/2
+        partials['L_eff','L_adiabatic'] = 1
+        
