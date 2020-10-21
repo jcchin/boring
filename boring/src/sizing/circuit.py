@@ -53,10 +53,8 @@ class Node(om.ImplicitComponent):
         residuals['T'] = 0.
         for q_conn in range(self.options['n_in']):
             residuals['T'] += inputs['q_in:{}'.format(q_conn)]
-            print("in", inputs['q_in:{}'.format(q_conn)])
         for q_conn in range(self.options['n_out']):
             residuals['T'] -= inputs['q_out:{}'.format(q_conn)]
-            print("out", inputs['q_in:{}'.format(q_conn)])
 
     def linearize(self, inputs, outputs, partials):
 
@@ -71,68 +69,71 @@ class Circuit(om.Group):
     def setup(self):
 
 
-        # self.add_subsystem('n3', Node(n_in=1, n_out=1))  # 1
-        # self.add_subsystem('n4', Node(n_in=1, n_out=1))  # 1
-        # self.add_subsystem('n5', Node(n_in=1, n_out=1))  # 1
-        # self.add_subsystem('n6', Node(n_in=1, n_out=1))  # 1
-        # self.add_subsystem('n7', Node(n_in=2, n_out=1))  # 2 in
-        # self.add_subsystem('n8', Node(n_in=2, n_out=1))#, promotes_inputs=[('q_out:0', 'q_out')])  # 2 in
+        self.add_subsystem('Rex_e', Resistor())
+        self.add_subsystem('Rwe', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
+        self.add_subsystem('Rwke', Resistor()) # evaporator wick
+        self.add_subsystem('Rinter_e', Resistor())
+        self.add_subsystem('Rv', Resistor()) # vapor
+        self.add_subsystem('Rwka', Resistor()) # wick adiabatic
+        self.add_subsystem('Rwa', Resistor()) # wall adiabatic
+        self.add_subsystem('Rinter_c', Resistor()) #
+        self.add_subsystem('Rwkc', Resistor()) # condensor wick
+        self.add_subsystem('Rwc', Resistor())#, promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
+        self.add_subsystem('Rex_c', Resistor())
 
+        self.add_subsystem('n1', Node(n_in=1, n_out=2))  # 1, 2 out
+        self.add_subsystem('n2', Node(n_in=1, n_out=2))  # 1, 2 out
+        self.add_subsystem('n3', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n4', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n5', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n6', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n7', Node(n_in=2, n_out=1))  # 2 in, 1
+        self.add_subsystem('n8', Node(n_in=2, n_out=1))  # 2 in, 1
 
-        self.add_subsystem('R1', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
-        self.add_subsystem('R2', Resistor())
-        # self.add_subsystem('Rwke', Resistor()) # evaporator wick
-        # self.add_subsystem('Rinter_e', Resistor())
-        # self.add_subsystem('Rv', Resistor()) # vapor
-        # self.add_subsystem('Rwka', Resistor()) # wick adiabatic
-        # self.add_subsystem('Rwa', Resistor()) # wall adiabatic
-        # self.add_subsystem('Rinter_c', Resistor()) #
-        # self.add_subsystem('Rwkc', Resistor()) # condensor wick
-        # self.add_subsystem('Rwc', Resistor())#, promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
+        # node 1 (6 connections, 1 in, 2 out)
+        self.connect('n1.T', ['Rex_e.T_out','Rwe.T_in', 'Rwa.T_in']) # define temperature node as resitor inputs
+        self.connect('Rex_e.q','n1.q_in:0')
+        self.connect('Rwe.q','n1.q_out:0')
+        self.connect('Rwa.q','n1.q_out:1')
 
-        self.add_subsystem('n_mid', Node(n_in=1, n_out=1))#, promotes_inputs=[('q_in:0', 'q_in')])  # 2 out
-        # self.add_subsystem('n2', Node(n_in=1, n_out=1))  # 2 out
+        # node 2 (6 connections, 1 in, 2 out)
+        self.connect('n2.T', ['Rwe.T_out', 'Rwka.T_in','Rwke.T_in'])
+        self.connect('Rwe.q', 'n2.q_in:0')
+        self.connect('Rwka.q', 'n2.q_out:0') 
+        self.connect('Rwke.q', 'n2.q_out:1')
 
+        # node 3 (4 connections)
+        self.connect('n3.T', ['Rwke.T_out','Rinter_e.T_in'])
+        self.connect('Rwke.q', 'n3.q_in:0')
+        self.connect('Rinter_e.q', 'n3.q_out:0')
 
-        # node 1 (q_in promoted, 'Rwe.T_in',  3 additional connections)
-        self.connect('n_mid.T', ['R1.T_out','R2.T_in']) # define temperature node as resitor inputs
-        self.connect('R1.q','n_mid.q_in:0')
-        self.connect('R2.q','n_mid.q_out:0')
+        # node 4 (4 connections)
+        self.connect('n4.T', ['Rinter_e.T_out','Rv.T_in'])
+        self.connect('Rinter_e.q', 'n4.q_in:0')
+        self.connect('Rv.q', 'n4.q_out:0')
 
-        # # node 1 (q_in promoted, 'Rwe.T_in',  3 additional connections)
-        # self.connect('n1.T', ['Rwa.T_in','Rwe.T_in']) # define temperature node as resitor inputs
-        # self.connect('Rwe.q', 'n1.q_out:0') # connect resistor flux to each node port
-        # self.connect('Rwa.q', 'n1.q_out:1')
-        # # node 2 (6 connections)
-        # self.connect('Rwe.q', 'n2.q_in:0')
-        # self.connect('n2.T', ['Rwke.T_in', 'Rwka.T_in','Rwe.T_out'])
-        # self.connect('Rwke.q', 'n2.q_out:0') 
-        # self.connect('Rwka.q', 'n2.q_out:1')
-        # # node 3 (4 connections)
-        # self.connect('Rwke.q', 'n3.q_in:0')
-        # self.connect('n3.T', ['Rinter_e.T_in','Rwke.T_out'])
-        # self.connect('Rinter_e.q', 'n3.q_out:0')
-        # # node 4 (4 connections)
-        # self.connect('Rinter_e.q', 'n4.q_in:0')
-        # self.connect('n4.T', ['Rv.T_in','Rinter_e.T_out'])
-        # self.connect('Rv.q', 'n4.q_out:0')
-        # # node 5 (4 connections)
-        # self.connect('Rv.q', 'n5.q_in:0')
-        # self.connect('n5.T', ['Rinter_c.T_in','Rv.T_out'])
-        # self.connect('Rinter_c.q', 'n5.q_out:0')
-        # # node 6 (4 connections)
-        # self.connect('Rinter_c.q', 'n6.q_in:0')
-        # self.connect('n6.T', ['Rwkc.T_in','Rinter_c.T_out'])
-        # self.connect('Rwkc.q', 'n6.q_out:0')
-        # # node 7 (6 connections)
-        # self.connect('Rwka.q', 'n7.q_in:0')
-        # self.connect('Rwkc.q', 'n7.q_in:1')
-        # self.connect('n7.T', ['Rwc.T_in','Rwkc.T_out','Rwka.T_out'])
-        # self.connect('Rwc.q', 'n7.q_out:0')
-        # # node 8 (q_out promoted, 'Rwc.T_out', 3 additional connections)
-        # self.connect('Rwc.q','n8.q_in:0')
-        # self.connect('Rwa.q','n8.q_in:1')
-        # self.connect('n8.T',['Rwa.T_out','Rwc.T_out'])
+        # node 5 (4 connections)
+        self.connect('n5.T', ['Rv.T_out','Rinter_c.T_in'])
+        self.connect('Rv.q', 'n5.q_in:0')
+        self.connect('Rinter_c.q', 'n5.q_out:0')
+
+        # node 6 (4 connections)
+        self.connect('n6.T', ['Rinter_c.T_out','Rwkc.T_in'])
+        self.connect('Rinter_c.q', 'n6.q_in:0')
+        self.connect('Rwkc.q', 'n6.q_out:0')
+        
+        # node 7 (4 connections, 2 in, 1 out)
+        self.connect('n7.T', ['Rwka.T_out','Rwkc.T_out','Rwc.T_in'])
+        self.connect('Rwka.q', 'n7.q_in:0')
+        self.connect('Rwkc.q', 'n7.q_in:1')
+        self.connect('Rwc.q', 'n7.q_out:0')
+
+        # node 8 (6 connections, 2 in, 1 out)
+        self.connect('n8.T',['Rwa.T_out','Rwc.T_out','Rex_c.T_in'])
+        self.connect('Rwa.q','n8.q_in:0')
+        self.connect('Rwc.q','n8.q_in:1')
+        self.connect('Rex_c.q','n8.q_out:0')
+
 
 
         self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
@@ -161,11 +162,11 @@ if __name__ == "__main__":
 
     p.setup()
 
-    p.set_val('circuit.R1.T_in', 100.)
-    p.set_val('circuit.R2.T_out', 20.)
-    print('hello')
+    p.set_val('circuit.Rex_e.T_in', 100.)
+    p.set_val('circuit.Rex_c.T_out', 20.)
+
     #p.check_partials(compact_print=True)
-    #om.n2(p)
+    om.n2(p)
 
     # set some initial guesses
 
