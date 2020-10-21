@@ -27,7 +27,7 @@ class VapThermResComp(om.ExplicitComponent):
 
 
     def setup_partials(self):
-        self.declare_partials('*', '*', method='fd')
+        self.declare_partials('*', '*')#, method='fd')
 
 
     def compute(self, inputs, outputs):
@@ -63,7 +63,7 @@ class VapThermResComp(om.ExplicitComponent):
         partials['R_v', 'P_v'] = -8*R_g*mu_v*T_hp**2*L_eff/(np.pi*h_fg**2*P_v**2*rho_v*r_h**4)    
         partials['R_v', 'rho_v'] = -8*R_g*mu_v*T_hp**2*L_eff/(np.pi*h_fg**2*P_v*rho_v**2*r_h**4)
         partials['R_v', 'L_eff'] = 8*R_g*mu_v*T_hp**2/(np.pi*h_fg**2*P_v*rho_v*r_h**4)
-        partials['R_v', 'r_h'] = -4*8*R_g*mu_v*T_hp**2*L_eff/(np.pi*h_fg**2*P_v*rho_v*r_h**5)
+        partials['R_v', 'D_v'] = -4*8*R_g*mu_v*T_hp**2*L_eff/(np.pi*h_fg**2*P_v*rho_v*r_h**5)*1/2
         
         # Formula with no partials applied:
         # partials['R_v', 'x'] = 8*R_g*mu_v*T_hp**2*L_eff/(np.pi*h_fg**2*P_v*rho_v*r_h**4)
