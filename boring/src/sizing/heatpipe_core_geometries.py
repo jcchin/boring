@@ -26,7 +26,7 @@ class CoreGeometries(om.ExplicitComponent):
         self.declare_partials('A_w', ['D_od', 't_w'])
         self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'])
         self.declare_partials('A_interc', ['D_v', 'L_cond'])
-        self.declare_partials('A_intere', ['L_evap'])
+        self.declare_partials('A_intere', ['D_v', 'L_evap'])
 
     def compute(self, inputs, outputs):
 
@@ -49,6 +49,30 @@ class CoreGeometries(om.ExplicitComponent):
         L_cond = inputs['L_cond']
         L_evap = inputs['L_evap']
 
-        J['A_w', 'D_od'] = np.pi*D_od*(0.5 + t_w)
-        J['A_w', 't_w'] = -np.pi*2*(D_od/2 - t_w)
-        J['A_wk', 'D_od'] = 
+        J['A_w', 'D_od'] = np.pi*( (0.5*D_od) - (0.5*D_od - t_w) )
+        J['A_w', 't_w'] = np.pi*2*(D_od/2 - t_w)
+        
+        J['A_wk', 'D_od'] = np.pi*(D_od/2 - t_w)
+        J['A_wk', 't_w'] = -np.pi*2*(D_od/2 - t_w)
+        J['A_wk', 'D_v'] = -np.pi*D_v/2
+
+        J['A_interc', 'D_v'] = np.pi*L_cond
+        J['A_interc', 'L_cond'] = np.pi*D_v
+
+        J['A_intere', 'D_v'] = np.pi*D_v*L_evap
+        J['A_intere', 'L_evap'] = np.pi*D_v
+
+
+
+# # ------------ Derivative Checks --------------- #
+if __name__ == "__main__":
+    from openmdao.api import Problem
+
+    nn = 1
+    prob = Problem()
+
+    prob.model.add_subsystem('comp1', CoreGeometries(num_nodes=nn), promotes=['*'])
+
+    prob.setup(force_alloc_complex=True)
+    prob.run_model()
+    prob.check_partials(method='cs', compact_print=True)
