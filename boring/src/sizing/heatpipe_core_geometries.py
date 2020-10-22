@@ -12,11 +12,11 @@ class CoreGeometries(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('D_od', 1, units='m', desc='')
-        self.add_input('t_w', 1, units='m', desc='')
-        self.add_input('D_v', 1, units='m', desc='')
-        self.add_input('L_cond', 1, units='m', desc='')
-        self.add_input('L_evap', 1, units='m', desc='')
+        self.add_input('D_od', 2, units='m', desc='')
+        self.add_input('t_w', 0.01, units='m', desc='')
+        self.add_input('D_v', 0.5, units='m', desc='')
+        self.add_input('L_cond', 5, units='m', desc='')
+        self.add_input('L_evap', 6, units='m', desc='')
 
         self.add_output('A_w', 1, units='m', desc='')
         self.add_output('A_wk', 1, units='m', desc='')
@@ -59,7 +59,7 @@ class CoreGeometries(om.ExplicitComponent):
         J['A_interc', 'D_v'] = np.pi*L_cond
         J['A_interc', 'L_cond'] = np.pi*D_v
 
-        J['A_intere', 'D_v'] = np.pi*D_v*L_evap
+        J['A_intere', 'D_v'] = np.pi*L_evap
         J['A_intere', 'L_evap'] = np.pi*D_v
 
 
@@ -76,3 +76,9 @@ if __name__ == "__main__":
     prob.setup(force_alloc_complex=True)
     prob.run_model()
     prob.check_partials(method='cs', compact_print=True)
+
+
+    print('A_w = ', prob.get_val('comp1.A_w'))
+    print('A_wk = ', prob.get_val('comp1.A_wk'))
+    print('A_interc = ', prob.get_val('comp1.A_interc'))
+    print('A_intere = ', prob.get_val('comp1.A_intere'))

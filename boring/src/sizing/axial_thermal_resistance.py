@@ -12,11 +12,11 @@ class AxialThermalResistance(om.ExplicitComponent):
         nn=self.options['num_nodes']
 
         self.add_input('epsilon', 1, desc='')
-        self.add_input('k_w', 1, desc='')
-        self.add_input('k_l', 1, desc='')
-        self.add_input('L_adiabatic', 1, units='m', desc='')
-        self.add_input('A_w', 1, units='m**2', desc='')
-        self.add_input('A_wk', 1, units='m**2', desc='')
+        self.add_input('k_w', 2, desc='')
+        self.add_input('k_l', 3, desc='')
+        self.add_input('L_adiabatic', 4, units='m', desc='')
+        self.add_input('A_w', 5, units='m**2', desc='')
+        self.add_input('A_wk', 6, units='m**2', desc='')
 
         self.add_output('k_wk', 1, desc='')
         self.add_output('R_aw', 1, desc='')
@@ -60,7 +60,7 @@ class AxialThermalResistance(om.ExplicitComponent):
         J['R_aw', 'A_w'] = -L_adiabatic/(A_w**2*k_w)
         J['R_aw', 'k_w'] = -L_adiabatic/(A_w*k_w**2)
 
-        J['R_awk', 'L_adiabatic'] = 1/(A_w*((1-epsilon)*k_w+epsilon*k_l))
+        J['R_awk', 'L_adiabatic'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
         J['R_awk', 'A_wk'] = -L_adiabatic/(A_wk**2*((1-epsilon)*k_w+epsilon*k_l))
         J['R_awk', 'epsilon'] = -L_adiabatic/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (-k_w + k_l)
         J['R_awk', 'k_w'] = -L_adiabatic/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (1-epsilon)
@@ -74,7 +74,11 @@ if __name__ == '__main__':
     nn = 1
 
     prob = Problem()
-    prob.model.add_subsystem('comp1', AxialThermalResistance(num_nodes=nn), promotes=['*'])
+    prob.model.add_subsystem('comp1', AxialThermalResistance(num_nodes=nn), promotes_outputs=['*'], promotes_inputs=['*'])
     prob.setup(force_alloc_complex=True)
     prob.run_model()
     prob.check_partials(method='cs', compact_print=True)
+
+    print('k_wk = ', prob.get_val('comp1.k_wk'))
+    print('R_aw = ', prob.get_val('comp1.R_aw'))
+    print('R_awk = ', prob.get_val('comp1.R_awk'))
