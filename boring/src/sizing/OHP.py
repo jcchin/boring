@@ -1,4 +1,7 @@
-# Oscillating Heat Pipe heat flux calculalation by Jeff Chin
+"""
+Oscillating Heat Pipe heat flux calculalation 
+
+Author: Jeff Chin
 
 # References
 # http://web.missouri.edu/~zhangyu/Pubs/76_081501_1.pdf
@@ -24,6 +27,7 @@
 # 25,000  < q < 700,000    (W/m^2)
 #  1,000  < h < 60,000      (W/m^2*C)
 # 0.001/A < R < 1E-5/A (C/W)
+"""
 import numpy as np
 
 rho_l = 763.3 # kg/m^3 @ 50C

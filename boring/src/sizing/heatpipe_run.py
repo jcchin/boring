@@ -1,3 +1,6 @@
+""""
+Author: Dustin Hall
+"""
 import openmdao.api as om
 
 # from geometry import SizeComp

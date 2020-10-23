@@ -1,5 +1,7 @@
 """
 This file sizes the battery pack structure
+
+Author: Jeff Chin
 """
 
 import openmdao.api as om

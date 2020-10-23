@@ -13,14 +13,14 @@ class AxialThermalResistance(om.ExplicitComponent):
 
         self.add_input('epsilon', 1, desc='')
         self.add_input('k_w', 2, desc='')
-        self.add_input('k_l', 3, desc='')
-        self.add_input('L_adiabatic', 4, units='m', desc='')
-        self.add_input('A_w', 5, units='m**2', desc='')
-        self.add_input('A_wk', 6, units='m**2', desc='')
+        self.add_input('k_l', 3, desc='liquid conductivity')
+        self.add_input('L_adiabatic', 4, units='m', desc='Adiabatic Length')
+        self.add_input('A_w', 5, units='m**2', desc='Wall Area')
+        self.add_input('A_wk', 6, units='m**2', desc='Wick Area')
 
-        self.add_output('k_wk', 1, desc='')
-        self.add_output('R_aw', 1, desc='')
-        self.add_output('R_awk', 1, desc='')
+        self.add_output('k_wk', 1, desc='Wick Conductivity')
+        self.add_output('R_aw', 1, desc='Wall Axial Resistance')
+        self.add_output('R_awk', 1, desc='Wick Axial Resistance')
 
         self.declare_partials('k_wk', ['epsilon', 'k_w', 'k_l'])
         self.declare_partials('R_aw', ['L_adiabatic', 'A_w', 'k_w'])

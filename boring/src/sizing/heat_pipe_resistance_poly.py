@@ -12,6 +12,11 @@ Author: Ezra McNichols
 import numpy as np
 import matplotlib.pyplot as plt
 
+use_poly = True
+
+if not use_poly: #use thermo package
+    from thermo.chemical import Chemical
+
 plt.rc('font', family='serif')
 ######################################## Solid and Wick Properties ########################################################
 k_w=11.4
@@ -53,22 +58,39 @@ for Q_hp in range(10,50,1):
     T_hpfp=T_hp-273.15
 
     ######################################## Fluid Properties for Water. From Faghri's book, Table C.70, page 909 ########################################################
-    P_v = f(T_hpfp,-5.0945,7.2280e-2,-2.8625e-4,9.2341e-7,-2.0295e-9,2.1645e-12)*1e5  # Ezra
-    h_fg = f(T_hpfp,7.8201,-5.8906e-4,-9.1355e-6,8.4738e-8,-3.9635e-10,5.9150e-13)*1e3 # Ezra
-    rho_l = f(T_hpfp,6.9094,-2.0146e-5,-5.9868e-6,2.5921e-8,-9.3244e-11,1.2103e-13)      # Ezra
-    rho_v = f(T_hpfp,-5.3225,6.8366e-2,-2.7243e-4,8.4522e-7,-1.6558e-9,1.5514e-12) # Ezra
-    mu_l = f(T_hpfp,-6.3530,-3.1540e-2,2.1670e-4,-1.1559e-6,3.7470e-9,-5.2189e-12) # Ezra
-    mu_v = f(T_hpfp,-11.596,2.6382e-3,6.9205e-6,-6.1035e-8,1.6844e-10,-1.5910e-13) # Ezra
-    k_l = f(T_hpfp,-5.8220e-1,4.1177e-3,-2.7932e-5,6.5617e-8,4.1100e-11,-3.8220e-13) # Ezra
-    k_v = f(T_hpfp,-4.0722,3.2364e-3,6.3860e-6,8.5114e-9,-1.0464e-10,1.6481e-13) # Ezra
-    sigma_l = f(T_hpfp,4.3438,-3.0664e-3,2.0743e-5,-2.5499e-7,1.0377e-9,-1.7156e-12)/1e3 # Ezra
-    cp_l = f(T_hpfp,1.4350,-3.2231e-4,6.1633e-6,-4.4099e-8,2.0968e-10,-3.040e-13)*1e3 # Ezra
-    cp_v = f(T_hpfp,6.3198e-1,6.7903e-4,-2.5923e-6,4.4936e-8,2.2606e-10,-9.0694e-13)*1e3 # Ezra
+    if use_poly:
+        P_v = f(T_hpfp,-5.0945,7.2280e-2,-2.8625e-4,9.2341e-7,-2.0295e-9,2.1645e-12)*1e5  # Ezra
+        h_fg = f(T_hpfp,7.8201,-5.8906e-4,-9.1355e-6,8.4738e-8,-3.9635e-10,5.9150e-13)*1e3 # Ezra
+        rho_l = f(T_hpfp,6.9094,-2.0146e-5,-5.9868e-6,2.5921e-8,-9.3244e-11,1.2103e-13)      # Ezra
+        rho_v = f(T_hpfp,-5.3225,6.8366e-2,-2.7243e-4,8.4522e-7,-1.6558e-9,1.5514e-12) # Ezra
+        mu_l = f(T_hpfp,-6.3530,-3.1540e-2,2.1670e-4,-1.1559e-6,3.7470e-9,-5.2189e-12) # Ezra
+        mu_v = f(T_hpfp,-11.596,2.6382e-3,6.9205e-6,-6.1035e-8,1.6844e-10,-1.5910e-13) # Ezra
+        k_l = f(T_hpfp,-5.8220e-1,4.1177e-3,-2.7932e-5,6.5617e-8,4.1100e-11,-3.8220e-13) # Ezra
+        k_v = f(T_hpfp,-4.0722,3.2364e-3,6.3860e-6,8.5114e-9,-1.0464e-10,1.6481e-13) # Ezra
+        sigma_l = f(T_hpfp,4.3438,-3.0664e-3,2.0743e-5,-2.5499e-7,1.0377e-9,-1.7156e-12)/1e3 # Ezra
+        cp_l = f(T_hpfp,1.4350,-3.2231e-4,6.1633e-6,-4.4099e-8,2.0968e-10,-3.040e-13)*1e3 # Ezra
+        cp_v = f(T_hpfp,6.3198e-1,6.7903e-4,-2.5923e-6,4.4936e-8,2.2606e-10,-9.0694e-13)*1e3 # Ezra
+    else:
+        hp_fluid=Chemical('water')
+        hp_fluid.calculate(T_hp)
+        P_v=hp_fluid.Psat
+        hp_fluid.calculate(T_hp,P_v)
+        rho_v=hp_fluid.rhog
+        mu_v=hp_fluid.mug
+        rho_l=hp_fluid.rhol
+        mu_l=hp_fluid.mul
+        k_l=hp_fluid.kl
+        cp_l=hp_fluid.Cpl
+        cp_v=hp_fluid.Cpg
+        cv=hp_fluid.Cvg
+        Pr_l=cp_l*mu_l/k_l
+        h_fg=hp_fluid.Hvap
+        sigma_l=hp_fluid.sigma
+
     v_fg = 1/rho_v-1/rho_l
     R_g=P_v/(T_hp*rho_v)
     cv_v=cp_v-R_g
     gamma=cp_v/cv_v
-
     # print("T= ",T_hpfp)
     # print(P_v,h_fg,rho_l,rho_v,mu_l*1e7,mu_v*1e7,k_l,k_v,sigma_l*1e3,cp_l/1e3,cp_v/1e3)
 

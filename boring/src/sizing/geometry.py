@@ -1,3 +1,7 @@
+"""
+Author: Dustin Hall
+"""
+
 from __future__ import absolute_import
 import numpy as np
 from math import pi

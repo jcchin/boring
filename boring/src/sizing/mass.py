@@ -1,3 +1,7 @@
+"""
+Author: Jeff Chin
+"""
+
 import numpy as np
 import openmdao.api as om
 
