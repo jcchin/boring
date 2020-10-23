@@ -1,3 +1,7 @@
+"""
+Author: Jeff Chin
+"""
+
 import openmdao.api as om
 
 

@@ -1,4 +1,6 @@
-
+"""
+Author: Jeff Chin
+"""
 #https://www.digikey.com/product-detail/en/wakefield-vette/126114/345-126114-ND/12150524
 # 3mm x 17.14mm x 600mm
 # (flattened from a 12mm diam pipe)
