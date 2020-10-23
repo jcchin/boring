@@ -5,7 +5,7 @@ from math import pi
 import openmdao.api as om
 
 
-class VapThermResComp(om.ExplicitComponent):
+class VaporThermalResistance(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)
@@ -13,7 +13,7 @@ class VapThermResComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
         
-        self.add_input('D_v',0.1 , units='m', desc='diameter of vapor region')
+        self.add_input('D_v', 0.1 , units='m', desc='diameter of vapor region')
         self.add_input('R_g', 0.2, units='J/kg/K', desc='gas constant of the vapor')
         self.add_input('mu_v', 0.03,units='N*s/m**2', desc='vapor viscosity')
         self.add_input('T_hp', 300, units='K', desc='Temp of heat pipe')

@@ -8,7 +8,7 @@ from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
 # from boring.src.sizing.heatpipe_core_geometries import CoreGeometries
-from boring.src.sizing.geometry import SizeGroup
+from boring.src.sizing.geometry.geometry import SizeGroup
 
 class TestSize(unittest.TestCase):
 

@@ -159,26 +159,26 @@ class CoreGeometries(om.ExplicitComponent):
         J['A_intere', 'L_evap'] = np.pi*D_v
 
 
-# # ------------ Derivative Checks --------------- #
-if __name__ == "__main__":
-    from openmdao.api import Problem
+# # # ------------ Derivative Checks --------------- #
+# if __name__ == "__main__":
+#     from openmdao.api import Problem
 
-    nn = 1
-    prob = Problem()
+#     nn = 1
+#     prob = Problem()
 
-    prob.model.add_subsystem('comp1', SizeGroup(num_nodes=nn), promotes=['*'])
+#     prob.model.add_subsystem('comp1', SizeGroup(num_nodes=nn), promotes=['*'])
 
-    prob.setup(force_alloc_complex=True)
-    prob.run_model()
-    prob.check_partials(method='cs', compact_print=True)
+#     prob.setup(force_alloc_complex=True)
+#     prob.run_model()
+#     prob.check_partials(method='cs', compact_print=True)
 
 
-    print('A_w = ', prob.get_val('comp1.A_w'))
-    print('A_wk = ', prob.get_val('comp1.A_wk'))
-    print('A_interc = ', prob.get_val('comp1.A_interc'))
-    print('A_intere = ', prob.get_val('comp1.A_intere'))
+#     print('A_w = ', prob.get_val('comp1.A_w'))
+#     print('A_wk = ', prob.get_val('comp1.A_wk'))
+#     print('A_interc = ', prob.get_val('comp1.A_interc'))
+#     print('A_intere = ', prob.get_val('comp1.A_intere'))
 
-    print('r_i', prob.get_val('comp1.r_i'))
-    print('A_cond', prob.get_val('comp1.A_cond'))
-    print('A_evap', prob.get_val('comp1.A_evap'))
-    print('L_eff', prob.get_val('comp1.L_eff'))
+#     print('r_i', prob.get_val('comp1.r_i'))
+#     print('A_cond', prob.get_val('comp1.A_cond'))
+#     print('A_evap', prob.get_val('comp1.A_evap'))
+#     print('L_eff', prob.get_val('comp1.L_eff'))
