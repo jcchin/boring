@@ -166,7 +166,7 @@ if __name__ == "__main__":
     p.set_val('circuit.Rex_c.T_out', 20.)
 
     #p.check_partials(compact_print=True)
-    #om.n2(p)
+    om.n2(p)
 
     # set some initial guesses
 
