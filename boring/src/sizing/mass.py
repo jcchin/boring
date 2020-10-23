@@ -101,7 +101,7 @@ class busMass(om.ExplicitComponent):
     def compute(self,i,o):
 
         o['lead_area'] = i['cell_h']*i['cell_w']
-        o['bar_mass'] = i['t_bar']*lead_area*i['rho_bar']
+        o['bar_mass'] = i['t_bar']*o['lead_area']*i['rho_bar']
 
 
     def setup_partials(self):

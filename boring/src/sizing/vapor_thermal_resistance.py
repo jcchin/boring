@@ -13,7 +13,7 @@ class VapThermResComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
         
-        self.add_input('D_v',0.00362, desc='diameter of vapor region')
+        self.add_input('D_v',0.00362, units='m', desc='diameter of vapor region')
         self.add_input('R_g', 1, units='J/kg/K', desc='gas constant of the vapor')
         self.add_input('mu_v', 1,units='N*s/m**2', desc='vapor viscosity')
         self.add_input('T_hp', 1, units='K', desc='Temp of heat pipe')
