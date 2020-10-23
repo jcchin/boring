@@ -13,17 +13,17 @@ class VapThermResComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
         
-        self.add_input('D_v',0.00362, desc='')
-        self.add_input('R_g', desc='')
-        self.add_input('mu_v', desc='')
-        self.add_input('T_hp', desc='')
-        self.add_input('h_fg', desc='')
-        self.add_input('P_v', desc='')
-        self.add_input('rho_v', desc='')
-        self.add_input('L_eff', desc='')
+        self.add_input('D_v',0.00362, units='m', desc='diameter of vapor region')
+        self.add_input('R_g', 1, units='J/kg/K', desc='gas constant of the vapor')
+        self.add_input('mu_v', 1,units='N*s/m**2', desc='vapor viscosity')
+        self.add_input('T_hp', 1, units='K', desc='Temp of heat pipe')
+        self.add_input('h_fg', 1, units='J/kg', desc='latent heat')
+        self.add_input('P_v', 1, units='Pa', desc='pressure')
+        self.add_input('rho_v', 1, units='kg/m**3', desc='density of vapor')
+        self.add_input('L_eff', 1, units='m', desc='effective length')
 
-        self.add_output('r_h', desc='')
-        self.add_output('R_v', desc='')
+        self.add_output('r_h', units='m', desc='hydraulic radius')
+        self.add_output('R_v', units='K/W', desc='thermal resistance of vapor region')
 
 
     def setup_partials(self):

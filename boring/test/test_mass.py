@@ -20,19 +20,20 @@ class TestMass(unittest.TestCase):
         p1.run_model()
 
  
-    def test_cell_mass(self):
+    def test_tot_mass(self): # calculation regression test
 
-        assert_near_equal(self.prob.get_val('mass.cell_mass'), 0.0632, tolerance=1.0E-5)
+        self.prob['mass.n_cells'] = 100 # set input vals
+        assert_near_equal(self.prob.get_val('mass.tot_mass'), 4.0632, tolerance=1.0E-5) # check you get the expected output
 
-    # def test_partials(self):
+    def test_partials(self): # derivative check
 
-    #     data = self.prob.check_partials(out_stream=None, method='cs')
-    #     assert_check_partials(data, atol=1e-10, rtol=1e-10)
+        data = self.prob.check_partials(out_stream=None, method='cs')
+        assert_check_partials(data, atol=1e-10, rtol=1e-10)
 
-    def test_io_spec(self): 
+    # def test_io_spec(self): 
 
-        subsystem = packMass(num_nodes=1)
-        assert_match_spec(subsystem, 'Design_specs/struct.json')
+    #     subsystem = packMass(num_nodes=1)
+    #     assert_match_spec(subsystem, 'Design_specs/struct.json')
 
 
 if __name__ =='__main__':
