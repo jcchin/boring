@@ -1,0 +1,6 @@
+               (f^2 Sqrt[2/Pi] Sqrt[1/(r t)] (1 - (p v)/(2 f)))/((2 - a) t v) + (Sqrt[2] a f^2 Sqrt[1/(r t)] (1 - (p v)/(2 f)))/((2 - a)^2 Sqrt[Pi] t v)
+               (a p Sqrt[1/(r t)])/((2 - a) Sqrt[2 Pi] t) + (2 a f Sqrt[2/Pi] Sqrt[1/(r t)] (1 - (p v)/(2 f)))/((2 - a) t v)
+               -((a f^2 (1 - (p v)/(2 f)))/((2 - a) Sqrt[2 Pi] r Sqrt[1/(r t)] t^3 v)) - (a f^2 Sqrt[2/Pi] Sqrt[1/(r t)] (1 - (p v)/(2 f)))/((2 - a) t^2 v)
+               -((a f p Sqrt[1/(r t)])/((2 - a) Sqrt[2 Pi] t v)) - (a f^2 Sqrt[2/Pi] Sqrt[1/(r t)] (1 - (p v)/(2 f)))/((2 - a) t v^2)
+               -((a f p Sqrt[1/(r t)])/((2 - a) Sqrt[2 Pi] t v)) - (a f^2 Sqrt[2/Pi] Sqrt[1/(r t)] (1 - (p v)/(2 f)))/((2 - a) t v^2)
+                -((a f Sqrt[1/(r t)])/((2 - a) Sqrt[2 Pi] t))
