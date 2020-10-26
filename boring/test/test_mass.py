@@ -7,7 +7,7 @@ from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.mass import packMass
+from boring.src.sizing.mass.mass import packMass
 
 
 class TestMass(unittest.TestCase):

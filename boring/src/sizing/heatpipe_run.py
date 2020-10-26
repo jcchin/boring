@@ -3,19 +3,17 @@ Author: Dustin Hall
 """
 import openmdao.api as om
 
-# from geometry import SizeComp
-from fluid_properties import FluidPropertiesComp
-from vapor_thermal_resistance import VapThermResComp
-from geometry import SizeGroup
-from axial_thermal_resistance import AxialThermalResistance
-from mass import MassGroup
+from material_properties.fluid_properties import FluidPropertiesComp
+from geometry.geometry import SizeGroup
+from mass.mass import MassGroup
+from thermal_resistance.thermal_resistance_group import ThermalResistanceGroup
+
+
 
 if __name__ == "__main__":
     p = om.Problem()
     model = p.model
     nn = 1
-
-
 
     p.model.add_subsystem(name = 'sizing',
                           subsys = SizeGroup(num_nodes=nn),
@@ -28,15 +26,11 @@ if __name__ == "__main__":
                           promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
                           promotes_outputs=['R_g', 'P_v', 'T_cond', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
     
-    p.model.add_subsystem(name = 'vapors',
-                          subsys = VapThermResComp(num_nodes=nn),
-                          promotes_inputs=['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_eff', 'D_v'],
-                          promotes_outputs=['r_h', 'R_v'])
-
-    p.model.add_subsystem(name = 'axialtherm',
-                          subsys = AxialThermalResistance(num_nodes=nn),
-                          promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_adiabatic', 'A_w', 'A_wk',],
-                          promotes_outputs=['k_wk', 'R_aw', 'R_awk'])
+    p.model.add_subsystem(name = 'thermal_resistance',
+                          subsys= ThermalResistanceGroup(num_nodes=nn),
+                          promotes_inputs=['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_eff', 'D_v',
+                                          'epsilon', 'k_w', 'k_l', 'L_adiabatic', 'A_w', 'A_wk'],
+                          promotes_outputs=['r_h', 'R_v', 'k_wk', 'R_aw', 'R_awk'])
 
     p.model.add_subsystem(name = 'mass',
                           subsys=MassGroup(num_nodes=nn),
