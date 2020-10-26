@@ -83,7 +83,6 @@ install:
   cd ..;
 
 # install boring itself in developer mode.
-- cd boring;
 - pip install -e .;
 
 # display summary of installed packages and their versions
