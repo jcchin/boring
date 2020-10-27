@@ -26,46 +26,43 @@ df = pd.read_csv(f, header=None,squeeze=True)
 df = df.str.replace(r'^\s*', '') #trim comments and whitespace
 df = df.str.replace(r'#.*$', '')
 
+
+
+dictionary = pd.DataFrame()
+
+dictionary['from'] = df.str.extract(r'^(\S*)\s*=',expand=False) #everything before '='
+dictionary['to'] = df.str.extract(r'^.*=\s(\S*)',expand=False) #everything after '='
+
+dictionary.dropna(inplace=True)
+dictionary['to'].replace('^',' (',regex=True)
+
+print(dictionary)
+
+dic = dictionary.set_index('to').to_dict()['from']
+
+dic["Sqrt\["] = "np.sqrt("
+
+dic2 = {']':')',' - ':'-',' + ':'+','Pi':'np.pi'}
+
+
+df = df[~df.str.contains('=')] #remove all dictionary rows
+
 print(df)
 
-out_vars = df.str.extract(r'^(\S*)=',expand=False) #everything before '='
-
-in_vars = df.str.extract(r'^.*=(.*)',expand=False) #everything after '='
-in_vars = in_vars.str.replace(r'np.[a-zA-Z_]+', '') #remove np.somethings
-in_vars = in_vars.str.findall(r'[a-zA-Z_]+') #find all input variables without numbers in their names
-
-print(in_vars)
-
-in_var_list = []
-for row in in_vars:
-    for var in row:
-      in_var_list.append(var)  
-
-in_var_list = list(dict.fromkeys(in_var_list)) # remove duplicates
-
-
-in_var_list = ['self.add_input(\'{}\')'.format(in_var) for in_var in in_var_list]
-
-# formula = "P = V*I*cos(2*pi*f)"
-# variables = re.findall('[a-zA-Z_]+' , formula)
-# special = ['cos', 'pi']
-# variables = [v for v in variables if v not in special]  
-
-out_vars.rename("output",inplace=True)
-in_vars.rename("inputs",inplace=True)
-allvars = pd.concat([out_vars,in_vars],axis=1)
-
-x = []
-for eqn in allvars.iterrows():    
-     x.append('self.declare_partials(\'{}\', {})'.format(eqn[1]['output'], eqn[1]['inputs']))
+for x in dic: #replace variables
+    df = df.str.replace(' '+x,' '+dic[x])
+    df = df.str.replace(x+' ',dic[x]+' ')    
     
+
+for x in dic2: #replace symbols
+    df = df.str.replace(x,dic2[x]) 
     
-out = pd.Series(in_var_list)
-out = out.append(pd.Series(' '))
-out = out.append('self.add_output(\''+out_vars+'\')',ignore_index=True)
-out = out.append(pd.Series([' ',' ']))
-#partials
-out = out.append(pd.Series(x))
+# after everything, all remaining spaces are multiplications
+df = df.str.replace(' ','*')
+
+print(df)
+
+out = pd.Series(df)
 
 #convert to output lines instead of pd series to make things easeir
 '''partials -> to wolfram alpha
@@ -84,47 +81,13 @@ out = out.append(pd.Series(x))
     
 '''
 
-out.to_csv(cwd+'\\outputfile.txt',index=False,header=False,)
+out.to_csv(cwd+'\\wolfram_translated.txt',index=False,header=False,)
 print(out)
 
 
 
-# self.declare_partials('A_w', ['D_od', 't_w'])
-#         self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'])
-#         self.declare_partials('A_interc', ['D_v', 'L_cond'])
-#         self.declare_partials('A_intere', ['D_v', 'L_evap'])
-
-
-# #Find the newest version of the response file based on the file name
-# input_file = glob.glob(cwd+"/NASA GRC ML*.xlsx")
-
-# newest = 0
-
-# for f in input_file:
-#     match = re.search(r'\(.*\-(\d+)\)', f)
-#     ver = int(match.group(1))
-#     if ver > newest:
-#         newest = ver
-#         file = f
-
-# print("Found newest file: {} total responses\n{}".format(newest,file))   
-# df = pd.read_excel (file)
-# df = df.loc[:,['Name','Contact information (NASA email)','Do you have a PIV card?','Please select your NASA center']]
-# df = df.rename(columns={'Contact information (NASA email)':'Email','Do you have a PIV card?':'PIV','Please select your NASA center':'Center'})
-# cntr_dict ={"Glenn Research Center": "GRC"} 
-# df = df.replace({'Center':cntr_dict})
-
-# df = df[~df.isin(existing)].dropna()
-# print("Processing Input: {}".format(os.path.basename(file)))
-
-# if df.empty:
-#     print('No new entries')
-    
-# else:
-#     print('\n## {} New entries! :'.format(df.shape[0]))
-#     print(df.to_string(index=False))
 
 
 
-# df.to_csv('new_participants_{}.csv'.format(str(td)),index=False)
+
 print('End')

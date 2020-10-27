@@ -1,0 +1,6 @@
+(f^2*np.sqrt(2/np.pi)*np.sqrt(1/(R_g*T_hp))*(1-(P_v*v_fg)/(2*h_fg)))/((2-alpha)*T_hP_v*v_fg)*+*(Sqrt[2)*alphalpha*h_fg^2*np.sqrt(1/(R_g*T_hp))*(1-(P_v*v_fg)/(2*h_fg)))/((2-alpha)^2*np.sqrt(np.pi)*T_hP_v*v_fg)
+(alpha*P_v*np.sqrt(1/(R_g*T_hp)))/((2-alpha)*np.sqrt(2*np.pi)*T_hp)*+*(2*alphalpha*h_fg*np.sqrt(2/np.pi)*np.sqrt(1/(R_g*T_hp))*(1-(P_v*v_fg)/(2*h_fg)))/((2-alpha)*T_hP_v*v_fg)
+-((alpha*h_fg^2*(1-(P_v*v_fg)/(2*h_fg)))/((2-alpha)*np.sqrt(2*np.pi)*R_g*np.sqrt(1/(R_g*T_hp))*T_hp^3*v_fg))-(alpha*h_fg^2*np.sqrt(2/np.pi)*np.sqrt(1/(R_g*T_hp))*(1-(P_v*v_fg)/(2*h_fg)))/((2-alpha)*T_hp^2*v_fg)
+-((alpha*h_fg*P_v*np.sqrt(1/(R_g*T_hp)))/((2-alpha)*np.sqrt(2*np.pi)*T_hP_v*v_fg))-(alpha*h_fg^2*np.sqrt(2/np.pi)*np.sqrt(1/(R_g*T_hp))*(1-(P_v*v_fg)/(2*h_fg)))/((2-alpha)*T_hP_v*v_fg^2)
+-((alpha*h_fg*P_v*np.sqrt(1/(R_g*T_hp)))/((2-alpha)*np.sqrt(2*np.pi)*T_hP_v*v_fg))-(alpha*h_fg^2*np.sqrt(2/np.pi)*np.sqrt(1/(R_g*T_hp))*(1-(P_v*v_fg)/(2*h_fg)))/((2-alpha)*T_hP_v*v_fg^2)
+-((alpha*h_fg*np.sqrt(1/(R_g*T_hp)))/((2-alpha)*np.sqrt(2*np.pi)*T_hp))
