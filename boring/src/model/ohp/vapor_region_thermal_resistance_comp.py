@@ -69,8 +69,8 @@ if __name__ =='__main__':
 
     prob.model.add_subsystem('vapor_R_t_comp', VaporRegionThermalResistanceComp())
 
-    prob.setup()
+    prob.setup(force_alloc_complex=True)
     prob.run_model()
-    prob.check_partials(method='cs')
+    prob.check_partials(method='cs', compact_print=True, show_only_incorrect=True)
 
 
