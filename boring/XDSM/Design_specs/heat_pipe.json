@@ -1,11 +1,13 @@
 {
   "inputs": [
+    "rho_{HP}",
+    "ref_len",
     "d_{init}",
-    "L_{pack}",
-    "rho_{HP}"
+    "req_flux",
+    "L_{pack}"
   ],
   "outputs": [
-    "mass_{HP}",
-    "t_{HP}"
+    "t_{HP}",
+    "mass_{HP}"
   ]
 }

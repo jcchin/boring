@@ -51,8 +51,9 @@ class FHP(om.ExplicitComponent):
 
         self.add_output('p_flux', units='W', desc='single FHP flux capability')
         self.add_output('p_mass', units='kg', desc='mass of a single pipe')
-        self.add_output('n_pipes')
-        self.add_output('fhp_mass')
+        self.add_output('n_pipes', desc='number of pipes')
+        self.add_output('fhp_mass', desc='total heat pipe mass')
+        self.add_output('t_hp', desc='heat pipe thickness')
 
     def compute(self,i,o):
 
@@ -60,11 +61,12 @@ class FHP(om.ExplicitComponent):
         L_scale = (i['tot_len']+50) / i['ref_len']
         
         o['p_flux'] = (0.7335*D**2 - 2.3294*D + 8.7876)/L_scale
-        o['p_mass'] = i['tot_len']*pi/4.*i['d_init']**2
+        o['p_mass'] = i['tot_len']*pi/4.*i['d_init']**2*i['rho_FHP']
         o['n_pipes'] = i['req_flux']/o['p_flux']
         o['fhp_mass'] = o['n_pipes']*o['p_mass'] 
+        o['t_hp'] = i['d_init']/2.
 
-    def setup_partials(self, inputs, J):
+    def setup_partials(self):
         self.declare_partials('*', '*', method='cs')
 
 
@@ -93,5 +95,5 @@ class OHP(om.ExplicitComponent):
         o['Areal_weight'] = 0.3866*o['flux']+1.7442 # NH3   kg/m^2
         o['mass_OHP'] = o['Areal_weight']*i['cell_area']*i['n_cells']/2
 
-    def setup_partials(self, inputs, J):
+    def setup_partials(self):
         self.declare_partials('*', '*', method='cs')

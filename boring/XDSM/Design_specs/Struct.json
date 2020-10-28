@@ -1,8 +1,8 @@
 {
   "inputs": [
     "mass_{HP}",
-    "mass_{PCM}",
-    "mass_{cell}"
+    "mass_{cell}",
+    "mass_{PCM}"
   ],
   "outputs": [
     "t_{wall}",

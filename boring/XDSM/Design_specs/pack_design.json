@@ -1,28 +1,28 @@
 {
   "inputs": [
-    "t_{HP}",
-    "Q_{max}",
+    "voltage_{low,cell}",
+    "V_{batt}",
+    "energy_{required}",
+    "H_{cell}",
+    "W_{cell}",
+    "voltage_{nom,cell}",
     "t_{wall}",
     "L_{pack}",
-    "mass_{cell}",
-    "V_{batt}",
-    "W_{pack}",
-    "dischargeRate_{cell}",
     "L_{cell}",
-    "H_{cell}",
-    "voltage_{low,cell}",
-    "W_{cell}",
-    "energy_{required}",
-    "eta_{batt}",
-    "voltage_{nom,cell}",
+    "dischargeRate_{cell}",
     "I_{batt}",
-    "t_{PCM}"
+    "mass_{cell}",
+    "t_{PCM}",
+    "W_{pack}",
+    "t_{HP}",
+    "Q_{max}",
+    "eta_{batt}"
   ],
   "outputs": [
-    "n_{parallel}",
-    "mass_{cell}",
     "n_{cpk}",
+    "n_{parallel}",
     "n_{kps}",
+    "mass_{cell}",
     "n_{series}"
   ]
 }
