@@ -1,3 +1,5 @@
+![Build Status](https://travis-ci.org/jcchin/boring.svg?branch=master)
+
 TTT Battery Pack Research
 
 

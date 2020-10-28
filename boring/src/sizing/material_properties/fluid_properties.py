@@ -23,7 +23,7 @@ class FluidPropertiesComp(om.ExplicitComponent):
         self.add_output('R_g', 1, units='J/kg/K', desc='gas constant of the vapor')
         self.add_output('P_v', 1, units='Pa', desc='pressure')
         self.add_output('T_cond', 1, units='K', desc='')
-        self.add_output('T_hp', 1,units='k', desc='')
+        self.add_output('T_hp', 1,units='K', desc='')
         self.add_output('rho_v', 1, units='kg/m**3', desc='density of vapor')
         self.add_output('mu_v', 1, units='N*s/m**2', desc='vapor viscosity')
         self.add_output('h_fg', 1, units='J/kg', desc='latent heat')
