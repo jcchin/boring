@@ -1,9 +1,0 @@
-{
-  "inputs": [
-    "V_{batt,actual}"
-  ],
-  "outputs": [
-    "I_{batt}",
-    "Q_{lines}"
-  ]
-}
