@@ -10,24 +10,24 @@ class CondThermResComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('alpha', val=1.0*np.ones(nn))
+        self.add_input('alpha', val=1.0*np.ones(nn), units=None, desc='thermal accommodation coefficient typically 0.01 to 1')
         self.add_input('h_fg', val=1.0*np.ones(nn), units='J/kg', desc='latent heat')
         self.add_input('T_hp', val=1.0*np.ones(nn), units='K', desc='Temp of heat pipe')
-        self.add_input('v_fg', val=1.0*np.ones(nn))
+        self.add_input('v_fg', val=1.0*np.ones(nn), units='m**3/kg', desc='specific volume')
         self.add_input('R_g', val=1.0*np.ones(nn), units='J/kg/K', desc='gas constant of the vapor')
         self.add_input('P_v', val=1.0*np.ones(nn), units='Pa', desc='pressure')
         self.add_input('D_od', val=1.0*np.ones(nn), units='m', desc='outer diameter')
-        self.add_input('r_i', val=1.0*np.ones(nn))
-        self.add_input('k_w', val=1.0*np.ones(nn))
+        self.add_input('r_i', val=1.0*np.ones(nn), units='m', desc='inner radius' )
+        self.add_input('k_w', val=1.0*np.ones(nn), units='W/(m*K)', desc='thermal conductivity of the wall')
         self.add_input('L_cond', val=1.0*np.ones(nn), units='m', desc='length of condensor')
         self.add_input('D_v', val=1.0*np.ones(nn), units='m', desc='diameter of vapor region')
-        self.add_input('k_wk', val=1.0*np.ones(nn))
-        self.add_input('A_interc', val=1.0*np.ones(nn))
+        self.add_input('k_wk', val=1.0*np.ones(nn), units='W/(m*K)', desc='thermal condusctivity of the wick')
+        self.add_input('A_interc', val=1.0*np.ones(nn), units='m**2', desc='area of wick/vapor interface of the condenser')
 
-        self.add_output('h_interc', val=1.0*np.ones(nn))
+        self.add_output('h_interc', val=1.0*np.ones(nn), units='W/(m**2/K)', desc='HTC of wick/vapor interface of the condenser')
         self.add_output('R_wc', val=1.0*np.ones(nn), units='K/W', desc='thermal resistance')
         self.add_output('R_wkc', val=1.0*np.ones(nn), units='K/W', desc='thermal resistance')
-        self.add_output('R_interc', val=1.0*np.ones(nn))
+        self.add_output('R_interc', val=1.0*np.ones(nn), units='K/W', desc='thermal resistance of wick/vapor interface of the condenser')
 
     def setup_partials(self):
         nn=self.options['num_nodes']
