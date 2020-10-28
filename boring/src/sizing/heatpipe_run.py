@@ -50,6 +50,9 @@ p.set_val('Q_hp',1)
 p.set_val('h_c',1200)
 p.set_val('T_coolant',293)
 
+# p.check_partials(compact_print=True)
+
+om.n2(p)
 
 p.run_model()
 

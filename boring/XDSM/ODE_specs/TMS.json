@@ -1,7 +1,7 @@
 {
   "inputs": [
-    "T_{cold}",
-    "A_{cold}"
+    "A_{cold}",
+    "T_{cold}"
   ],
   "outputs": [
     "Q_{rej}"
