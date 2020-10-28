@@ -1,37 +1,42 @@
 import numpy as np
-# from math import pi
 
 import openmdao.api as om
 
 class CondThermResComp(om.ExplicitComponent):
 
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+
     def setup(self):
+        nn=self.options['num_nodes']
 
-        self.add_input('alpha', val=14.0)
-        self.add_input('h_fg', val=1.0)
-        self.add_input('T_hp', val=1.0)
-        self.add_input('v_fg', val=1.0)
-        self.add_input('R_g', val=1.0)
-        self.add_input('P_v', val=1.0)
-        self.add_input('D_od', val=1.0)
-        self.add_input('r_i', val=1.0)
-        self.add_input('k_w', val=1.0)
-        self.add_input('L_cond', val=1.0)
-        self.add_input('D_v', val=1.0)
-        self.add_input('k_wk', val=1.0)
-        self.add_input('A_interc', val=1.0)
+        self.add_input('alpha', val=14.0*np.ones(nn))
+        self.add_input('h_fg', val=1.0*np.ones(nn))
+        self.add_input('T_hp', val=1.0*np.ones(nn))
+        self.add_input('v_fg', val=1.0*np.ones(nn))
+        self.add_input('R_g', val=1.0*np.ones(nn))
+        self.add_input('P_v', val=1.0*np.ones(nn))
+        self.add_input('D_od', val=1.0*np.ones(nn))
+        self.add_input('r_i', val=1.0*np.ones(nn))
+        self.add_input('k_w', val=1.0*np.ones(nn))
+        self.add_input('L_cond', val=1.0*np.ones(nn))
+        self.add_input('D_v', val=1.0*np.ones(nn))
+        self.add_input('k_wk', val=1.0*np.ones(nn))
+        self.add_input('A_interc', val=1.0*np.ones(nn))
 
-        self.add_output('h_interc', val=1.0)
-        self.add_output('R_wc', val=1.0)
-        self.add_output('R_wkc', val=1.0)
-        self.add_output('R_interc', val=1.0)
+        self.add_output('h_interc', val=1.0*np.ones(nn))
+        self.add_output('R_wc', val=1.0*np.ones(nn))
+        self.add_output('R_wkc', val=1.0*np.ones(nn))
+        self.add_output('R_interc', val=1.0*np.ones(nn))
 
     def setup_partials(self):
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
 
-        self.declare_partials('h_interc', ['alpha', 'h_fg', 'T_hp', 'v_fg', 'R_g', 'P_v'])
-        self.declare_partials('R_wc', ['D_od', 'r_i', 'k_w', 'L_cond'])
-        self.declare_partials('R_wkc', ['D_v', 'r_i', 'k_wk', 'L_cond'])
-        self.declare_partials('R_interc', ['alpha', 'h_fg', 'T_hp', 'v_fg', 'R_g', 'P_v', 'A_interc'])
+        self.declare_partials('h_interc', ['alpha', 'h_fg', 'T_hp', 'v_fg', 'R_g', 'P_v'], rows=ar, cols=ar)
+        self.declare_partials('R_wc', ['D_od', 'r_i', 'k_w', 'L_cond'], rows=ar, cols=ar)
+        self.declare_partials('R_wkc', ['D_v', 'r_i', 'k_wk', 'L_cond'], rows=ar, cols=ar)
+        self.declare_partials('R_interc', ['alpha', 'h_fg', 'T_hp', 'v_fg', 'R_g', 'P_v', 'A_interc'], rows=ar, cols=ar)
 
 
     def compute(self, inputs, outputs):
@@ -51,10 +56,10 @@ class CondThermResComp(om.ExplicitComponent):
         A_interc = inputs['A_interc']
 
         #alpha=1           # Look into this, need better way to determine this rather than referencing papers.
-        h_interc=outputs['h_interc'] = 2*alpha/(2-alpha)*(h_fg**2/(T_hp*v_fg))*np.sqrt(1/(2*np.pi*R_g*T_hp))*(1-P_v*v_fg/(2*h_fg)) # Sydney
-        outputs['R_wc'] = np.log((D_od/2)/(r_i))/(2*np.pi*k_w*L_cond) # Sydney
-        outputs['R_wkc'] = np.log((r_i)/(D_v/2))/(2*np.pi*k_wk*L_cond) # Sydney
-        outputs['R_interc'] = 1/(h_interc*A_interc) # Sydney
+        h_interc=outputs['h_interc'] = 2*alpha/(2-alpha)*(h_fg**2/(T_hp*v_fg))*np.sqrt(1/(2*np.pi*R_g*T_hp))*(1-P_v*v_fg/(2*h_fg))
+        outputs['R_wc'] = np.log((D_od/2)/(r_i))/(2*np.pi*k_w*L_cond) 
+        outputs['R_wkc'] = np.log((r_i)/(D_v/2))/(2*np.pi*k_wk*L_cond) 
+        outputs['R_interc'] = 1/(h_interc*A_interc) 
 
     def compute_partials(self, inputs, partials):
         alpha = inputs['alpha']
@@ -98,12 +103,3 @@ class CondThermResComp(om.ExplicitComponent):
         partials['R_interc', 'P_v'] = -dh_dPv / (h_interc**2 * A_interc)
         partials['R_interc', 'A_interc'] = -1 / (h_interc * A_interc**2)
 
-if __name__ =='__main__':
-
-    prob = om.Problem()
-
-    prob.model.add_subsystem('cond_R_t_comp', CondThermResComp())
-
-    prob.setup(force_alloc_complex = True)
-    prob.run_model()
-    prob.check_partials(method='cs', compact_print=True, show_only_incorrect=True)

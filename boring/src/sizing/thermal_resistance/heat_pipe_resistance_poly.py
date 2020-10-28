@@ -51,6 +51,27 @@ def f(T,a_0,a_1,a_2,a_3,a_4,a_5):
     poly=np.exp(a_0+a_1*T+a_2*T**2+a_3*T**3+a_4*T**4+a_5*T**5)
     return poly
 
+alpha_array = np.arange(10,50,1)
+h_fg_array = np.arange(10,50,1)
+T_hp_array = np.arange(10,50,1)
+v_fg_array = np.arange(10,50,1)
+R_g_array = np.arange(10,50,1)
+P_v_array = np.arange(10,50,1)
+D_od_array = np.arange(10,50,1)
+r_i_array = np.arange(10,50,1)
+k_w_array = np.arange(10,50,1)
+L_cond_array = np.arange(10,50,1)
+D_v_array = np.arange(10,50,1)
+k_wk_array = np.arange(10,50,1)
+A_interc_array = np.arange(10,50,1)
+
+h_interc_array = np.arange(10,50,1)
+R_wc_array = np.arange(10,50,1)
+R_wkc_array = np.arange(10,50,1)
+R_interc_array = np.arange(10,50,1)
+
+i = 0
+
 for Q_hp in range(10,50,1):
     
     T_cond=Q_hp/(A_cond*h_c)+T_coolant
@@ -104,6 +125,8 @@ for Q_hp in range(10,50,1):
     R_wc=np.log((D_od/2)/(r_i))/(2*np.pi*k_w*L_cond) # Sydney
     R_wkc=np.log((r_i)/(D_v/2))/(2*np.pi*k_wk*L_cond) # Sydney
     R_interc=1/(h_interc*A_interc) # Sydney
+
+    print(R_wc)
     ######################################## Evaporator Section Thermal Resistances ########################################################
     h_intere=2*alpha/(2-alpha)*(h_fg**2/(T_hp*v_fg))*np.sqrt(1/(2*np.pi*R_g*T_hp))*(1-P_v*v_fg/(2*h_fg)) # Karsten
     R_we=np.log((D_od/2)/(r_i))/(2*np.pi*k_w*L_evap) # Karsten
@@ -115,6 +138,26 @@ for Q_hp in range(10,50,1):
     ######################################## Total Thermal Resistance ########################################################
     R_1=(R_wke+R_intere+R_v+R_interc+R_wkc)*R_awk/(R_wke+R_intere+R_v+R_interc+R_wkc+R_awk) # Jeff
     R_hp=(R_we+R_wc+R_1)*R_aw/(R_we+R_wc+R_1+R_aw)  # Jeff
+
+    alpha_array[i]= alpha
+    h_fg_array[i]= h_fg
+    T_hp_array[i]= T_hp
+    v_fg_array[i]= v_fg
+    R_g_array[i]= R_g
+    P_v_array[i]= P_v
+    D_od_array[i]= D_od
+    r_i_array[i]= r_i
+    k_w_array[i]= k_w
+    L_cond_array[i]= L_cond
+    D_v_array[i]= D_v
+    k_wk_array[i]= k_wk
+    A_interc_array[i]= A_interc
+
+    h_interc_array[i]= h_interc
+    R_wc_array[i]= R_wc
+    R_wkc_array[i]= R_wkc
+    R_interc_array[i]= R_interc
+
     plt.plot(Q_hp,R_hp,marker='o',color='k')
     # plt.plot(T_hp,R_wc,marker='o',color='k')
     # plt.plot(T_hp,R_wkc,marker='d',color='b')
@@ -126,6 +169,27 @@ for Q_hp in range(10,50,1):
     
     plt.ylabel('$R_{th}$ [K/W]')
     plt.xlabel('Heat Load [W]')
+
+    i = i + 1
+
+print('alpha = ', alpha_array)
+print('h_fg = ', h_fg_array)
+print('T_hp = ', T_hp_array)
+print('v_fg = ', v_fg_array)
+print('R_g = ', R_g_array)
+print('P_v = ', P_v_array)
+print('D_od = ', D_od_array)
+print('r_i = ', r_i_array)
+print('k_w = ', k_w_array)
+print('L_cond = ', L_cond_array)
+print('D_v = ', D_v_array)
+print('k_wk = ', k_wk_array)
+print('A_interc = ', A_interc_array)
+
+print('h_interc = ', h_interc_array)
+print('R_wc = ', R_wc_array)
+print('R_wkc = ', R_wkc_array)
+print('R_interc = ', R_interc_array)
 
 plt.show()
 print("Rwe", R_we)
