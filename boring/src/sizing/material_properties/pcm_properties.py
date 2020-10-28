@@ -16,8 +16,9 @@ class PCM_props(om.ExplicitComponent):
 
         #pad geometry
         self.add_input('t_pad', 1., desc='PCM pad thickness')
-        # conductive foam properties
         self.add_input('porosity', 1.,  desc='percentage porosity, 1 = completely void, 0 = solid')
+
+        # conductive foam properties
         self.add_input('k_foam', 1., desc='thermal conductivity of the foam')
         self.add_input('rho_foam', 1., desc='intrinsic density of the foam material (unrelated to porosity)')
         # phase change material properties

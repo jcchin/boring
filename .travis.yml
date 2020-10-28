@@ -51,6 +51,7 @@ install:
   python -m pip install testflo --user;
   python -m pip install ssh --user;
   python -m pip install pdflatex --user;
+  python -m pip install lcapy --user;
 
   echo " >> Installing pyOptSparse";
   echo "  > Cloning pyOptSparse from mdolab";

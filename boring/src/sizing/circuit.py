@@ -72,14 +72,16 @@ class Circuit(om.Group):
     """ Thermal equivalent circuit """
     def setup(self):
 
-
+        # Evaporator
         self.add_subsystem('Rex_e', Resistor())
         self.add_subsystem('Rwe', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
         self.add_subsystem('Rwke', Resistor()) # evaporator wick
         self.add_subsystem('Rinter_e', Resistor())
+        # Axial
         self.add_subsystem('Rv', Resistor()) # vapor
         self.add_subsystem('Rwka', Resistor()) # wick adiabatic
         self.add_subsystem('Rwa', Resistor()) # wall adiabatic
+        # Condensor
         self.add_subsystem('Rinter_c', Resistor()) #
         self.add_subsystem('Rwkc', Resistor()) # condensor wick
         self.add_subsystem('Rwc', Resistor())#, promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
