@@ -6,7 +6,7 @@ Author: Jeff Chin
 
 import openmdao.api as om
 from openmdao.api import ArmijoGoldsteinLS, DirectSolver, NewtonSolver
-from boring.src.sizing.mass import packMass
+from boring.src.sizing.mass.mass import packMass
 from boring.src.sizing.heat_pipe import OHP
 
 #                        Insulation 
@@ -104,7 +104,7 @@ class packSize(om.ExplicitComponent):
         o['H'] = o['n_stacks']*(i['cell_h']*2.+i['cell_s_h']+i['t_PCM']*2.+i['t_HP']) # stacks have vertically stacked bars, driven by cell, pad, and OHP height/thickness
 
 
-    def setup_partials(self, inputs, J):
+    def setup_partials(self):
         self.declare_partials('*', '*', method='cs')
 
 
@@ -155,7 +155,7 @@ class pcmSize(om.ExplicitComponent):
         outputs['PCM_tot_mass'] = outputs['PCM_bar_mass']*n_bps*n_cpb
 
 
-    def setup_partials(self, inputs, J):
+    def setup_partials(self):
         self.declare_partials('*', '*', method='cs')
 
 

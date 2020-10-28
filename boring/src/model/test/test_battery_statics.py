@@ -52,7 +52,7 @@ class TestBatteryStatics(unittest.TestCase):
 
         subsystem = BatteryStaticsGroup()
 
-        assert_match_spec(subsystem, 'design_specs/battery_comp.json')
+        assert_match_spec(subsystem, 'Design_specs/battery_comp.json')
 
 
 if __name__ =='__main__':

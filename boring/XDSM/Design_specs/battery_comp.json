@@ -1,0 +1,20 @@
+{
+  "inputs": [
+    "dischargeRate_{cell}",
+    "weightFrac_{case}",
+    "I_{batt}",
+    "energy_{required}",
+    "voltage_{nom,cell}",
+    "V_{batt}",
+    "voltage_{low,cell}",
+    "mass_{cell}",
+    "Q_{max}",
+    "eta_{batt}"
+  ],
+  "outputs": [
+    "C_{p,batt}",
+    "mass_{battery}",
+    "n_{series}",
+    "n_{parallel}"
+  ]
+}
