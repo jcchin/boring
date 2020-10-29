@@ -18,17 +18,25 @@ class TestVaporResistance(unittest.TestCase):
         p1.run_model()
 
     def test_vapor_outputs(self):
-        self.prob['vapor_thermal.D_v'] = 10.1
-        self.prob['vapor_thermal.R_g'] = 0.2
-        self.prob['vapor_thermal.mu_v'] = 0.03
-        self.prob['vapor_thermal.T_hp'] = 300
-        self.prob['vapor_thermal.h_fg'] = 100
-        self.prob['vapor_thermal.P_v'] = 1000
-        self.prob['vapor_thermal.rho_v'] = 100
-        self.prob['vapor_thermal.L_eff'] = 0.5
+
+        self.prob.run_model()
         
         assert_near_equal(self.prob.get_val('vapor_thermal.r_h'), 0.05, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('vapor_thermal.R_v'), 0.1100079, tolerance=1.0E-5)
+
+        self.prob['vapor_thermal.D_v'] = 10.1
+        # self.prob['vapor_thermal.R_g'] = 0.2
+        # self.prob['vapor_thermal.mu_v'] = 0.03
+        # self.prob['vapor_thermal.T_hp'] = 300
+        # self.prob['vapor_thermal.h_fg'] = 100
+        # self.prob['vapor_thermal.P_v'] = 1000
+        # self.prob['vapor_thermal.rho_v'] = 100
+        # self.prob['vapor_thermal.L_eff'] = 0.5
+
+        self.prob.run_model()
+
+        assert_near_equal(self.prob.get_val('vapor_thermal.r_h'), 5.05, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('vapor_thermal.R_v'), 1.05715426e-09, tolerance=1.0E-5)
 
     def test_partials(self): # derivative check
 
