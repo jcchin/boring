@@ -1,4 +1,6 @@
 """
+Construct thermal network, then solve for flux and equivalent resistance
+
 Author: Jeff Chin
 """
 
@@ -67,9 +69,120 @@ class Node(om.ImplicitComponent):
         for q_conn in range(self.options['n_out']):
             partials['T','q_out:{}'.format(q_conn)] = -1.   
 
+class Evaporator(om.Group):
+    """ Evaporator Stack """
+    def setup(self):
+
+        # Evaporator
+        self.add_subsystem('Rex_e', Resistor())
+        self.add_subsystem('Rwe', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
+        self.add_subsystem('Rwke', Resistor()) # evaporator wick
+        self.add_subsystem('Rinter_e', Resistor())
+
+        self.add_subsystem('n1', Node(n_in=1, n_out=2))  # 1, 2 out
+        self.add_subsystem('n2', Node(n_in=1, n_out=2))  # 1, 2 out
+        self.add_subsystem('n3', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n4', Node(n_in=1, n_out=1))  # 1
+
+        # node 1 (6 connections, 1 in, 2 out)
+        self.connect('n1.T', ['Rex_e.T_out','Rwe.T_in'])
+        self.connect('Rex_e.q','n1.q_in:0')
+        self.connect('Rwe.q','n1.q_out:0')
+
+        # node 2 (6 connections, 1 in, 2 out)
+        self.connect('n2.T', ['Rwe.T_out', 'Rwke.T_in'])
+        self.connect('Rwe.q', 'n2.q_in:0')
+        self.connect('Rwke.q', 'n2.q_out:1')
+
+        # node 3 (4 connections)
+        self.connect('n3.T', ['Rwke.T_out','Rinter_e.T_in'])
+        self.connect('Rwke.q', 'n3.q_in:0')
+        self.connect('Rinter_e.q', 'n3.q_out:0')
+
+        # node 4 (4 connections)
+        self.connect('n4.T', ['Rinter_e.T_out']) 
+        self.connect('Rinter_e.q', 'n4.q_in:0')
+
+
+class Condensor(om.Group):
+    """ Condensor Stack """
+    def setup(self):
+
+        # Condensor
+        self.add_subsystem('Rinter_c', Resistor()) #
+        self.add_subsystem('Rwkc', Resistor()) # condensor wick
+        self.add_subsystem('Rwc', Resistor())#, promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
+        self.add_subsystem('Rex_c', Resistor())
+
+        self.add_subsystem('n5', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n6', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n7', Node(n_in=2, n_out=1))  # 2 in, 1
+        self.add_subsystem('n8', Node(n_in=2, n_out=1))  # 2 in, 1
+
+        # node 5 (4 connections)
+        self.connect('n4.T', ['Rinter_c.T_in']) 
+        self.connect('Rinter_c.q', 'n4.q_out:0')
+
+        # node 6 (4 connections)
+        self.connect('n3.T', ['Rinter_c.T_out','Rwkc.T_in'])
+        self.connect('Rinter_c.q', 'n3.q_in:0')
+        self.connect('Rwkc.q', 'n3.q_out:0')
+        
+        # node 7 (4 connections, 2 in, 1 out)
+        self.connect('n2.T', ['Rwkc.T_out','Rwc.T_in']) 
+        self.connect('Rwkc.q', 'n2.q_in:1')
+        self.connect('Rwc.q', 'n2.q_out:0')
+
+        # node 8 (6 connections, 2 in, 1 out)
+        self.connect('n1.T',['Rwc.T_out','Rex_c.T_in']) 
+        self.connect('Rwc.q','n1.q_in:1')
+        self.connect('Rex_c.q','n1.q_out:0')
+
+class Bridge(om.Group):
+    """ Bridge between evaporator or condensors """
+    def setup(self):
+
+        # Axial
+        self.add_subsystem('Rv', Resistor()) # vapor
+        self.add_subsystem('Rwka', Resistor()) # wick adiabatic
+        self.add_subsystem('Rwa', Resistor()) # wall adiabatic
+
+def thermal_link(l_comp, r_comp, type):
+    l_name = l_comp.name
+    r_name = r_comp.name
+
+    #determine connection number
+
+    if type('VA'): # connect a vertical (condensor or evaportor) to axial (bridge) component
+        # node 1
+        self.connect('{}.n1.T'.format(l_name),'{}.Rwa.T_in'.format(b_name))
+        self.connect('{}.Rwa.q'.format(b_name),'{}.n1.q_out:1'.format(l_name))
+        # node 2
+        self.connect('{}.n2.T'.format(l_name),'{}.Rwka.T_in'.format(r_name))
+        self.connect('{}.Rwka.q'.format(b_name),'{}.n2.q_out:0'.format(l_name))
+        # node 4
+        self.connect('{}.n4.T'.format(l_name),'{}.Rv.T_in'.format(b_name))
+        self.connect('{}.Rv.q'.format(b_name),'{}.n4.q_out:0'.format(l_name))
+
+    elif type('AV'): # connect a axial (bridge) component to a vertical component
+        # node 1 (8)
+        self.connect('{}.n1.T'.format(r_name),'{}.Rwa.T_out'.format(b_name))
+        self.connect('{}.Rwa.q'.format(b_name),'{}.n1.q_in:1'.format(r_name))
+        # node 2 (7)
+        self.connect('{}.n2.T'.format(r_name),'{}.Rwka.T_out'.format(b_name))
+        self.connect('{}.Rwka.q'.format(b_name),'{}.n2.q_in:0'.format(r_name))
+        # node 4 (5)
+        self.connect('{}.n4.T'.format(r_name),'{}.Rv.T_out'.format(b_name))
+        self.connect('{}.Rv.q'.format(b_name),'{}.n4.q_in:0'.format(r_name))
+
+    
+    else:   
+        print("invalid connection type")
+
+
 
 class Circuit(om.Group):
-    """ Thermal equivalent circuit """
+    """ Full thermal equivalent circuit from one evaporator to one condensor"""
     def setup(self):
 
         # Evaporator

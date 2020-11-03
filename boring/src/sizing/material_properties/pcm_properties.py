@@ -1,6 +1,10 @@
 """
 Calculates bulk properties following the method outlined in 
 "Experimental investigation on copper foam/hydrated salt composite phase change material for thermal energy storage" T.X. Li, D.L. Wu, F. He, R.Z. Wang
+"Modeling and Analysis of Phase Change Materials for Efficient Thermal Management" Fulya Kaplan et al
+
+Apparent Heat Capacity Method  Cp = f(T)  (Need upper and lower Cp, and 2 bounding temperatures)
+Latent Heat Energy Model       T = f(U)  (Need melting temp, and latent heat)
 
 Author: Jeff Chin
 """
@@ -50,7 +54,15 @@ class PCM_props(om.ExplicitComponent):
         k_foam = inputs['k_foam']
         k_pcm = inputs['k_pcm']
         
+        # two materials arranged in series (conservative)
         outputs['k_bulk'] = 1./(porosity/k_pcm + (1-porosity)/k_foam)
+
+        # two materials arranged in parallel (optimistic)
+        # outputs['k_bulk'] = porosity*k_pcm + (1-porosity)*k_foam
+
+        # Fancier Combined Option
+        # Thermophysical properties of high porosity metal foams, A = 0.35 (empirically derived for both Aluminum and RVC foam with water/air)
+        # outputs['k_bulk'] = A*(porosity*k_pcm + (1-porosity)*k_foam) + (1.-A)/(porosity/k_pcm + (1-porosity)/k_foam)
 
         outputs['R_PCM'] = inputs['t_pad']/(inputs['pad_area']*outputs['k_bulk'])
 
