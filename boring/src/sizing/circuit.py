@@ -114,10 +114,10 @@ class Condensor(om.Group):
         self.add_subsystem('Rwc', Resistor())#, promotes_inputs=[('T_out', 'T_cold')]) #condensor wall
         self.add_subsystem('Rex_c', Resistor())
 
-        self.add_subsystem('n5', Node(n_in=1, n_out=1))  # 1
-        self.add_subsystem('n6', Node(n_in=1, n_out=1))  # 1
-        self.add_subsystem('n7', Node(n_in=2, n_out=1))  # 2 in, 1
-        self.add_subsystem('n8', Node(n_in=2, n_out=1))  # 2 in, 1
+        self.add_subsystem('n4', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n3', Node(n_in=1, n_out=1))  # 1
+        self.add_subsystem('n2', Node(n_in=2, n_out=1))  # 2 in, 1
+        self.add_subsystem('n1', Node(n_in=2, n_out=1))  # 2 in, 1
 
         # node 5 (4 connections)
         self.connect('n4.T', ['Rinter_c.T_in']) 
@@ -147,38 +147,42 @@ class Bridge(om.Group):
         self.add_subsystem('Rwka', Resistor()) # wick adiabatic
         self.add_subsystem('Rwa', Resistor()) # wall adiabatic
 
-def thermal_link(l_comp, r_comp, type):
-    l_name = l_comp.name
-    r_name = r_comp.name
+def thermal_link(model, l_comp, r_comp):
+    l_name = l_comp
+    r_name = r_comp
+
+    b_name = '{}_bridge'.format(l_comp)
+    model.add_subsystem(b_name, Bridge())
 
     #determine connection number
 
-    if type('VA'): # connect a vertical (condensor or evaportor) to axial (bridge) component
-        # node 1
-        self.connect('{}.n1.T'.format(l_name),'{}.Rwa.T_in'.format(b_name))
-        self.connect('{}.Rwa.q'.format(b_name),'{}.n1.q_out:1'.format(l_name))
-        # node 2
-        self.connect('{}.n2.T'.format(l_name),'{}.Rwka.T_in'.format(r_name))
-        self.connect('{}.Rwka.q'.format(b_name),'{}.n2.q_out:0'.format(l_name))
-        # node 4
-        self.connect('{}.n4.T'.format(l_name),'{}.Rv.T_in'.format(b_name))
-        self.connect('{}.Rv.q'.format(b_name),'{}.n4.q_out:0'.format(l_name))
+    # node 1
+    model.connect('{}.n1.T'.format(l_name),'{}.Rwa.T_in'.format(b_name))
+    model.connect('{}.Rwa.q'.format(b_name),'{}.n1.q_out:1'.format(l_name))
+    # node 2
+    model.connect('{}.n2.T'.format(l_name),'{}.Rwka.T_in'.format(b_name))
+    model.connect('{}.Rwka.q'.format(b_name),'{}.n2.q_out:0'.format(l_name))
+    # node 4
+    model.connect('{}.n4.T'.format(l_name),'{}.Rv.T_in'.format(b_name))
+    model.connect('{}.Rv.q'.format(b_name),'{}.n4.q_out:0'.format(l_name))
 
-    elif type('AV'): # connect a axial (bridge) component to a vertical component
-        # node 1 (8)
-        self.connect('{}.n1.T'.format(r_name),'{}.Rwa.T_out'.format(b_name))
-        self.connect('{}.Rwa.q'.format(b_name),'{}.n1.q_in:1'.format(r_name))
-        # node 2 (7)
-        self.connect('{}.n2.T'.format(r_name),'{}.Rwka.T_out'.format(b_name))
-        self.connect('{}.Rwka.q'.format(b_name),'{}.n2.q_in:0'.format(r_name))
-        # node 4 (5)
-        self.connect('{}.n4.T'.format(r_name),'{}.Rv.T_out'.format(b_name))
-        self.connect('{}.Rv.q'.format(b_name),'{}.n4.q_in:0'.format(r_name))
+    # node 1 (8)
+    model.connect('{}.n1.T'.format(r_name),'{}.Rwa.T_out'.format(b_name))
+    model.connect('{}.Rwa.q'.format(b_name),'{}.n1.q_in:0'.format(r_name))
+    # node 2 (7)
+    model.connect('{}.n2.T'.format(r_name),'{}.Rwka.T_out'.format(b_name))
+    model.connect('{}.Rwka.q'.format(b_name),'{}.n2.q_in:0'.format(r_name))
+    # node 4 (5)
+    model.connect('{}.n4.T'.format(r_name),'{}.Rv.T_out'.format(b_name))
+    model.connect('{}.Rv.q'.format(b_name),'{}.n4.q_in:0'.format(r_name))
 
-    
-    else:   
-        print("invalid connection type")
-
+    model.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
+    model.nonlinear_solver.options['iprint'] = 2
+    model.nonlinear_solver.options['maxiter'] = 20
+    model.linear_solver = om.DirectSolver()
+    model.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
+    model.nonlinear_solver.linesearch.options['maxiter'] = 10
+    model.nonlinear_solver.linesearch.options['iprint'] = 2
 
 
 class Circuit(om.Group):
@@ -263,26 +267,23 @@ class Circuit(om.Group):
         self.nonlinear_solver.linesearch.options['maxiter'] = 10
         self.nonlinear_solver.linesearch.options['iprint'] = 2
 
+    
+
 if __name__ == "__main__":
 
     p = om.Problem()
     model = p.model
 
-    # model.add_subsystem('T_hot', om.IndepVarComp('T', 500., units='K'))
-    # model.add_subsystem('T_cold', om.IndepVarComp('T', 60, units='K'))
-    #model.add_subsystem('q_hot', om.IndepVarComp('q', 70., units='W'))
-    #model.add_subsystem('q_cold', om.IndepVarComp('q', 50, units='W'))
-    model.add_subsystem('circuit', Circuit())
+    # model.add_subsystem('circuit', Circuit())
+    model.add_subsystem('evap', Evaporator())
+    model.add_subsystem('cond', Condensor())
 
-    # model.connect('T_hot.T', 'circuit.n1.T')
-    # model.connect('T_cold.T', 'circuit.n2.T')
-    # model.connect('q_hot.q', 'circuit.n1.q_in:0')
-    # model.connect('q_cold.q', 'circuit.n2.q_out:0')
+    thermal_link(model,'evap','cond')
 
     p.setup()
 
-    p.set_val('circuit.Rex_e.T_in', 100.)
-    p.set_val('circuit.Rex_c.T_out', 20.)
+    p.set_val('evap.Rex_e.T_in', 100.)
+    p.set_val('cond.Rex_c.T_out', 20.)
 
     #p.check_partials(compact_print=True)
     #om.n2(p)
