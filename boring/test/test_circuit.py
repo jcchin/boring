@@ -9,7 +9,7 @@ from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 from lcapy import R
 
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.circuit import Circuit, Evaporator, Condensor, thermal_link
+from boring.src.sizing.circuit import Circuit, Radial_Stack, thermal_link
 
 
 class TestCircuit(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestCircuit(unittest.TestCase):
         p1 = self.prob = Problem(model=Group())
         p1.model.add_subsystem('circ', subsys=Circuit())
 
-        p1.setup(force_alloc_complex=True)
+        p1.setup()
 
         Rexe = 0.0000001
         Rexc = 0.0000001
@@ -85,8 +85,8 @@ class TestCircuit(unittest.TestCase):
     def test_link(self):
 
         p2 = self.prob2 = Problem(model=Group())
-        p2.model.add_subsystem('evap', Evaporator(links=1))
-        p2.model.add_subsystem('cond', Condensor(links=1))
+        p2.model.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1))
+        p2.model.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0))
 
         thermal_link(p2.model,'evap','cond')
 
@@ -103,24 +103,25 @@ class TestCircuit(unittest.TestCase):
         Rwka = 744.3007160198263
         Rwa = 456.90414284754644
         Rwc = 0.1272691973507351
-        self.prob2['evap.Rex_e.R'] = Rexe
-        self.prob2['evap.Rwe.R'] = Rwe
-        self.prob2['evap.Rwke.R'] = Rwke
-        self.prob2['evap.Rinter_e.R'] = Rintere
-        self.prob2['cond.Rinter_c.R'] = Rinterc
-        self.prob2['cond.Rwkc.R'] = Rwkc
-        self.prob2['cond.Rwc.R'] = Rwc
-        self.prob2['cond.Rex_c.R'] = Rexc
+        self.prob2['evap.Rex.R'] = Rexe
+        self.prob2['evap.Rw.R'] = Rwe
+        self.prob2['evap.Rwk.R'] = Rwke
+        self.prob2['evap.Rinter.R'] = Rintere
+        self.prob2['cond.Rinter.R'] = Rinterc
+        self.prob2['cond.Rwk.R'] = Rwkc
+        self.prob2['cond.Rw.R'] = Rwc
+        self.prob2['cond.Rex.R'] = Rexc
 
         self.prob2['evap_bridge.Rv.R'] = Rv
         self.prob2['evap_bridge.Rwka.R'] = Rwka
         self.prob2['evap_bridge.Rwa.R'] = Rwa
-        self.prob2['evap.Rex_e.T_in'] = 100
-        self.prob2['cond.Rex_c.T_out'] = 20
+        self.prob2['evap.Rex.T_in'] = 100
+        self.prob2['cond.Rex.T_in'] = 20
 
         p2.run_model()
+        p2.model.list_outputs(values=True, prom_name=True)
 
-        Rtot3 = (self.prob2.get_val('evap.n1.T')-self.prob2.get_val('cond.n1.T'))/self.prob2.get_val('cond.Rex_c.q')
+        Rtot3 = (self.prob2.get_val('evap.n1.T')-self.prob2.get_val('cond.n1.T'))/np.abs(self.prob2.get_val('cond.Rex.q'))
 
         ans = 16731692103737332239244353077427184638278095509511778941./10680954190791611228174081719413008273307025000000000000.
         assert_near_equal(Rtot3, ans, tolerance=1.0E-5)
