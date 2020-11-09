@@ -46,11 +46,11 @@ class Node(om.ImplicitComponent):
 
         for i in range(self.options['n_in']):
             q_name = 'q_in:{}'.format(i)
-            self.add_input(q_name, units='W')
+            self.add_input(q_name, 0., units='W')
 
         for i in range(self.options['n_out']):
             q_name = 'q_out:{}'.format(i)
-            self.add_input(q_name, units='W')
+            self.add_input(q_name, 0., units='W')
 
     def setup_partials(self):
         #note: we don't declare any partials wrt `T` here,
@@ -296,10 +296,10 @@ if __name__ == "__main__":
     # p['circuit.n8.T'] = 60.
 
     p.run_model() 
-    om.n2(p)
+    #om.n2(p)
 
     p.model.list_inputs(values=True, prom_name=True)   
     p.model.list_outputs(values=True, prom_name=True)   
 
-    print(p.get_val('cond.Rex.T_in'))
+    #print(p.get_val('cond.Rex.T_in'))
 
