@@ -85,8 +85,8 @@ class TestCircuit(unittest.TestCase):
     def test_link(self):
 
         p2 = self.prob2 = Problem(model=Group())
-        p2.model.add_subsystem('evap', Evaporator())
-        p2.model.add_subsystem('cond', Condensor())
+        p2.model.add_subsystem('evap', Evaporator(links=1))
+        p2.model.add_subsystem('cond', Condensor(links=1))
 
         thermal_link(p2.model,'evap','cond')
 
