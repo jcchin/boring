@@ -6,7 +6,7 @@ import numpy as np
 from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
-from lcapy import R
+from lcapy import R, LSection, Series
 
 from boring.util.spec_test import assert_match_spec
 from boring.src.sizing.circuit import Circuit, Radial_Stack, thermal_link
@@ -125,6 +125,33 @@ class TestCircuit(unittest.TestCase):
 
         ans = 16731692103737332239244353077427184638278095509511778941./10680954190791611228174081719413008273307025000000000000.
         assert_near_equal(Rtot3, ans, tolerance=1.0E-5)
+
+    def test_two_port(self):
+
+        Rexe = 0.0000001
+        Rexc = 0.0000001
+        Rwe = 0.2545383947014702
+        Rwke = 0.7943030881649811
+        Rv = 8.852701208752846e-06
+        Rintere = 0.00034794562965549745
+        Rinterc = 0.00017397281482774872
+        Rwkc = 0.39715154408249054
+        Rwka = 744.3007160198263
+        Rwa = 456.90414284754644
+        Rwc = 0.1272691973507351
+
+        Rtota= R(Rexe) + (R(Rwa) | R(Rwe) + (R(Rwka)|R(Rwke)+R(Rintere)+R(Rv)+R(Rinterc)+R(Rwkc))+ R(Rwc))+ R(Rexc)
+        #                                                                                                   |         |
+        Rtot = R(Rexe) + (R(Rwa) | R(Rwe) + (R(Rwka)|R(Rwke)+R(Rintere)+R(Rv)+R(Rinterc)+R(Rwkc))+ R(Rwc)) + (R(1.6+Rexc) | (R(Rexe) + (R(Rwa) | R(Rwe) + (R(Rwka)|R(Rwke)+R(Rintere)+R(Rv)+R(Rinterc)+R(Rwkc))+ R(Rwc))+ R(Rexc)))
+        print(Rtot.simplify())
+        Rtot.draw('test.pdf')
+
+        Rtot_2 = LSection(Rtota,Rtota)
+        ans1 = Rtot_2.Y1sc
+        print(ans1.simplify())
+        ans2 = Rtot_2.Y2sc
+        print(ans2.simplify())
+
 
 if __name__ =='__main__':
     unittest.main()

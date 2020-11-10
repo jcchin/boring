@@ -251,49 +251,38 @@ if __name__ == "__main__":
     p = om.Problem()
     model = p.model
 
+    # # Circuit
     # model.add_subsystem('circuit', Circuit())
     # p.setup()
     # p['circuit.Rex_e.T_in'] = 100.
     # p['circuit.Rex_c.T_out'] = 20.
 
-    
-    model.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1))
-    model.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0))
-    thermal_link(model,'evap','cond')
+    # # Simple Circuit
+    # model.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1))
+    # model.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0))
+    # thermal_link(model,'evap','cond')
 
-    # # # CEC
-    # model.add_subsystem('cond', Condensor(n_in=0, n_out=1))
-    # model.add_subsystem('evap', Evaporator(n_in=1, n_out=1))
-    # model.add_subsystem('cond2', Condensor(n_in=1, n_out=0))
-
+    # # CEC
+    # model.add_subsystem('cond', Radial_Stack(n_in=0, n_out=1))
+    # model.add_subsystem('evap', Radial_Stack(n_in=1, n_out=1))
+    # model.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0))
     # thermal_link(model,'cond','evap')
     # thermal_link(model,'evap','cond2')
 
-    # # ECC
-    # model.add_subsystem('evap', Evaporator(links=1))
-    # model.add_subsystem('cond', Condensor(links=2))
-    # model.add_subsystem('cond2', Condensor(links=1))
-
-    # thermal_link(model,'evap','cond', 1)
-    # thermal_link(model,'cond','cond2',2)
+    # ECC
+    model.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1))
+    model.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1))
+    model.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0))
+    thermal_link(model,'evap','cond')
+    thermal_link(model,'cond','cond2')
 
     p.setup()
 
     p.set_val('evap.Rex.T_in', 100.)
     p.set_val('cond.Rex.T_in', 20.)
-    #p.set_val('cond2.Rex.T_in', 20.)
+    p.set_val('cond2.Rex.T_in', 20.)
 
     #p.check_partials(compact_print=True)
-
-
-    # set some initial guesses
-
-    # p['circuit.n3.T'] = 300.
-    # p['circuit.n4.T'] = 250.
-    # p['circuit.n5.T'] = 200.
-    # p['circuit.n6.T'] = 150.
-    # p['circuit.n7.T'] = 100.
-    # p['circuit.n8.T'] = 60.
 
     p.run_model() 
     #om.n2(p)
