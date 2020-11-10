@@ -9,7 +9,7 @@ from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 from lcapy import R, LSection, Series
 
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.circuit import Circuit, Radial_Stack, thermal_link
+from boring.src.sizing.thermal_network import Circuit, Radial_Stack, thermal_link
 
 
 class TestCircuit(unittest.TestCase):

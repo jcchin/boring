@@ -8,7 +8,7 @@ from math import pi
 
 import openmdao.api as om
 
-class SizeGroup(om.Group):
+class HeatPipeSizeGroup(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
 

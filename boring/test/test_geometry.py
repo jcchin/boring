@@ -8,13 +8,13 @@ from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
 # from boring.src.sizing.heatpipe_core_geometries import CoreGeometries
-from boring.src.sizing.geometry.geometry import SizeGroup
+from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
 
 class TestSize(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('sizing', subsys=SizeGroup(num_nodes=1))
+        p1.model.add_subsystem('sizing', subsys=HeatPipeSizeGroup(num_nodes=1))
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()

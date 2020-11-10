@@ -13,25 +13,25 @@ class FluidPropertiesComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('Q_hp', 50,  desc='')
-        self.add_input('A_cond', 0.0003769911184307752,  desc='')
-        self.add_input('h_c', 1200,  desc='')
-        self.add_input('T_coolant', 285,  desc='')
+        self.add_input('Q_hp', 50, units='', desc='')
+        self.add_input('A_cond', 0.0003769911184307752, units='m**2', desc='')
+        self.add_input('h_c', 1200, units='', desc='')
+        self.add_input('T_coolant', 285, units='K', desc='')
 
-        self.add_output('T_hp', 1, desc='')
-        self.add_output('P_v', 1, desc='')
-        self.add_output('h_fg', 1,  desc='')
-        self.add_output('rho_l', 1,  desc='')
-        self.add_output('rho_v', 1, desc='')
-        self.add_output('mu_l', 1,  desc='')
-        self.add_output('mu_v', 1, desc='')
-        self.add_output('k_l', 1,  desc='')
-        self.add_output('k_v', 1,  desc='')
-        self.add_output('sigma_l', 1,  desc='')
-        self.add_output('cp_l', 1,  desc='')
-        self.add_output('cp_v', 1,  desc='')
-        self.add_output('v_fg', 1,  desc='')
-        self.add_output('R_g', 1, desc='')
+        self.add_output('T_hp', 1, , units='K', desc='')
+        self.add_output('P_v', 1, units='', desc='')
+        self.add_output('h_fg', 1,  units='', desc='')
+        self.add_output('rho_l', 1,  units='', desc='')
+        self.add_output('rho_v', 1, units='', desc='')
+        self.add_output('mu_l', 1,  units='', desc='')
+        self.add_output('mu_v', 1, units='', desc='')
+        self.add_output('k_l', 1,  units='', desc='')
+        self.add_output('k_v', 1,  units='', desc='')
+        self.add_output('sigma_l', 1,  units='', desc='')
+        self.add_output('cp_l', 1,  units='', desc='')
+        self.add_output('cp_v', 1,  units='', desc='')
+        self.add_output('v_fg', 1,  units='', desc='')
+        self.add_output('R_g', 1, units='', desc='')
         
 # Add outputs for all properties
 
@@ -111,7 +111,7 @@ class FluidPropertiesComp(om.ExplicitComponent):
         outputs['cp_l'] = f(outputs['T_hp'],1.4350,-3.2231e-4,6.1633e-6,-4.4099e-8,2.0968e-10,-3.040e-13)*1e3
         outputs['cp_v'] = f(outputs['T_hp'],6.3198e-1,6.7903e-4,-2.5923e-6,4.4936e-8,2.2606e-10,-9.0694e-13)*1e3
         outputs['v_fg'] = 1/outputs['rho_v']-1/outputs['rho_l']
-        outputs['R_g']=outputs['P_v']/(outputs['T_hp']*outputs['rho_v'])
+        outputs['R_g'] = outputs['P_v']/(outputs['T_hp']*outputs['rho_v'])
     
     
     def compute_partials(self, inputs, partials):
