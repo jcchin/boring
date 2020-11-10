@@ -6,13 +6,13 @@ import numpy as np
 from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.thermal_resistance.condenser_thermal_resistance import CondThermResComp
+from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
 
-class TestcondResistance(unittest.TestCase):
+class TestRadialResistance(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('cond_thermal', subsys=CondThermResComp(num_nodes=40), promotes=['*'])
+        p1.model.add_subsystem('cond_thermal', subsys=RadialThermalResistance(num_nodes=40), promotes=['*'])
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()

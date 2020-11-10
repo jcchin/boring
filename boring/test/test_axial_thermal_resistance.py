@@ -28,6 +28,9 @@ class TestAxialResistance(unittest.TestCase):
         self.prob['axial_thermal.L_adiabatic'] = 4
         self.prob['axial_thermal.A_w'] = 5
         self.prob['axial_thermal.A_wk'] = 6
+
+        self.prob.run_model()
+
         assert_near_equal(self.prob.get_val('axial_thermal.k_wk'), 3., tolerance=1.0E-5) 
         assert_near_equal(self.prob.get_val('axial_thermal.R_aw'), 0.4, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('axial_thermal.R_awk'), 0.22222222, tolerance=1.0E-5)

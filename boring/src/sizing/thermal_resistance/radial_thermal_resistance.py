@@ -2,7 +2,7 @@ import numpy as np
 
 import openmdao.api as om
 
-class CondThermResComp(om.ExplicitComponent):
+class RadialThermalResistance(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)

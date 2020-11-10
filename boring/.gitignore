@@ -4,3 +4,4 @@
 /testflo_report.out
 *.pdf
 *.json
+/SNOPT_print.out
