@@ -3,6 +3,7 @@ import numpy as np
 from math import pi
 
 import openmdao.api as om
+import numpy as np
 
 class AxialThermalResistance(om.ExplicitComponent):
     def initialize(self):
@@ -11,12 +12,12 @@ class AxialThermalResistance(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('epsilon', 0.46, desc='wick porosity')
-        self.add_input('k_w', 11.4, desc='copper conductivity')
-        self.add_input('k_l', 3, desc='liquid conductivity')
-        self.add_input('L_adiabatic', 4, units='m', desc='Adiabatic Length')
-        self.add_input('A_w', 5, units='m**2', desc='Wall Area')
-        self.add_input('A_wk', 6, units='m**2', desc='Wick Area')
+        self.add_input('epsilon', 0.46*np.ones(nn), desc='wick porosity')
+        self.add_input('k_w', 11.4*np.ones(nn), units='W/(m*K)', desc='copper conductivity')
+        self.add_input('k_l', 3*np.ones(nn), desc='liquid conductivity')
+        self.add_input('L_adiabatic', 4*np.ones(nn), units='m', desc='Adiabatic Length')
+        self.add_input('A_w', 5*np.ones(nn), units='m**2', desc='Wall Area')
+        self.add_input('A_wk', 6*np.ones(nn), units='m**2', desc='Wick Area')
 
         self.add_output('k_wk', desc='Wick Conductivity')
         self.add_output('R_aw', desc='Wall Axial Resistance')

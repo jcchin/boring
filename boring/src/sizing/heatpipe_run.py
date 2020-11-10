@@ -11,6 +11,7 @@ Calculate steady-state heat pipe performance by converging the following subsyst
 Author: Dustin Hall, Jeff Chin
 """
 import openmdao.api as om
+import numpy as np
 
 from material_properties.fluid_properties import FluidPropertiesComp
 from geometry.hp_geometry import HeatPipeSizeGroup
@@ -19,6 +20,7 @@ from mass.mass import MassGroup
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
+from boring.src.sizing.thermal_network import Circuit, Radial_Stack, thermal_link
 
 
 class HeatPipeRun(om.Group):
@@ -28,16 +30,31 @@ class HeatPipeRun(om.Group):
     def setup(self):
         nn = self.options['num_nodes']
 
+        self.add_subsystem(name= 'evap', 
+                           subsys = Radial_Stack(n_in=0, n_out=1))#,
+                           # promotes_inputs=['Rex.T_in','Rex.R','Rw.R','Rwk.R','Rinter.R'],
+                           # promotes_outputs=[])
+
+        self.add_subsystem(name= 'cond', 
+                           subsys= Radial_Stack(n_in=1, n_out=1))#,
+                           # promotes_inputs=['Rex.T_in','Rex.R','Rw.R','Rwk.R','Rinter.R'],
+                           # promotes_outputs=[])
+
+        #self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0))
+        
+        thermal_link(self,'evap','cond')
+        #thermal_link(self,'cond','cond2')
+
         self.add_subsystem(name = 'sizing',
                           subsys = HeatPipeSizeGroup(num_nodes=nn),
                           promotes_inputs=['L_evap', 'L_cond', 'L_adiabatic', 't_w', 't_wk', 'D_od', 'D_v',
-                                            'D_od', 't_w', 'D_v', 'L_cond', 'L_evap'],
-                          promotes_outputs=['r_i', 'A_cond', 'A_evap', 'L_eff', 'A_w', 'A_wk', 'A_interc', 'A_intere'])
+                                           't_w', 'D_v', 'L_cond', 'L_evap'],
+                          promotes_outputs=['r_i', 'A_cond', 'A_evap', 'L_eff', 'A_w', 'A_wk', ('A_interc', 'A_inter'),'A_intere'])
 
         self.add_subsystem(name = 'fluids',
                           subsys = FluidPropertiesComp(num_nodes=nn),
                           promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
-                          promotes_outputs=['R_g', 'P_v', 'T_cond', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
+                          promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
     
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
@@ -51,12 +68,9 @@ class HeatPipeRun(om.Group):
 
         self.add_subsystem(name='radial',
                            subsys=RadialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['*'],
-                           promotes_outputs=['*'])
+                           promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_cond','r_i','D_v','h_fg','alpha'],
+                           promotes_outputs=['R_w','R_wk','R_inter'])
 
-        self.add_subsystem(name = 'mass',
-                          subsys=MassGroup(num_nodes=nn),
-                          promotes=['*'])
 
 
 
@@ -68,6 +82,7 @@ class HeatPipeRun(om.Group):
 
         # Connect node temperatures back to fluid props
 
+        self.set_input_defaults('k_w', val=11.4*np.ones(nn))
         # self.set_input_defaults('L_evap', 6, units='m')
         # self.set_input_defaults('L_cond', 5, units='m')
         # self.set_input_defaults('D_v', 0.5, units='m')
@@ -79,29 +94,31 @@ class HeatPipeRun(om.Group):
 
 
 if __name__ == "__main__":
-    p = om.Problem()
-    model = p.model
+    p = om.Problem(model=om.Group())
     nn = 1
 
-    
+    p.model.add_subsystem(name='hp',
+                          subsys=HeatPipeRun(num_nodes=nn),
+                          promotes_inputs=['*'],
+                          promotes_outputs=['*'])
     
 
     p.setup()
 
-    p.set_val('L_evap',0.01)
-    p.set_val('L_cond',0.02)
-    p.set_val('L_adiabatic',0.03)
-    p.set_val('t_w',0.0005)
-    p.set_val('t_wk',0.00069)
-    p.set_val('D_od', 0.006)
-    p.set_val('D_v',0.00362)
-    p.set_val('Q_hp',1)
-    p.set_val('h_c',1200)
-    p.set_val('T_coolant',293)
+    # p.set_val('L_evap',0.01)
+    # p.set_val('L_cond',0.02)
+    # p.set_val('L_adiabatic',0.03)
+    # p.set_val('t_w',0.0005)
+    # p.set_val('t_wk',0.00069)
+    # p.set_val('D_od', 0.006)
+    # p.set_val('D_v',0.00362)
+    # p.set_val('Q_hp',1)
+    # p.set_val('h_c',1200)
+    # p.set_val('T_coolant',293)
 
     # p.check_partials(compact_print=True)
 
-    om.n2(p)
+    #om.n2(p)
 
     p.run_model()
 
