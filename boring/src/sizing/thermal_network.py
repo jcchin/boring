@@ -8,6 +8,11 @@ Author: Jeff Chin
 
 import openmdao.api as om
 
+from boring.src.sizing.material_properties.fluid_properties import FluidPropertiesComp
+from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
+from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
+from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
+
 
 class Resistor(om.ExplicitComponent):
     """Computes flux across a resistor using Ohm's law."""
@@ -18,7 +23,7 @@ class Resistor(om.ExplicitComponent):
     def setup(self):
         self.add_input('T_in', units='K')
         self.add_input('T_out', units='K')
-        self.add_input('R', 10., units='m*K/W')
+        self.add_input('R', 10., units='K/W')
         self.add_output('q', units='W')
 
         self.declare_partials('q', 'T_in')
@@ -75,14 +80,30 @@ class Radial_Stack(om.Group):
     """ Used for both Condensor and Evaporator Thermal Resistance Stacks"""
 
     def initialize(self):
+        self.options.declare('num_nodes', types=int, default=1)  
         self.options.declare('n_in', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('n_out', types=int, default=0)  # middle = 2, end = 1
 
     def setup(self):
         n_in = self.options['n_in']
         n_out = self.options['n_out']
+        nn = self.options['num_nodes']
 
-        # Evaporator
+
+        # Calculate Fluid Properties
+        self.add_subsystem(name = 'fluids',
+                           subsys = FluidPropertiesComp(num_nodes=nn),
+                           promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
+                           promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
+
+        # Calculate Resistances
+        self.add_subsystem(name='radial',
+                           subsys=RadialThermalResistance(num_nodes=nn),
+                           promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_cond','r_i','D_v','h_fg','alpha'],
+                           promotes_outputs=['R_w','R_wk','R_inter'])
+
+
+        # Define Resistors
         self.add_subsystem('Rex', Resistor())
         self.add_subsystem('Rw', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
         self.add_subsystem('Rwk', Resistor()) # evaporator wick
@@ -112,23 +133,47 @@ class Radial_Stack(om.Group):
         self.connect('n4.T', ['Rinter.T_out']) 
         self.connect('Rinter.q', 'n4.q_in:0')
 
+        # connect resistances
+        self.connect('R_w','Rw.R')
+        self.connect('R_wk','Rwk.R')
+        self.connect('R_inter','Rinter.R')
 
 
 class Bridge(om.Group):
     """ Bridge between evaporator or condensors """
+    def initialize(self):
+        self.options.declare('num_nodes', types=int, default=1)  
     def setup(self):
+        nn = self.options['num_nodes']
 
-        # Axial
+        # Compute Resistances
+        self.add_subsystem(name='axial',
+                           subsys=AxialThermalResistance(num_nodes=nn),
+                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_adiabatic', 'A_w', 'A_wk'])
+                           #promotes_outputs=['k_wk', 'R_aw', 'R_awk']
+
+        self.add_subsystem(name='vapor',
+                           subsys=VaporThermalResistance(num_nodes=nn),
+                           promotes_inputs=['D_v', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_eff'])
+                           #promotes_outputs=['r_h', 'R_v']
+
+        # Define Axial Resistors
         self.add_subsystem('Rv', Resistor()) # vapor channel
         self.add_subsystem('Rwka', Resistor()) # wick axial
-        self.add_subsystem('Rwa', Resistor()) # wall axial
+        self.add_subsystem('Rwa', Resistor()) # wall 
+
+        # connect
+        self.connect('vapor.R_v','Rv.R')
+        self.connect('axial.R_aw','Rwa.R')
+        self.connect('axial.R_awk', 'Rwka.R')
 
 def thermal_link(model, l_comp, r_comp):
     l_name = l_comp
     r_name = r_comp
 
     b_name = '{}_bridge'.format(l_comp)
-    model.add_subsystem(b_name, Bridge())
+    model.add_subsystem(b_name, Bridge(),
+                        promotes_inputs=['L_adiabatic','A_w','A_wk','D_v','R_g','mu_v','h_fg','P_v','rho_v','L_eff','k_w','k_l'])
 
     #determine connection number
 

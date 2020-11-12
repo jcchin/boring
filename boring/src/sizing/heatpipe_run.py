@@ -13,13 +13,9 @@ Author: Dustin Hall, Jeff Chin
 import openmdao.api as om
 import numpy as np
 
-from material_properties.fluid_properties import FluidPropertiesComp
 from geometry.hp_geometry import HeatPipeSizeGroup
 from mass.mass import MassGroup
 
-from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
-from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
-from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
 from boring.src.sizing.thermal_network import Circuit, Radial_Stack, thermal_link
 
 
@@ -30,47 +26,30 @@ class HeatPipeRun(om.Group):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_subsystem(name= 'evap', 
-                           subsys = Radial_Stack(n_in=0, n_out=1))#,
-                           # promotes_inputs=['Rex.T_in','Rex.R','Rw.R','Rwk.R','Rinter.R'],
-                           # promotes_outputs=[])
-
-        self.add_subsystem(name= 'cond', 
-                           subsys= Radial_Stack(n_in=1, n_out=1))#,
-                           # promotes_inputs=['Rex.T_in','Rex.R','Rw.R','Rwk.R','Rinter.R'],
-                           # promotes_outputs=[])
-
-        #self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0))
-        
-        thermal_link(self,'evap','cond')
-        #thermal_link(self,'cond','cond2')
-
         self.add_subsystem(name = 'sizing',
                           subsys = HeatPipeSizeGroup(num_nodes=nn),
                           promotes_inputs=['L_evap', 'L_cond', 'L_adiabatic', 't_w', 't_wk', 'D_od', 'D_v',
                                            't_w', 'D_v', 'L_cond', 'L_evap'],
                           promotes_outputs=['r_i', 'A_cond', 'A_evap', 'L_eff', 'A_w', 'A_wk', ('A_interc', 'A_inter'),'A_intere'])
 
-        self.add_subsystem(name = 'fluids',
-                          subsys = FluidPropertiesComp(num_nodes=nn),
-                          promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
-                          promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
-    
-        self.add_subsystem(name='axial',
-                           subsys=AxialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_adiabatic', 'A_w', 'A_wk'],
-                           promotes_outputs=['k_wk', 'R_aw', 'R_awk'])
 
-        self.add_subsystem(name='vapor',
-                           subsys=VaporThermalResistance(num_nodes=nn),
-                           promotes_inputs=['D_v', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_eff'],
-                           promotes_outputs=['r_h', 'R_v'])
+        # need a new radial stack instance for every battery
+        self.add_subsystem(name= 'evap', 
+                           subsys = Radial_Stack(num_nodes=nn, n_in=0, n_out=1),
+                           promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_cond','r_i','D_v','h_fg','alpha','A_cond'],
+                           promotes_outputs=[])
 
-        self.add_subsystem(name='radial',
-                           subsys=RadialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_cond','r_i','D_v','h_fg','alpha'],
-                           promotes_outputs=['R_w','R_wk','R_inter'])
+        self.add_subsystem(name= 'cond', 
+                           subsys= Radial_Stack(num_nodes=nn, n_in=1, n_out=0),
+                           promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_cond','r_i','D_v','h_fg','alpha','A_cond'],
+                           promotes_outputs=[])
 
+        # self.add_subsystem(name = 'cond2',
+        #                    subsys = Radial_Stack(n_in=1, n_out=0),
+        #                    )
+        
+        thermal_link(self,'evap','cond') # this creates all the axial connections between radial stacks
+        #thermal_link(self,'cond','cond2')
 
 
 
@@ -83,12 +62,12 @@ class HeatPipeRun(om.Group):
         # Connect node temperatures back to fluid props
 
         self.set_input_defaults('k_w', val=11.4*np.ones(nn))
-        # self.set_input_defaults('L_evap', 6, units='m')
-        # self.set_input_defaults('L_cond', 5, units='m')
-        # self.set_input_defaults('D_v', 0.5, units='m')
-        # self.set_input_defaults('D_od', 2, units='m')
-        # self.set_input_defaults('t_w', 0.01, units='m')
-        # self.set_input_defaults('L_adiabatic', 0.01, units='m')
+        self.set_input_defaults('L_evap', 6.0, units='mm')
+        self.set_input_defaults('L_cond', 5, units='mm')
+        self.set_input_defaults('D_v', 0.5, units='mm')
+        self.set_input_defaults('D_od', 2, units='mm')
+        self.set_input_defaults('t_w', 0.01, units='mm')
+        self.set_input_defaults('L_adiabatic', 0.01, units='mm')
 
 
 
@@ -118,14 +97,15 @@ if __name__ == "__main__":
 
     # p.check_partials(compact_print=True)
 
-    #om.n2(p)
+    om.n2(p)
 
     p.run_model()
-
+    p.model.list_inputs(values=True, prom_name=True)   
+    p.model.list_outputs(values=True, prom_name=True) 
     print('Finished Successfully')
 
     print('\n', '\n')
     print('--------------Outputs---------------')
-    print('The r_h Value is.......... ', p.get_val('r_h'))
-    print('The R_v Value is.......... ', p.get_val('R_v'))
+    print('The r_h Value is.......... ', p.get_val('evap_bridge.vapor.r_h'))
+    print('The R_v Value is.......... ', p.get_val('evap_bridge.vapor.R_v'))
     print('\n', '\n')
