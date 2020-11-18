@@ -25,19 +25,18 @@ class TestSize(unittest.TestCase):
         self.prob['sizing.D_od'] = 2 
         self.prob['sizing.t_w'] = 0.01
         self.prob['sizing.D_v'] = 0.5
-        self.prob['sizing.L_cond'] = 5
-        self.prob['sizing.L_evap'] = 6
+        self.prob['sizing.L_flux'] = 6
         self.prob['sizing.L_adiabatic'] = 0.01
+
+        self.prob.run_model()
 
         assert_near_equal(self.prob.get_val('sizing.A_w'), 0.06251769, tolerance=1.0E-5) 
         assert_near_equal(self.prob.get_val('sizing.A_wk'), 2.88272542, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('sizing.A_interc'), 7.85398163, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('sizing.A_intere'), 9.42477796, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('sizing.A_inter'), 9.42477796, tolerance=1.0E-5)
 
         assert_near_equal(self.prob.get_val('sizing.r_i'), 0.99, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('sizing.A_cond'), 31.41592654, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('sizing.A_evap'), 37.69911184, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('sizing.L_eff'), 5.51, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('sizing.A_flux'), 37.69911184, tolerance=1.0E-5)
+        #assert_near_equal(self.prob.get_val('sizing.L_eff'), 5.51, tolerance=1.0E-5) #this calc will no longer be an output of this component
 
 
     def test_partials(self): # derivative check

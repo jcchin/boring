@@ -5,3 +5,4 @@
 *.pdf
 *.json
 /SNOPT_print.out
+/connections.html

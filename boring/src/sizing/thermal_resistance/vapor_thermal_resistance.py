@@ -15,7 +15,7 @@ class VaporThermalResistance(om.ExplicitComponent):
         
         self.add_input('D_v', 0.1 , units='m', desc='diameter of vapor region')
         self.add_input('R_g', 0.2, units='J/kg/K', desc='gas constant of the vapor')
-        self.add_input('mu_v', 0.03,units='N*s/m**2', desc='vapor viscosity')
+        self.add_input('mu_v', 0.03, units='N*s/m**2', desc='vapor viscosity')
         self.add_input('T_hp', 300, units='K', desc='Temp of heat pipe')
         self.add_input('h_fg', 100, units='J/kg', desc='latent heat')
         self.add_input('P_v', 1000, units='Pa', desc='pressure')
@@ -40,7 +40,7 @@ class VaporThermalResistance(om.ExplicitComponent):
         L_eff = inputs['L_eff']
 
         outputs['r_h'] = D_v/2
-        outputs['R_v'] = 8*R_g*mu_v*T_hp**2/(np.pi*h_fg**2*P_v*rho_v)*(L_eff/(outputs['r_h']**4))                     
+        outputs['R_v'] = 8*R_g*mu_v*T_hp**2/(np.pi*h_fg**2*P_v*rho_v)*(L_eff/(outputs['r_h']**4))   
 
     def compute_partials(self, inputs, partials):
         D_v = inputs['D_v']

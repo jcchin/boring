@@ -25,7 +25,7 @@ class TestAxialResistance(unittest.TestCase):
         self.prob['axial_thermal.epsilon'] = 1 
         self.prob['axial_thermal.k_w'] = 2
         self.prob['axial_thermal.k_l'] = 3
-        self.prob['axial_thermal.L_adiabatic'] = 4
+        self.prob['axial_thermal.L_eff'] = 4
         self.prob['axial_thermal.A_w'] = 5
         self.prob['axial_thermal.A_wk'] = 6
 

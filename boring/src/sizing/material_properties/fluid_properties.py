@@ -13,25 +13,25 @@ class FluidPropertiesComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('Q_hp', 50, desc='')
-        self.add_input('A_cond', 0.0003769911184307752, units='m**2', desc='')
-        self.add_input('h_c', 1200, desc='')
-        self.add_input('T_coolant', 285, desc='')
+        self.add_input('Q_hp', 50, desc='heat flux')
+        self.add_input('A_cond', 0.0003769911184307752, units='m**2', desc='Conductor Area')
+        self.add_input('h_c', 1200, desc='external convection at the condensor')
+        self.add_input('T_coolant', 285, units='K', desc='coolant temperature')
 
-        self.add_output('T_hp', 1, units='K', desc='')
-        self.add_output('P_v', 1, desc='')
-        self.add_output('h_fg', 1,  desc='')
-        self.add_output('rho_l', 1,  desc='')
-        self.add_output('rho_v', 1, desc='')
-        self.add_output('mu_l', 1,  desc='')
-        self.add_output('mu_v', 1, desc='')
-        self.add_output('k_l', 1,  desc='')
-        self.add_output('k_v', 1,  desc='')
-        self.add_output('sigma_l', 1,  desc='')
-        self.add_output('cp_l', 1,  desc='')
-        self.add_output('cp_v', 1,  desc='')
-        self.add_output('v_fg', 1,  desc='')
-        self.add_output('R_g', 1, desc='')
+        self.add_output('T_hp', units='degC', desc='vapor temperature')
+        self.add_output('P_v', units='Pa', desc='pressure')
+        self.add_output('h_fg', units='J/kg', desc='latent heat')
+        self.add_output('rho_l',  units='kg/m**3', desc='density of liquid')
+        self.add_output('rho_v', units='kg/m**3', desc='density of vapor')
+        self.add_output('mu_l',  units='N*s/m**2', desc='liquid viscosity')
+        self.add_output('mu_v', units='N*s/m**2', desc='vapor viscosity')
+        self.add_output('k_l', units='W/(m*K)', desc='liquid conductivity')
+        self.add_output('k_v', units='W/(m*K)', desc='vapor conductivity')
+        self.add_output('sigma_l', units='N/m**3', desc='surface tension')
+        self.add_output('cp_l',  desc='liquid specific heat')
+        self.add_output('cp_v',  desc='vapor specific heat')
+        self.add_output('v_fg', units='m**3/kg', desc='specific volume')
+        self.add_output('R_g', units='J/kg/K', desc='gas constant of the vapor')
         
 # Add outputs for all properties
 
@@ -99,6 +99,8 @@ class FluidPropertiesComp(om.ExplicitComponent):
                 return poly
             
         outputs['T_hp'] = Q_hp/(A_cond*h_c)+T_coolant-273.15
+
+        # temperature polynomials use Celsius, everything else uses Kelvin
         outputs['P_v'] = f(outputs['T_hp'],-5.0945,7.2280e-2,-2.8625e-4,9.2341e-7,-2.0295e-9,2.1645e-12)*1e5
         outputs['h_fg'] = f(outputs['T_hp'],7.8201,-5.8906e-4,-9.1355e-6,8.4738e-8,-3.9635e-10,5.9150e-13)*1e3
         outputs['rho_l'] = f(outputs['T_hp'],6.9094,-2.0146e-5,-5.9868e-6,2.5921e-8,-9.3244e-11,1.2103e-13)     
@@ -111,7 +113,7 @@ class FluidPropertiesComp(om.ExplicitComponent):
         outputs['cp_l'] = f(outputs['T_hp'],1.4350,-3.2231e-4,6.1633e-6,-4.4099e-8,2.0968e-10,-3.040e-13)*1e3
         outputs['cp_v'] = f(outputs['T_hp'],6.3198e-1,6.7903e-4,-2.5923e-6,4.4936e-8,2.2606e-10,-9.0694e-13)*1e3
         outputs['v_fg'] = 1/outputs['rho_v']-1/outputs['rho_l']
-        outputs['R_g'] = outputs['P_v']/(outputs['T_hp']*outputs['rho_v'])
+        outputs['R_g'] = outputs['P_v']/((outputs['T_hp']+273.15)*outputs['rho_v'])
     
     
     def compute_partials(self, inputs, partials):

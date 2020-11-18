@@ -12,6 +12,7 @@ from boring.src.sizing.material_properties.fluid_properties import FluidProperti
 from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
+from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
 
 
 class Resistor(om.ExplicitComponent):
@@ -90,16 +91,23 @@ class Radial_Stack(om.Group):
         nn = self.options['num_nodes']
 
 
+        self.add_subsystem(name = 'size',
+                          subsys = HeatPipeSizeGroup(num_nodes=nn),
+                          promotes_inputs=['L_flux', 'L_adiabatic', 't_w', 't_wk', 'D_od', 'D_v',
+                                           't_w', 'D_v', 'L_flux'],
+                          promotes_outputs=['r_i', 'A_flux', 'A_inter']) #'A_w', 'A_wk', 'L_eff' now come from the bridge/thermal link
+
+
         # Calculate Fluid Properties
         self.add_subsystem(name = 'fluids',
                            subsys = FluidPropertiesComp(num_nodes=nn),
                            promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
-                           promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
+                           promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg','v_fg','k_l'])
 
         # Calculate Resistances
         self.add_subsystem(name='radial',
                            subsys=RadialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_cond','r_i','D_v','h_fg','alpha'],
+                           promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_flux','r_i','D_v','h_fg','alpha'],
                            promotes_outputs=['R_w','R_wk','R_inter'])
 
 
@@ -149,8 +157,8 @@ class Bridge(om.Group):
         # Compute Resistances
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_adiabatic', 'A_w', 'A_wk'])
-                           #promotes_outputs=['k_wk', 'R_aw', 'R_awk']
+                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_eff', 'A_w', 'A_wk'],
+                           promotes_outputs=['k_wk'])
 
         self.add_subsystem(name='vapor',
                            subsys=VaporThermalResistance(num_nodes=nn),
@@ -172,11 +180,31 @@ def thermal_link(model, l_comp, r_comp):
     r_name = r_comp
 
     b_name = '{}_bridge'.format(l_comp)
+    # model.add_subsystem(name='eff_length',
+    #                     subsys=om.ExecComp('L_eff = (L1+L2)/2+L_adiabatic', units='m'),
+    #                     promotes_inputs=['L_adiabatic',('L1','{}.L_flux'.format(l_name,r_name)],
+    #                     promotes_outputs=['L_eff'])
+
     model.add_subsystem(b_name, Bridge(),
-                        promotes_inputs=['L_adiabatic','A_w','A_wk','D_v','R_g','mu_v','h_fg','P_v','rho_v','L_eff','k_w','k_l'])
+                        promotes_inputs=['A_w','A_wk','D_v','R_g','mu_v','h_fg','P_v','rho_v','L_eff','k_w','k_l','epsilon','T_hp'],
+                        promotes_outputs=['k_wk'])
+    
+    model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
+    # Link Geometry
+    model.connect('{}.size.A_w'.format(l_name),'A_w') # this can come from either component
+    model.connect('{}.size.A_wk'.format(l_name),'A_wk') # this can come from either component
 
-    #determine connection number
+    model.connect('{}.R_g'.format(r_name),'R_g')
+    model.connect('{}.mu_v'.format(r_name),'mu_v')
+    model.connect('{}.P_v'.format(r_name),'P_v')
+    model.connect('{}.h_fg'.format(r_name),'h_fg')
+    model.connect('{}.rho_v'.format(r_name),'rho_v')
+    model.connect('{}.k_l'.format(r_name),'k_l')
+    model.connect('{}.T_hp'.format(r_name),'T_hp')
 
+
+
+    # Link thermal network
     # left node 1
     model.connect('{}.n1.T'.format(l_name),'{}.Rwa.T_in'.format(b_name))
     model.connect('{}.Rwa.q'.format(b_name),'{}.n1.q_out:1'.format(l_name))

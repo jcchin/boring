@@ -14,39 +14,39 @@ class AxialThermalResistance(om.ExplicitComponent):
 
         self.add_input('epsilon', 0.46*np.ones(nn), desc='wick porosity')
         self.add_input('k_w', 11.4*np.ones(nn), units='W/(m*K)', desc='copper conductivity')
-        self.add_input('k_l', 3*np.ones(nn), desc='liquid conductivity')
-        self.add_input('L_adiabatic', 4*np.ones(nn), units='m', desc='Adiabatic Length')
+        self.add_input('k_l', 3*np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
+        self.add_input('L_eff', 4*np.ones(nn), units='m', desc='Effective Length') # Effective, not Adiabatic!
         self.add_input('A_w', 5*np.ones(nn), units='m**2', desc='Wall Area')
         self.add_input('A_wk', 6*np.ones(nn), units='m**2', desc='Wick Area')
 
-        self.add_output('k_wk', desc='Wick Conductivity')
-        self.add_output('R_aw', desc='Wall Axial Resistance')
-        self.add_output('R_awk', desc='Wick Axial Resistance')
+        self.add_output('k_wk', units='W/(m*K)', desc='Wick Conductivity')
+        self.add_output('R_aw', units='K/W', desc='Wall Axial Resistance')
+        self.add_output('R_awk', units='K/W', desc='Wick Axial Resistance')
 
         self.declare_partials('k_wk', ['epsilon', 'k_w', 'k_l'])
-        self.declare_partials('R_aw', ['L_adiabatic', 'A_w', 'k_w'])
-        self.declare_partials('R_awk', ['L_adiabatic', 'A_wk', 'epsilon', 'k_w', 'k_l'])
+        self.declare_partials('R_aw', ['L_eff', 'A_w', 'k_w'])
+        self.declare_partials('R_awk', ['L_eff', 'A_wk', 'epsilon', 'k_w', 'k_l'])
 
     def compute(self,inputs,outputs):
 
         epsilon = inputs['epsilon']
         k_w = inputs['k_w']
         k_l = inputs['k_l']
-        L_adiabatic = inputs['L_adiabatic']
+        L_eff = inputs['L_eff']
         A_w = inputs['A_w']
         k_w = inputs['k_w']
         A_wk = inputs['A_wk']
 
         outputs['k_wk']=(1-epsilon)*k_w+epsilon*k_l
-        outputs['R_aw']=L_adiabatic/(A_w*k_w)
-        outputs['R_awk']=L_adiabatic/(A_wk*outputs['k_wk'])
+        outputs['R_aw']=L_eff/(A_w*k_w)
+        outputs['R_awk']=L_eff/(A_wk*outputs['k_wk'])
 
     def compute_partials(self,inputs,J):
 
         epsilon = inputs['epsilon']
         k_w = inputs['k_w']
         k_l = inputs['k_l']
-        L_adiabatic = inputs['L_adiabatic']
+        L_eff = inputs['L_eff']
         A_w = inputs['A_w']
         k_w = inputs['k_w']
         A_wk = inputs['A_wk']
@@ -57,15 +57,15 @@ class AxialThermalResistance(om.ExplicitComponent):
         J['k_wk', 'k_w'] = (1 - epsilon)
         J['k_wk', 'k_l'] = epsilon
 
-        J['R_aw', 'L_adiabatic'] = 1/(A_w*k_w) 
-        J['R_aw', 'A_w'] = -L_adiabatic/(A_w**2*k_w)
-        J['R_aw', 'k_w'] = -L_adiabatic/(A_w*k_w**2)
+        J['R_aw', 'L_eff'] = 1/(A_w*k_w) 
+        J['R_aw', 'A_w'] = -L_eff/(A_w**2*k_w)
+        J['R_aw', 'k_w'] = -L_eff/(A_w*k_w**2)
 
-        J['R_awk', 'L_adiabatic'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
-        J['R_awk', 'A_wk'] = -L_adiabatic/(A_wk**2*((1-epsilon)*k_w+epsilon*k_l))
-        J['R_awk', 'epsilon'] = -L_adiabatic/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (-k_w + k_l)
-        J['R_awk', 'k_w'] = -L_adiabatic/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (1-epsilon)
-        J['R_awk', 'k_l'] = -L_adiabatic/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * epsilon
+        J['R_awk', 'L_eff'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
+        J['R_awk', 'A_wk'] = -L_eff/(A_wk**2*((1-epsilon)*k_w+epsilon*k_l))
+        J['R_awk', 'epsilon'] = -L_eff/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (-k_w + k_l)
+        J['R_awk', 'k_w'] = -L_eff/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (1-epsilon)
+        J['R_awk', 'k_l'] = -L_eff/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * epsilon
 
 
 # # ------------ Derivative Checks --------------- #

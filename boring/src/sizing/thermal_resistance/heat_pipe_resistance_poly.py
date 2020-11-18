@@ -51,7 +51,7 @@ def f(T,a_0,a_1,a_2,a_3,a_4,a_5):
     poly=np.exp(a_0+a_1*T+a_2*T**2+a_3*T**3+a_4*T**4+a_5*T**5)
     return poly
 
-for Q_hp in range(10,50,1):
+for Q_hp in range(50,51,1):
     
     T_cond=Q_hp/(A_cond*h_c)+T_coolant
     T_hp=T_cond
@@ -91,9 +91,8 @@ for Q_hp in range(10,50,1):
     R_g=P_v/(T_hp*rho_v)
     cv_v=cp_v-R_g
     gamma=cp_v/cv_v
-    # print("T= ",T_hpfp)
-    # print(P_v,h_fg,rho_l,rho_v,mu_l*1e7,mu_v*1e7,k_l,k_v,sigma_l*1e3,cp_l/1e3,cp_v/1e3)
-
+    #print("T= ",T_hpfp)
+    #print(P_v,h_fg,rho_l,rho_v,mu_l*1e7,mu_v*1e7,k_l,k_v,sigma_l*1e3,cp_l/1e3,cp_v/1e3)
     ######################################## Axial Thermal Resistances ########################################################
     k_wk=(1-epsilon)*k_w+epsilon*k_l  # Dustin
     R_aw=L_eff/(A_w*k_w) # Dustin
@@ -127,15 +126,28 @@ for Q_hp in range(10,50,1):
     plt.ylabel('$R_{th}$ [K/W]')
     plt.xlabel('Heat Load [W]')
 
-plt.show()
+#plt.show()
 print("Rwe", R_we)
 print("Rwke", R_wke)
-print("Rv", R_v)
 print("Rintere", R_intere)
-print("Rinterc", R_interc)
+print("Rwc", R_wc)
 print("Rwkc", R_wkc)
+print("Rinterc", R_interc)
+print("Rv", R_v)
 print("R_awk", R_awk)
 print("Raw", R_aw)
-print("Rwc", R_wc)
+print("h_interc", h_interc)
+print("h_intere", h_intere)
+print("A_interc", A_interc)
+print("A_intere", A_intere)
+print("h_fg", h_fg)
+print("T_hp",T_hp)
+print("v_fg", v_fg)
+print("R_g", R_g)
+print("P_v", P_v)
+print("mu_v", mu_v)
+print("rho_v", rho_v)
+print("L_eff", L_eff)
+
 
 print("R_hp", R_hp)
