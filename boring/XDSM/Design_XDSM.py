@@ -40,7 +40,7 @@ x.connect('PCM', 'pack_design', 't_{PCM}')
 x.connect('PCM', 'Struct','mass_{PCM}')
 
 # HP
-x.add_input('heat_pipe', ['d_{init}','rho_{HP}', 'L_{pack}'])
+x.add_input('heat_pipe', ['d_{init}','rho_{HP}', 'L_{pack}','req_flux','ref_len'])
 x.connect('heat_pipe', 'Struct','mass_{HP}')
 x.connect('heat_pipe', 'pack_design','t_{HP}')
 

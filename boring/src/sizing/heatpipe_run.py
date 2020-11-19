@@ -1,68 +1,91 @@
 """"
-Author: Dustin Hall
+Calculate steady-state heat pipe performance by converging the following subsystems
+
+1) Calculate the fluid properties based on temeprature
+2) Caclulate the resistances in each part of the heat pipe
+3) Construct the equivalent thermal resistance network to determine the temperatures (40 connections per battery pair)
+
+(repeat until convergence)
+
+
+Author: Dustin Hall, Jeff Chin
 """
 import openmdao.api as om
+import numpy as np
 
-# from geometry import SizeComp
-from fluid_properties import FluidPropertiesComp
-from vapor_thermal_resistance import VapThermResComp
-from geometry import SizeGroup
-from axial_thermal_resistance import AxialThermalResistance
-from mass import MassGroup
+from geometry.hp_geometry import HeatPipeSizeGroup
+from mass.mass import MassGroup
+
+from boring.src.sizing.thermal_network import Circuit, Radial_Stack, thermal_link
+
+
+class HeatPipeRun(om.Group):
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+
+    def setup(self):
+        nn = self.options['num_nodes']
+
+        self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1),
+                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
+        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0),
+                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha'])
+
+        thermal_link(self,'evap','cond')
+
+        self.set_input_defaults('k_w',11.4)
+        self.set_input_defaults('evap.Rex.R', 0.0000001)
+        self.set_input_defaults('cond.Rex.R', 0.0000001)
+
+        self.set_input_defaults('cond.L_flux', 0.02)
+        self.set_input_defaults('evap.L_flux', 0.01)
+        self.set_input_defaults('L_adiabatic', 0.03)
+        self.set_input_defaults('t_wk', 0.00069)
+        self.set_input_defaults('t_w', 0.0005)
+        self.set_input_defaults('D_od', 0.006)
+        self.set_input_defaults('k_w', 11.4)
+        self.set_input_defaults('epsilon', 0.46)
+        self.set_input_defaults('D_v', 0.00362)
+        self.set_input_defaults('L_eff', 0.045)
+
 
 if __name__ == "__main__":
-    p = om.Problem()
-    model = p.model
+    p = om.Problem(model=om.Group())
     nn = 1
 
-
-
-    p.model.add_subsystem(name = 'sizing',
-                          subsys = SizeGroup(num_nodes=nn),
-                          promotes_inputs=['L_evap', 'L_cond', 'L_adiabatic', 't_w', 't_wk', 'D_od', 'D_v',
-                                            'D_od', 't_w', 'D_v', 'L_cond', 'L_evap'],
-                          promotes_outputs=['r_i', 'A_cond', 'A_evap', 'L_eff', 'A_w', 'A_wk', 'A_interc', 'A_intere'])
-
-    p.model.add_subsystem(name = 'fluids',
-                          subsys = FluidPropertiesComp(num_nodes=nn),
-                          promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
-                          promotes_outputs=['R_g', 'P_v', 'T_cond', 'T_hp', 'rho_v', 'mu_v', 'h_fg'])
+    p.model.add_subsystem(name='hp',
+                          subsys=HeatPipeRun(num_nodes=nn),
+                          promotes_inputs=['*'],
+                          promotes_outputs=['*'])
     
-    p.model.add_subsystem(name = 'vapors',
-                          subsys = VapThermResComp(num_nodes=nn),
-                          promotes_inputs=['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_eff', 'D_v'],
-                          promotes_outputs=['r_h', 'R_v'])
-
-    p.model.add_subsystem(name = 'axialtherm',
-                          subsys = AxialThermalResistance(num_nodes=nn),
-                          promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_adiabatic', 'A_w', 'A_wk',],
-                          promotes_outputs=['k_wk', 'R_aw', 'R_awk'])
-
-    p.model.add_subsystem(name = 'mass',
-                          subsys=MassGroup(num_nodes=nn),
-                          promotes=['*'])
+    p.setup()
     
+    p['L_eff'] = (0.02+0.1)/2.+0.03
+    p['evap.Rex.T_in'] = 100
+    p['cond.Rex.T_in'] = 20
 
-p.setup()
+    # p.set_val('L_evap',0.01)
+    # p.set_val('L_cond',0.02)
+    # p.set_val('L_adiabatic',0.03)
+    # p.set_val('t_w',0.0005)
+    # p.set_val('t_wk',0.00069)
+    # p.set_val('D_od', 0.006)
+    # p.set_val('D_v',0.00362)
+    # p.set_val('Q_hp',1)
+    # p.set_val('h_c',1200)
+    # p.set_val('T_coolant',293)
 
-p.set_val('L_evap',0.01)
-p.set_val('L_cond',0.02)
-p.set_val('L_adiabatic',0.03)
-p.set_val('t_w',0.0005)
-p.set_val('t_wk',0.00069)
-p.set_val('D_od', 0.006)
-p.set_val('D_v',0.00362)
-p.set_val('Q_hp',1)
-p.set_val('h_c',1200)
-p.set_val('T_coolant',293)
+    # p.check_partials(compact_print=True)
 
+    #om.n2(p)
 
-p.run_model()
+    p.run_model()
+    p.model.list_inputs(values=True, prom_name=True)   
+    p.model.list_outputs(values=True, prom_name=True) 
+    print('Finished Successfully')
 
-print('Finished Successfully')
-
-print('\n', '\n')
-print('--------------Outputs---------------')
-print('The r_h Value is.......... ', p.get_val('r_h'))
-print('The R_v Value is.......... ', p.get_val('R_v'))
-print('\n', '\n')
+    print('\n', '\n')
+    print('--------------Outputs---------------')
+    print('The r_h Value is.......... ', p.get_val('evap_bridge.vapor.r_h'))
+    print('The R_v Value is.......... ', p.get_val('evap_bridge.vapor.R_v'))
+    print('\n', '\n')

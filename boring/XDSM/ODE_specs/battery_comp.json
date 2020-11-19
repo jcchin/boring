@@ -1,0 +1,17 @@
+{
+  "inputs": [
+    "SOC",
+    "T_{batt}",
+    "V_{thev}",
+    "I_{batt}",
+    "n_{parallel}",
+    "Q_{max}",
+    "n_{series}"
+  ],
+  "outputs": [
+    "dXdt:V_{thev}",
+    "dXdt:SOC",
+    "Q_{batt}",
+    "V_{batt,actual}"
+  ]
+}

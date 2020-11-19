@@ -2,15 +2,15 @@ from __future__ import print_function, division, absolute_import
 
 import unittest
 
+
 import numpy as np
 from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.axial_thermal_resistance import AxialThermalResistance
+from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 
-
-class TestMass(unittest.TestCase):
+class TestAxialResistance(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
@@ -20,14 +20,17 @@ class TestMass(unittest.TestCase):
         p1.run_model()
 
  
-    def test_axial_outputs(self): # calculation regression test
+    def test_axial_outputs(self): 
 
         self.prob['axial_thermal.epsilon'] = 1 
         self.prob['axial_thermal.k_w'] = 2
         self.prob['axial_thermal.k_l'] = 3
-        self.prob['axial_thermal.L_adiabatic'] = 4
+        self.prob['axial_thermal.L_eff'] = 4
         self.prob['axial_thermal.A_w'] = 5
         self.prob['axial_thermal.A_wk'] = 6
+
+        self.prob.run_model()
+
         assert_near_equal(self.prob.get_val('axial_thermal.k_wk'), 3., tolerance=1.0E-5) 
         assert_near_equal(self.prob.get_val('axial_thermal.R_aw'), 0.4, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('axial_thermal.R_awk'), 0.22222222, tolerance=1.0E-5)

@@ -2,3 +2,7 @@
 /geometry.sql
 /SLSQP.out
 /testflo_report.out
+*.pdf
+*.json
+/SNOPT_print.out
+/connections.html
