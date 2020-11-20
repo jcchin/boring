@@ -26,11 +26,11 @@ class HeatPipeSizeGroup(om.Group):
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])
 
-        self.set_input_defaults('L_flux', 6, units='m')
-        self.set_input_defaults('D_v', 0.5, units='m')
-        self.set_input_defaults('D_od', 2, units='m')
-        self.set_input_defaults('t_w', 0.01, units='m')
-        self.set_input_defaults('L_adiabatic', 0.01, units='m')
+        self.set_input_defaults('L_flux', 6*np.ones(nn), units='m')
+        self.set_input_defaults('D_v', 0.5*np.ones(nn), units='m')
+        self.set_input_defaults('D_od', 2*np.ones(nn), units='m')
+        self.set_input_defaults('t_w', 0.01*np.ones(nn), units='m')
+        self.set_input_defaults('L_adiabatic', 0.01*np.ones(nn), units='m')
 
 
 class SizeComp(om.ExplicitComponent):
@@ -98,18 +98,22 @@ class CoreGeometries(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('D_od', 2, units='m', desc='')
-        self.add_input('t_w', 0.01, units='m', desc='')
-        self.add_input('D_v', 0.5, units='m', desc='')
-        self.add_input('L_flux', 5, units='m', desc='')
+        self.add_input('D_od', 2*np.ones(nn), units='m', desc='')
+        self.add_input('t_w', 0.01*np.ones(nn), units='m', desc='')
+        self.add_input('D_v', 0.5*np.ones(nn), units='m', desc='')
+        self.add_input('L_flux', 5*np.ones(nn), units='m', desc='')
 
-        self.add_output('A_w', 1, units='m**2', desc='')     # Bridge
-        self.add_output('A_wk', 1, units='m**2', desc='')    # Bridge
-        self.add_output('A_inter', 1, units='m**2', desc='') # Radial
+        self.add_output('A_w', 1*np.ones(nn), units='m**2', desc='')     # Bridge
+        self.add_output('A_wk', 1*np.ones(nn), units='m**2', desc='')    # Bridge
+        self.add_output('A_inter', 1*np.ones(nn), units='m**2', desc='') # Radial
 
-        self.declare_partials('A_w', ['D_od', 't_w'])
-        self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'])
-        self.declare_partials('A_inter', ['D_v', 'L_flux'])
+    def setup_partials(self):
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
+
+        self.declare_partials('A_w', ['D_od', 't_w'], rows=ar, cols=ar)
+        self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'], rows=ar, cols=ar)
+        self.declare_partials('A_inter', ['D_v', 'L_flux'], rows=ar, cols=ar)
 
     def compute(self, inputs, outputs):
 

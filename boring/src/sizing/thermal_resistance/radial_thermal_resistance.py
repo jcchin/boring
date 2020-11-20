@@ -57,7 +57,6 @@ class RadialThermalResistance(om.ExplicitComponent):
 
         #alpha=1           # Look into this, need better way to determine this rather than referencing papers.
         h_inter=outputs['h_inter'] = 2*alpha/(2-alpha)*(h_fg**2/(T_hp*v_fg))*np.sqrt(1/(2*np.pi*R_g*T_hp))*(1-P_v*v_fg/(2*h_fg))
-        print("hinter,",h_inter)
         outputs['R_w'] = np.log((D_od/2)/(r_i))/(2*np.pi*k_w*L_flux) 
         outputs['R_wk'] = np.log((r_i)/(D_v/2))/(2*np.pi*k_wk*L_flux) 
         outputs['R_inter'] = 1/(h_inter*A_inter) 
