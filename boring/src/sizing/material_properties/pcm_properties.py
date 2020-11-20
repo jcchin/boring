@@ -25,28 +25,28 @@ class PCM_props(om.ExplicitComponent):
         nn=self.options['num_nodes']
 
         #pad geometry
-        self.add_input('t_pad', 0.001, units='m', desc='PCM pad thickness')
-        self.add_input('porosity', 0.9,  desc='percentage porosity, 1 = completely void, 0 = solid')
-        self.add_input('pad_area', 0.0571*.102, units='m', desc='cell frontal area')
+        self.add_input('t_pad', 0.001*np.ones(nn), units='m', desc='PCM pad thickness')
+        self.add_input('porosity', 0.9*np.ones(nn),  desc='percentage porosity, 1 = completely void, 0 = solid')
+        self.add_input('pad_area', 0.0571*.102*np.ones(nn), units='m', desc='cell frontal area')
         # conductive foam properties
-        self.add_input('k_foam', 401., units='W/m*K', desc='thermal conductivity of the foam')
-        self.add_input('rho_foam', 8960., units='kg/m**3', desc='intrinsic density of the foam material (unrelated to porosity)')
-        self.add_input('lh_foam', 0., desc='latent heat of the foam skeleton')
-        self.add_input('cp_foam', 0.39, units='kJ/kg*K', desc='specific heat of the foam')
+        self.add_input('k_foam', 401.*np.ones(nn), units='W/m*K', desc='thermal conductivity of the foam')
+        self.add_input('rho_foam', 8960.*np.ones(nn), units='kg/m**3', desc='intrinsic density of the foam material (unrelated to porosity)')
+        self.add_input('lh_foam', 0.*np.ones(nn), desc='latent heat of the foam skeleton')
+        self.add_input('cp_foam', 0.39*np.ones(nn), units='kJ/kg*K', desc='specific heat of the foam')
         # phase change material properties
-        self.add_input('k_pcm', 2., units='W/m*K', desc='thermal conductivity of the pcm')
-        self.add_input('rho_pcm', 1450., units='kg/m**3', desc='intrinsic density of the pcm (unrelated to porosity)')
-        self.add_input('lh_pcm', 271., units='kJ/kg', desc='latent heat of the pcm')
-        self.add_input('cp_pcm', 1.54, units='kJ/kg*K', desc='specific heat of the pcm')
+        self.add_input('k_pcm', 2.*np.ones(nn), units='W/m*K', desc='thermal conductivity of the pcm')
+        self.add_input('rho_pcm', 1450.*np.ones(nn), units='kg/m**3', desc='intrinsic density of the pcm (unrelated to porosity)')
+        self.add_input('lh_pcm', 271.*np.ones(nn), units='kJ/kg', desc='latent heat of the pcm')
+        self.add_input('cp_pcm', 1.54*np.ones(nn), units='kJ/kg*K', desc='specific heat of the pcm')
         # outputs
-        self.add_output('k_bulk', units='W/m*K', desc='PCM pad thermal conductivity')
-        self.add_output('R_PCM', units='K/W', desc='PCM pad thermal resistance')
-        self.add_input('lh_PCM', desc='latent heat of the PCM pad')
+        self.add_output('k_bulk',val=1.0*np.ones(nn), units='W/m*K', desc='PCM pad thermal conductivity')
+        self.add_output('R_PCM', val=1.0*np.ones(nn), units='K/W', desc='PCM pad thermal resistance')
+        self.add_input('lh_PCM', val=1.0*np.ones(nn), desc='latent heat of the PCM pad')
 
 
 
     def setup_partials(self):
-        self.declare_partials('*', '*')#, method='cs')
+        self.declare_partials('*', '*', method='cs')
 
 
     def compute(self, inputs, outputs):

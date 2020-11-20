@@ -19,13 +19,17 @@ class AxialThermalResistance(om.ExplicitComponent):
         self.add_input('A_w', 5*np.ones(nn), units='m**2', desc='Wall Area')
         self.add_input('A_wk', 6*np.ones(nn), units='m**2', desc='Wick Area')
 
-        self.add_output('k_wk', units='W/(m*K)', desc='Wick Conductivity')
-        self.add_output('R_aw', units='K/W', desc='Wall Axial Resistance')
-        self.add_output('R_awk', units='K/W', desc='Wick Axial Resistance')
+        self.add_output('k_wk', val=1.0*np.ones(nn), units='W/(m*K)', desc='Wick Conductivity')
+        self.add_output('R_aw', val=1.0*np.ones(nn), units='K/W', desc='Wall Axial Resistance')
+        self.add_output('R_awk', val=1.0*np.ones(nn), units='K/W', desc='Wick Axial Resistance')
 
-        self.declare_partials('k_wk', ['epsilon', 'k_w', 'k_l'])
-        self.declare_partials('R_aw', ['L_eff', 'A_w', 'k_w'])
-        self.declare_partials('R_awk', ['L_eff', 'A_wk', 'epsilon', 'k_w', 'k_l'])
+    def setup_partials(self):
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
+
+        self.declare_partials('k_wk', ['epsilon', 'k_w', 'k_l'], rows=ar, cols=ar)
+        self.declare_partials('R_aw', ['L_eff', 'A_w', 'k_w'], rows=ar, cols=ar)
+        self.declare_partials('R_awk', ['L_eff', 'A_wk', 'epsilon', 'k_w', 'k_l'], rows=ar, cols=ar)
 
     def compute(self,inputs,outputs):
 

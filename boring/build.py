@@ -3,7 +3,7 @@ import openmdao.api as om
 import numpy as np
 import dymos as dm
 
-from boring.src.sizing.mass import packMass
+#from boring.src.sizing.mass import packMass
 from boring.src.sizing.heat_pipe import OHP
 from boring.src.sizing.pack_design import packSize, pcmSize, SizingGroup
 from boring.src.sizing.structure import tempODE

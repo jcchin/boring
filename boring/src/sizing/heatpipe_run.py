@@ -13,10 +13,7 @@ Author: Dustin Hall, Jeff Chin
 import openmdao.api as om
 import numpy as np
 
-from geometry.hp_geometry import HeatPipeSizeGroup
-from mass.mass import MassGroup
-
-from boring.src.sizing.thermal_network import Circuit, Radial_Stack, thermal_link
+from boring.src.sizing.thermal_network import Radial_Stack, thermal_link
 
 
 class HeatPipeRun(om.Group):
@@ -77,9 +74,9 @@ if __name__ == "__main__":
 
     # p.check_partials(compact_print=True)
 
-    #om.n2(p)
-
     p.run_model()
+    #om.n2(p)
+    om.view_connections(p)
     p.model.list_inputs(values=True, prom_name=True)   
     p.model.list_outputs(values=True, prom_name=True) 
     print('Finished Successfully')

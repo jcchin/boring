@@ -40,24 +40,27 @@ class SizeComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('L_flux', 0.02, units='m',  desc='length of the condensor/evaporator')
-        self.add_input('L_adiabatic', 0.03, units='m',  desc='adiabatic length')
-        self.add_input('t_w', 0.0005, units='m',  desc='wall thickness')
-        self.add_input('t_wk', 0.00069, units='m',  desc='wick thickness')
-        self.add_input('D_od', 0.006, units='m',  desc='Vapor Outer Diameter')
-        self.add_input('D_v', 0.00362, units='m',  desc='Vapor Diameter')
+        self.add_input('L_flux', 0.02*np.ones(nn), units='m',  desc='length of the condensor/evaporator')
+        self.add_input('L_adiabatic', 0.03*np.ones(nn), units='m',  desc='adiabatic length')
+        self.add_input('t_w', 0.0005*np.ones(nn), units='m',  desc='wall thickness')
+        self.add_input('t_wk', 0.00069*np.ones(nn), units='m',  desc='wick thickness')
+        self.add_input('D_od', 0.006*np.ones(nn), units='m',  desc='Vapor Outer Diameter')
+        self.add_input('D_v', 0.00362*np.ones(nn), units='m',  desc='Vapor Diameter')
         
-        self.add_output('r_i',  units='m', desc='inner radius')                                        # Radial
-        self.add_output('A_flux', 1, units='m**2', desc='Area of the condensor/evaporator') # Fluids
+        self.add_output('r_i', val=1.0*np.ones(nn), units='m', desc='inner radius')                                        # Radial
+        self.add_output('A_flux', val=1.0*np.ones(nn), units='m**2', desc='Area of the condensor/evaporator') # Fluids
         # self.add_output('L_eff', 1, units='m', desc='Effective Length')                     # Bridge
 
 
     def setup_partials(self):
-        self.declare_partials('r_i', 'D_od')
-        self.declare_partials('r_i', 't_w')
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
         
-        self.declare_partials('A_flux', 'D_od')
-        self.declare_partials('A_flux', 'L_flux')
+        self.declare_partials('r_i', 'D_od', rows=ar, cols=ar)
+        self.declare_partials('r_i', 't_w', rows=ar, cols=ar)
+        
+        self.declare_partials('A_flux', 'D_od', rows=ar, cols=ar)
+        self.declare_partials('A_flux', 'L_flux', rows=ar, cols=ar)
         
         # self.declare_partials('L_eff', 'L_flux')
         # self.declare_partials('L_eff', 'L_adiabatic')
