@@ -8,6 +8,7 @@ import openmdao.api as om
 from openmdao.api import ArmijoGoldsteinLS, DirectSolver, NewtonSolver
 from boring.src.sizing.mass.mass import packMass
 from boring.src.sizing.heat_pipe import OHP
+import numpy as np
 
 #                        Insulation 
 #         --------- --------- --------- --------- 
@@ -70,19 +71,19 @@ class packSize(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('L', 2, units='m', desc='max length')
-        self.add_input('W', 0.4, units='m', desc='max width')
-        self.add_input('energy', 70000., units='W*h', desc='nominal total pack energy')
-        self.add_input('cell_l', 0.102, units='m', desc='cell width (4" Amprius)')
-        self.add_input('cell_w', 0.0571, units='m' , desc='cell length (2.0" Amprius)')
-        self.add_input('cell_h', 0.00635, units='m' , desc='cell thickness (0.25" Amprius)')
-        self.add_input('cell_s_w', 0.003, units='m', desc='cell spacing, width')
-        self.add_input('cell_s_h', 0.001, units='m', desc='cell spacing, height')
-        self.add_input('cell_s_l', 0.001, units='m', desc='cell spacing, height')
-        self.add_input('v_n_c', 3.4, units='V', desc='nominal cell voltage')
-        self.add_input('q_max', 7., units='A*h', desc='nominal cell amp-hr capacity')
-        self.add_input('t_PCM', 0.006, units='m', desc='PCM pad thickness')
-        self.add_input('t_HP', 0.006, units='m', desc='OHP thickness')
+        self.add_input('L', 2*np.ones(nn), units='m', desc='max length')
+        self.add_input('W', 0.4*np.ones(nn), units='m', desc='max width')
+        self.add_input('energy', 70000.*np.ones(nn), units='W*h', desc='nominal total pack energy')
+        self.add_input('cell_l', 0.102*np.ones(nn), units='m', desc='cell width (4" Amprius)')
+        self.add_input('cell_w', 0.0571*np.ones(nn), units='m' , desc='cell length (2.0" Amprius)')
+        self.add_input('cell_h', 0.00635*np.ones(nn), units='m' , desc='cell thickness (0.25" Amprius)')
+        self.add_input('cell_s_w', 0.003*np.ones(nn), units='m', desc='cell spacing, width')
+        self.add_input('cell_s_h', 0.001*np.ones(nn), units='m', desc='cell spacing, height')
+        self.add_input('cell_s_l', 0.001*np.ones(nn), units='m', desc='cell spacing, height')
+        self.add_input('v_n_c', 3.4*np.ones(nn), units='V', desc='nominal cell voltage')
+        self.add_input('q_max', 7.*np.ones(nn), units='A*h', desc='nominal cell amp-hr capacity')
+        self.add_input('t_PCM', 0.006*np.ones(nn), units='m', desc='PCM pad thickness')
+        self.add_input('t_HP', 0.006*np.ones(nn), units='m', desc='OHP thickness')
         
 
         self.add_output('cell_area', units='m**2', desc='cell area')
