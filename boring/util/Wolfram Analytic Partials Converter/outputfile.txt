@@ -1,0 +1,25 @@
+self.add_input('alpha')
+self.add_input('h_fg')
+self.add_input('T_hp')
+self.add_input('v_fg')
+self.add_input('R_g')
+self.add_input('P_v')
+self.add_input('D_od')
+self.add_input('r_i')
+self.add_input('k_w')
+self.add_input('L_evap')
+self.add_input('D_v')
+self.add_input('k_wk')
+self.add_input('h_intere')
+self.add_input('A_intere')
+ 
+self.add_output('h_intere')
+self.add_output('R_we')
+self.add_output('R_wke')
+self.add_output('R_intere')
+ 
+ 
+"self.declare_partials('h_intere', ['alpha', 'alpha', 'h_fg', 'T_hp', 'v_fg', 'R_g', 'T_hp', 'P_v', 'v_fg', 'h_fg'])"
+"self.declare_partials('R_we', ['D_od', 'r_i', 'k_w', 'L_evap'])"
+"self.declare_partials('R_wke', ['r_i', 'D_v', 'k_wk', 'L_evap'])"
+"self.declare_partials('R_intere', ['h_intere', 'A_intere'])"
