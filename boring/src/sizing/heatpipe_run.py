@@ -13,7 +13,7 @@ Author: Dustin Hall, Jeff Chin
 import openmdao.api as om
 import numpy as np
 
-from boring.src.sizing.thermal_network import Radial_Stack, thermal_link
+from boring.src.sizing.thermal_network import Radial_Stack, thermal_link, TempRateComp
 
 
 class HeatPipeRun(om.Group):
@@ -23,32 +23,45 @@ class HeatPipeRun(om.Group):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1),
+        self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn),
                                promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
-        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0),
+        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn),
                                promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha'])
+        # self.add_subsystem(name='T_rate_evap',
+        #                    subsys=TempRateComp(num_nodes=nn),
+        #                    promotes_inputs=['q'],
+        #                    promotes_outputs=['T_dot'])
+        self.add_subsystem(name='T_rate_cond',
+                           subsys=TempRateComp(num_nodes=nn),
+                           promotes_inputs=[('q', 'q_cond')],
+                           promotes_outputs=[('Tdot', 'Tdot_cond')])
 
-        thermal_link(self,'evap','cond')
+        self.connect('cond.Rex.q', 'q_cond')
 
-        self.set_input_defaults('k_w',11.4)
-        self.set_input_defaults('evap.Rex.R', 0.0000001)
-        self.set_input_defaults('cond.Rex.R', 0.0000001)
+        thermal_link(self,'evap','cond', num_nodes=nn)
 
-        self.set_input_defaults('cond.L_flux', 0.02)
-        self.set_input_defaults('evap.L_flux', 0.01)
-        self.set_input_defaults('L_adiabatic', 0.03)
-        self.set_input_defaults('t_wk', 0.00069)
-        self.set_input_defaults('t_w', 0.0005)
-        self.set_input_defaults('D_od', 0.006)
-        self.set_input_defaults('k_w', 11.4)
-        self.set_input_defaults('epsilon', 0.46)
-        self.set_input_defaults('D_v', 0.00362)
-        self.set_input_defaults('L_eff', 0.045)
+        self.set_input_defaults('k_w',11.4*np.ones(nn))
+        self.set_input_defaults('evap.Rex.R', 0.0001*np.ones(nn))
+        self.set_input_defaults('cond.Rex.R', 0.0001*np.ones(nn))
+
+        self.set_input_defaults('cond.L_flux', 0.02*np.ones(nn))
+        self.set_input_defaults('evap.L_flux', 0.01*np.ones(nn))
+        self.set_input_defaults('L_adiabatic', 0.03*np.ones(nn))
+        self.set_input_defaults('t_wk', 0.00069*np.ones(nn))
+        self.set_input_defaults('t_w', 0.0005*np.ones(nn))
+        self.set_input_defaults('D_od', 0.006*np.ones(nn))
+        self.set_input_defaults('k_w', 11.4*np.ones(nn))
+        self.set_input_defaults('epsilon', 0.46*np.ones(nn))
+        self.set_input_defaults('D_v', 0.00362*np.ones(nn))
+        self.set_input_defaults('L_eff', 0.045*np.ones(nn))
+
+        self.set_input_defaults('T_rate_cond.c_p', 1500*np.ones(nn))
+        self.set_input_defaults('T_rate_cond.mass', .06*np.ones(nn))
 
 
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
-    nn = 1
+    nn = 10
 
     p.model.add_subsystem(name='hp',
                           subsys=HeatPipeRun(num_nodes=nn),

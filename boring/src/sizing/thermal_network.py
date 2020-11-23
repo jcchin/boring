@@ -7,6 +7,7 @@ Author: Jeff Chin
 """
 
 import openmdao.api as om
+import numpy as np
 
 from boring.src.sizing.material_properties.fluid_properties import FluidPropertiesComp
 from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
@@ -18,18 +19,23 @@ from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
 class Resistor(om.ExplicitComponent):
     """Computes flux across a resistor using Ohm's law."""
 
-    # def initialize(self):
-    #     self.options.declare('R', default=1., desc='Thermal Resistance in m*k/W')
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
 
     def setup(self):
-        self.add_input('T_in', units='K')
-        self.add_input('T_out', units='K')
-        self.add_input('R', 10., units='K/W')
-        self.add_output('q', units='W')
+        nn=self.options['num_nodes']
+        self.add_input('T_in', val=np.ones(nn), units='K')
+        self.add_input('T_out', val=np.ones(nn), units='K')
+        self.add_input('R', val=10*np.ones(nn), units='K/W')
+        self.add_output('q', val=np.ones(nn), units='W')
 
-        self.declare_partials('q', 'T_in')
-        self.declare_partials('q', 'T_out')
-        self.declare_partials('q', 'R')
+    def setup_partials(self):
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
+
+        self.declare_partials('q', 'T_in', rows=ar, cols=ar)
+        self.declare_partials('q', 'T_out', rows=ar, cols=ar)
+        self.declare_partials('q', 'R', rows=ar, cols=ar)
 
     def compute(self, inputs, outputs):
         deltaT = inputs['T_in'] - inputs['T_out']
@@ -40,28 +46,72 @@ class Resistor(om.ExplicitComponent):
         J['q','T_out'] = -1./inputs['R']
         J['q','R'] = -(inputs['T_in'] - inputs['T_out'])/inputs['R']**2
 
+class TempRateComp(om.ExplicitComponent):
+    """Computes flux across a resistor using Ohm's law."""
+
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+
+    def setup(self):
+
+        nn = self.options['num_nodes']
+
+        self.add_input('q', val=np.ones(nn), units='W')
+        self.add_input('mass', val=np.ones(nn), units='kg')
+        self.add_input('c_p', val=np.ones(nn), units='J/(kg*K)')
+
+        self.add_output('Tdot', val=np.ones(nn), units='K/s')
+
+    def setup_partials(self):
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
+
+        self.declare_partials('Tdot', 'q', rows=ar, cols=ar)
+        self.declare_partials('Tdot', 'mass', rows=ar, cols=ar)
+        self.declare_partials('Tdot', 'c_p', rows=ar, cols=ar)
+
+    def compute(self, inputs, outputs):
+        q = inputs['q']
+        mass = inputs['mass']
+        c_p = inputs['c_p']
+
+        outputs['Tdot'] = -q/mass/c_p
+
+    def compute_partials(self, inputs, J):
+        q = inputs['q']
+        mass = inputs['mass']
+        c_p = inputs['c_p']
+
+        J['Tdot','q'] = -1/mass/c_p
+        J['Tdot','mass'] = q/mass**2/c_p
+        J['Tdot','c_p'] = q/mass/c_p**2
+
 class Node(om.ImplicitComponent):
     """Computes temperature residual across a node based on incoming and outgoing flux."""
 
     def initialize(self):
         self.options.declare('n_in', default=1, types=int, desc='number of connections with + assumed in')
         self.options.declare('n_out', default=1, types=int, desc='number of current connections + assumed out')
+        self.options.declare('num_nodes', types=int)
 
     def setup(self):
-        self.add_output('T', val=5., units='K',lower=1e-5)
+        nn=self.options['num_nodes']
+        self.add_output('T', val=5.*np.ones(nn), units='K',lower=1e-5)
 
         for i in range(self.options['n_in']):
             q_name = 'q_in:{}'.format(i)
-            self.add_input(q_name, 0., units='W')
+            self.add_input(q_name, 0.*np.ones(nn), units='W')
 
         for i in range(self.options['n_out']):
             q_name = 'q_out:{}'.format(i)
-            self.add_input(q_name, 0., units='W')
+            self.add_input(q_name, 0.*np.ones(nn), units='W')
 
     def setup_partials(self):
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
         #note: we don't declare any partials wrt `T` here,
         #      because the residual doesn't directly depend on it
-        self.declare_partials('T', 'q*')
+        self.declare_partials('T', 'q*', rows=ar, cols=ar)
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         residuals['T'] = 0.
@@ -97,7 +147,6 @@ class Radial_Stack(om.Group):
                                            't_w', 'D_v', 'L_flux'],
                           promotes_outputs=['r_i', 'A_flux', 'A_inter']) #'A_w', 'A_wk', 'L_eff' now come from the bridge/thermal link
 
-
         # Calculate Fluid Properties
         self.add_subsystem(name = 'fluids',
                            subsys = FluidPropertiesComp(num_nodes=nn),
@@ -112,15 +161,15 @@ class Radial_Stack(om.Group):
 
 
         # Define Resistors
-        self.add_subsystem('Rex', Resistor())
-        self.add_subsystem('Rw', Resistor())#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
-        self.add_subsystem('Rwk', Resistor()) # evaporator wick
-        self.add_subsystem('Rinter', Resistor())
+        self.add_subsystem('Rex', Resistor(num_nodes=nn))
+        self.add_subsystem('Rw', Resistor(num_nodes=nn))#, promotes_inputs=[('T_in', 'T_hot')]) # evaporator wall
+        self.add_subsystem('Rwk', Resistor(num_nodes=nn)) # evaporator wick
+        self.add_subsystem('Rinter', Resistor(num_nodes=nn))
 
-        self.add_subsystem('n1', Node(n_in=1+n_in, n_out=1+n_out))  # 1, 2 out
-        self.add_subsystem('n2', Node(n_in=1+n_in, n_out=1+n_out))  # 1, 2 out
-        self.add_subsystem('n3', Node(n_in=1, n_out=1))  # 1
-        self.add_subsystem('n4', Node(n_in=1+n_in, n_out=1+n_out))  # 1
+        self.add_subsystem('n1', Node(n_in=1+n_in, n_out=1+n_out, num_nodes=nn))  # 1, 2 out
+        self.add_subsystem('n2', Node(n_in=1+n_in, n_out=1+n_out, num_nodes=nn))  # 1, 2 out
+        self.add_subsystem('n3', Node(n_in=1, n_out=1, num_nodes=nn))  # 1
+        self.add_subsystem('n4', Node(n_in=1+n_in, n_out=1+n_out, num_nodes=nn))  # 1
 
         # node 1 (6 connections, 1 in, 2 out)
         self.connect('n1.T', ['Rex.T_out','Rw.T_in'])
@@ -166,16 +215,18 @@ class Bridge(om.Group):
                            #promotes_outputs=['r_h', 'R_v']
 
         # Define Axial Resistors
-        self.add_subsystem('Rv', Resistor()) # vapor channel
-        self.add_subsystem('Rwka', Resistor()) # wick axial
-        self.add_subsystem('Rwa', Resistor()) # wall 
+        self.add_subsystem('Rv', Resistor(num_nodes=nn)) # vapor channel
+        self.add_subsystem('Rwka', Resistor(num_nodes=nn)) # wick axial
+        self.add_subsystem('Rwa', Resistor(num_nodes=nn)) # wall 
 
         # connect
         self.connect('vapor.R_v','Rv.R')
         self.connect('axial.R_aw','Rwa.R')
         self.connect('axial.R_awk', 'Rwka.R')
 
-def thermal_link(model, l_comp, r_comp):
+def thermal_link(model, l_comp, r_comp, num_nodes):
+    nn = num_nodes
+
     l_name = l_comp
     r_name = r_comp
 
@@ -185,7 +236,7 @@ def thermal_link(model, l_comp, r_comp):
     #                     promotes_inputs=['L_adiabatic',('L1','{}.L_flux'.format(l_name,r_name)],
     #                     promotes_outputs=['L_eff'])
 
-    model.add_subsystem(b_name, Bridge(),
+    model.add_subsystem(b_name, Bridge(num_nodes=nn),
                         promotes_inputs=['A_w','A_wk','D_v','R_g','mu_v','h_fg','P_v','rho_v','L_eff','k_w','k_l','epsilon','T_hp'],
                         promotes_outputs=['k_wk'])
     
