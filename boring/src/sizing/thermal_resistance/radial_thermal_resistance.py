@@ -5,7 +5,7 @@ import openmdao.api as om
 class RadialThermalResistance(om.ExplicitComponent):
 
     def initialize(self):
-        self.options.declare('num_nodes', types=int)
+        self.options.declare('num_nodes', types=int, default=1)
 
     def setup(self):
         nn=self.options['num_nodes']

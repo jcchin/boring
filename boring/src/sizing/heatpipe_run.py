@@ -24,21 +24,24 @@ class HeatPipeRun(om.Group):
         nn = self.options['num_nodes']
 
         self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn),
-                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
-        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn),
-                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha'])
-        # self.add_subsystem(name='T_rate_evap',
-        #                    subsys=TempRateComp(num_nodes=nn),
-        #                    promotes_inputs=['q'],
-        #                    promotes_outputs=['T_dot'])
+                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
+        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1,  num_nodes=nn),
+                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
+        self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn),
+                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
+        
         self.add_subsystem(name='T_rate_cond',
-                           subsys=TempRateComp(num_nodes=nn),
-                           promotes_inputs=[('q', 'q_cond')],
-                           promotes_outputs=[('Tdot', 'Tdot_cond')])
+                           subsys=TempRateComp(num_nodes=nn))
 
-        self.connect('cond.Rex.q', 'q_cond')
+        self.add_subsystem(name='T_rate_cond2',
+                           subsys=TempRateComp(num_nodes=nn))
+
+        self.connect('cond.Rex.q', 'T_rate_cond.q')
+        self.connect('cond2.Rex.q', 'T_rate_cond2.q')
 
         thermal_link(self,'evap','cond', num_nodes=nn)
+        thermal_link(self,'cond','cond2', num_nodes=nn)
+        self.connect('evap_bridge.k_wk',['evap.k_wk','cond.k_wk','cond2.k_wk'])
 
         self.set_input_defaults('k_w',11.4*np.ones(nn))
         self.set_input_defaults('evap.Rex.R', 0.0001*np.ones(nn))
@@ -57,7 +60,8 @@ class HeatPipeRun(om.Group):
 
         self.set_input_defaults('T_rate_cond.c_p', 1500*np.ones(nn))
         self.set_input_defaults('T_rate_cond.mass', .06*np.ones(nn))
-
+        self.set_input_defaults('T_rate_cond2.c_p', 1500*np.ones(nn))
+        self.set_input_defaults('T_rate_cond2.mass', .06*np.ones(nn))
 
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
@@ -73,6 +77,7 @@ if __name__ == "__main__":
     p['L_eff'] = (0.02+0.1)/2.+0.03
     p['evap.Rex.T_in'] = 100
     p['cond.Rex.T_in'] = 20
+    p['cond2.Rex.T_in'] = 20
 
     # p.set_val('L_evap',0.01)
     # p.set_val('L_cond',0.02)
