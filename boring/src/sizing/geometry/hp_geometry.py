@@ -40,7 +40,7 @@ class SizeComp(om.ExplicitComponent):
     def setup(self):
         nn=self.options['num_nodes']
 
-        self.add_input('L_flux', 0.02*np.ones(nn), units='m',  desc='length of the condensor/evaporator')
+        self.add_input('L_flux', 0.02*np.ones(nn), units='m',  desc='length of the battery')
         self.add_input('L_adiabatic', 0.03*np.ones(nn), units='m',  desc='adiabatic length')
         self.add_input('t_w', 0.0005*np.ones(nn), units='m',  desc='wall thickness')
         self.add_input('t_wk', 0.00069*np.ones(nn), units='m',  desc='wick thickness')
@@ -48,7 +48,7 @@ class SizeComp(om.ExplicitComponent):
         self.add_input('D_v', 0.00362*np.ones(nn), units='m',  desc='Vapor Diameter')
         
         self.add_output('r_i', val=1.0*np.ones(nn), units='m', desc='inner radius')                                        # Radial
-        self.add_output('A_flux', val=1.0*np.ones(nn), units='m**2', desc='Area of the condensor/evaporator') # Fluids
+        self.add_output('A_flux', val=1.0*np.ones(nn), units='m**2', desc='Area of battery in contact with HP') # Fluids
         # self.add_output('L_eff', 1, units='m', desc='Effective Length')                     # Bridge
 
 
@@ -75,7 +75,7 @@ class SizeComp(om.ExplicitComponent):
         
 
         outputs['r_i'] =  (D_od/2-t_w)
-        outputs['A_flux'] =  np.pi*D_od*L_flux
+        outputs['A_flux'] =  np.pi*D_od*L_flux # wrong formula for area
         #outputs['L_eff'] =  (L_flux+L_flux)/2+L_adiabatic # How to handle this for >2 battery cases?
 
     def compute_partials(self, inputs, partials):
