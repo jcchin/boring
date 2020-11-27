@@ -33,7 +33,7 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
                            dm.Phase(ode_class=HeatPipeRun,
                                     transcription=dm.GaussLobatto(num_segments=num_segments, order=transcription_order, compressed=compressed)))
 
-    phase.set_time_options(fix_initial=True, fix_duration=False, duration_bounds=(1., 800.))
+    phase.set_time_options(fix_initial=True, fix_duration=False, duration_bounds=(1., 3200.))
 
     phase.add_state('T_cond', rate_source='T_rate_cond.Tdot', targets='cond.Rex.T_in', units='K',# ref=333.15, defect_ref=333.15,
                         fix_initial=True, fix_final=False, solve_segments=solve_segments)
@@ -43,7 +43,7 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     phase.add_parameter('T_evap', targets='evap.Rex.T_in', units='K',
                         dynamic=True, opt=False)
 
-    phase.add_boundary_constraint('T_cond', loc='final', equals=Tf_final)
+    phase.add_boundary_constraint('T_cond2', loc='final', equals=Tf_final)
 
     phase.add_objective('time', loc='final', ref=1)
 
@@ -86,7 +86,14 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
 
 if __name__ == '__main__':
 
+    import time
+
+    start = time.time()
+
     p = hp_transient(transcription='gauss-lobatto', num_segments=5,
                  transcription_order=3, compressed=False, optimizer='SNOPT',
                  run_driver=True, force_alloc_complex=True, solve_segments=False,
-                 show_plots=True, Tf_final = 370)
+                 show_plots=False, Tf_final = 370)
+    end = time.time()
+
+    print("elapsed time:", end - start)
