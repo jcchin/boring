@@ -39,10 +39,10 @@ class HeatPipeRun(om.Group):
         self.connect('cond.Rex.q', 'T_rate_cond.q')
         self.connect('cond2.Rex.q', 'T_rate_cond2.q')
 
-        self.add_subsystem(name='hp_mass',
-                           subsys=heatPipeMass(num_nodes=nn),
-                           promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density','fill_wk','liq_density','fill_liq'],
-                           promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
+        # self.add_subsystem(name='hp_mass',
+        #                    subsys=heatPipeMass(num_nodes=nn),
+        #                    promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
+        #                    promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
 
         thermal_link(self,'evap','cond', num_nodes=nn)
@@ -57,11 +57,10 @@ class HeatPipeRun(om.Group):
         self.set_input_defaults('evap.L_flux', 0.01*np.ones(nn))
         
         self.set_input_defaults('k_w', 11.4*np.ones(nn))
-        self.set_input_defaults('epsilon', 0.46*np.ones(nn))        
+        self.set_input_defaults('epsilon', 0.46*np.ones(nn))       # Porosity of the wick (0=void, 1=solid)  
         self.set_input_defaults('L_eff', 0.045*np.ones(nn))
-        self.set_input_defaults('fill_wk', 0.1*np.ones(nn))         # Porosity of the wick (0=void, 1=solid)
-        self.set_input_defaults('liq_density', 1000*np.ones(nn))    # Density of the liquid in HP
-        self.set_input_defaults('fill_liq', 0.70*np.ones(nn))       # Fill perentage of liquid in HP (1=full, 0=empty)
+        # self.set_input_defaults('liq_density', 1000*np.ones(nn))    # Density of the liquid in HP
+        # self.set_input_defaults('fill_liq', 0.70*np.ones(nn))       # Fill perentage of liquid in HP (1=full, 0=empty)
         self.set_input_defaults('T_rate_cond.c_p', 1500*np.ones(nn))
         self.set_input_defaults('T_rate_cond.mass', .06*np.ones(nn))
         self.set_input_defaults('T_rate_cond2.c_p', 1500*np.ones(nn))
@@ -73,7 +72,7 @@ class HeatPipeRun(om.Group):
         self.set_input_defaults('D_v', 0.00362*np.ones(nn))      # Outer diameter of HP vapor chamber
         self.set_input_defaults('t_wk', 0.00069*np.ones(nn))     # Thickness of the wick in the interior of the HP
         self.set_input_defaults('t_w', 0.0005*np.ones(nn))       # Thickness of the HP wall
-        self.set_input_defaults('L_heatpipe', 0.30*np.ones(nn))  # Overall length of the HP (including adiabatic portion)
+        # self.set_input_defaults('L_heatpipe', 0.30*np.ones(nn))  # Overall length of the HP (including adiabatic portion)
         self.set_input_defaults('L_adiabatic', 0.03*np.ones(nn)) # Length of the adiabatic section
 
 

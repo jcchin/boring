@@ -11,12 +11,12 @@ import numpy as np
 import dymos as dm
 
 from boring.src.sizing.heatpipe_run import HeatPipeRun  #import the ODE
-
+from boring.util.save_csv import save_csv
 
 def hp_transient(transcription='gauss-lobatto', num_segments=5,
                  transcription_order=3, compressed=False, optimizer='SLSQP',
                  run_driver=True, force_alloc_complex=True, solve_segments=False,
-                 show_plots=False, Tf_final = 300):
+                 show_plots=False, save=True, Tf_final = 370):
 
 
     p = om.Problem(model=om.Group())
@@ -43,7 +43,7 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     phase.add_parameter('T_evap', targets='evap.Rex.T_in', units='K',
                         dynamic=True, opt=False)
 
-    phase.add_boundary_constraint('T_cond2', loc='final', equals=Tf_final)
+    phase.add_boundary_constraint('T_cond', loc='final', equals=Tf_final)
 
     phase.add_objective('time', loc='final', ref=1)
 
@@ -60,6 +60,12 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
 
     opt = p.run_driver()
     sim = traj.simulate(times_per_seg=10)
+
+    print('********************************')
+
+    save_csv(p, sim, '../../output/output.csv',
+             y_name=['states:T_cond','states:T_cond2'],
+             y_units=['K',          'K'])
 
     if show_plots:
         import matplotlib.pyplot as plt 
@@ -84,6 +90,10 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
 
     return p
 
+    
+    
+
+
 if __name__ == '__main__':
 
     import time
@@ -91,9 +101,9 @@ if __name__ == '__main__':
     start = time.time()
 
     p = hp_transient(transcription='gauss-lobatto', num_segments=5,
-                 transcription_order=3, compressed=False, optimizer='SNOPT',
+                 transcription_order=3, compressed=False, optimizer='SLSQP',
                  run_driver=True, force_alloc_complex=True, solve_segments=False,
-                 show_plots=False, Tf_final = 370)
+                 show_plots=False, Tf_final = 300)
     end = time.time()
 
     print("elapsed time:", end - start)
