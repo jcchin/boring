@@ -1,3 +1,8 @@
 *.pyc
 /boring_battery.egg-info/*
 *.sql
+*.pkl
+SNOPT*.out
+SLSQP.out
+testflo*.out
+/test.pdf

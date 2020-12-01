@@ -20,7 +20,7 @@ class Resistor(om.ExplicitComponent):
     """Computes flux across a resistor using Ohm's law."""
 
     def initialize(self):
-        self.options.declare('num_nodes', types=int)
+        self.options.declare('num_nodes', types=int, default=1)
 
     def setup(self):
         nn=self.options['num_nodes']
@@ -92,7 +92,7 @@ class Node(om.ImplicitComponent):
     def initialize(self):
         self.options.declare('n_in', default=1, types=int, desc='number of connections with + assumed in')
         self.options.declare('n_out', default=1, types=int, desc='number of current connections + assumed out')
-        self.options.declare('num_nodes', types=int)
+        self.options.declare('num_nodes', types=int, default=1)
 
     def setup(self):
         nn=self.options['num_nodes']
@@ -237,21 +237,21 @@ def thermal_link(model, l_comp, r_comp, num_nodes):
     #                     promotes_outputs=['L_eff'])
 
     model.add_subsystem(b_name, Bridge(num_nodes=nn),
-                        promotes_inputs=['A_w','A_wk','D_v','R_g','mu_v','h_fg','P_v','rho_v','L_eff','k_w','k_l','epsilon','T_hp'],
-                        promotes_outputs=['k_wk'])
+                        promotes_inputs=['D_v','L_eff','k_w','epsilon'])
+                        #promotes_outputs=['k_wk'])
     
     model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
     # Link Geometry
-    model.connect('{}.size.A_w'.format(l_name),'A_w') # this can come from either component
-    model.connect('{}.size.A_wk'.format(l_name),'A_wk') # this can come from either component
+    model.connect('{}.size.A_w'.format(l_name),'{}.A_w'.format(b_name)) # this can come from either component
+    model.connect('{}.size.A_wk'.format(l_name),'{}.A_wk'.format(b_name)) # this can come from either component
 
-    model.connect('{}.R_g'.format(r_name),'R_g')
-    model.connect('{}.mu_v'.format(r_name),'mu_v')
-    model.connect('{}.P_v'.format(r_name),'P_v')
-    model.connect('{}.h_fg'.format(r_name),'h_fg')
-    model.connect('{}.rho_v'.format(r_name),'rho_v')
-    model.connect('{}.k_l'.format(r_name),'k_l')
-    model.connect('{}.T_hp'.format(r_name),'T_hp')
+    model.connect('{}.R_g'.format(r_name),'{}.R_g'.format(b_name))
+    model.connect('{}.mu_v'.format(r_name),'{}.mu_v'.format(b_name))
+    model.connect('{}.P_v'.format(r_name),'{}.P_v'.format(b_name))
+    model.connect('{}.h_fg'.format(r_name),'{}.h_fg'.format(b_name))
+    model.connect('{}.rho_v'.format(r_name),'{}.rho_v'.format(b_name))
+    model.connect('{}.k_l'.format(r_name),'{}.k_l'.format(b_name))
+    model.connect('{}.T_hp'.format(r_name),'{}.T_hp'.format(b_name))
 
 
 

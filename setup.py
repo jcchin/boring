@@ -9,6 +9,9 @@ setup(name='boring_battery',
         'dymos @ git+https://git@github.com/OpenMDAO/dymos',
         'pyoptsparse @ git+https://github.com/mdolab/pyoptsparse',
         'matplotlib',
-        'scipy'
+        'scipy',
+        'pandas',
+        'lcapy',
+        'testflo',
       ]
 )

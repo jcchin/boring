@@ -24,26 +24,30 @@ class HeatPipeRun(om.Group):
         nn = self.options['num_nodes']
 
         self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn),
-                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
-        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn),
-                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha'])
-        # self.add_subsystem(name='T_rate_evap',
-        #                    subsys=TempRateComp(num_nodes=nn),
-        #                    promotes_inputs=['q'],
-        #                    promotes_outputs=['T_dot'])
+                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
+        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1,  num_nodes=nn),
+                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
+        self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn),
+                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
+        
         self.add_subsystem(name='T_rate_cond',
-                           subsys=TempRateComp(num_nodes=nn),
-                           promotes_inputs=[('q', 'q_cond')],
-                           promotes_outputs=[('Tdot', 'Tdot_cond')])
+                           subsys=TempRateComp(num_nodes=nn))
 
-        self.add_subsystem(name='hp_mass',
-                           subsys=heatPipeMass(num_nodes=nn),
-                           promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density','fill_wk','liq_density','fill_liq'],
-                           promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
+        self.add_subsystem(name='T_rate_cond2',
+                           subsys=TempRateComp(num_nodes=nn))
 
-        self.connect('cond.Rex.q', 'q_cond')
+        self.connect('cond.Rex.q', 'T_rate_cond.q')
+        self.connect('cond2.Rex.q', 'T_rate_cond2.q')
+
+        # self.add_subsystem(name='hp_mass',
+        #                    subsys=heatPipeMass(num_nodes=nn),
+        #                    promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
+        #                    promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
+
 
         thermal_link(self,'evap','cond', num_nodes=nn)
+        thermal_link(self,'cond','cond2', num_nodes=nn)
+        self.connect('evap_bridge.k_wk',['evap.k_wk','cond.k_wk','cond2.k_wk'])
 
         # self.set_input_defaults('k_w',11.4*np.ones(nn))
         self.set_input_defaults('evap.Rex.R', 0.0001*np.ones(nn))
@@ -53,13 +57,14 @@ class HeatPipeRun(om.Group):
         self.set_input_defaults('evap.L_flux', 0.01*np.ones(nn))
         
         self.set_input_defaults('k_w', 11.4*np.ones(nn))
-        self.set_input_defaults('epsilon', 0.46*np.ones(nn))        
+        self.set_input_defaults('epsilon', 0.46*np.ones(nn))       # Porosity of the wick (0=void, 1=solid)  
         self.set_input_defaults('L_eff', 0.045*np.ones(nn))
-        self.set_input_defaults('fill_wk', 0.1*np.ones(nn))         # Porosity of the wick (0=void, 1=solid)
-        self.set_input_defaults('liq_density', 1000*np.ones(nn))    # Density of the liquid in HP
-        self.set_input_defaults('fill_liq', 0.70*np.ones(nn))       # Fill perentage of liquid in HP (1=full, 0=empty)
+        # self.set_input_defaults('liq_density', 1000*np.ones(nn))    # Density of the liquid in HP
+        # self.set_input_defaults('fill_liq', 0.70*np.ones(nn))       # Fill perentage of liquid in HP (1=full, 0=empty)
         self.set_input_defaults('T_rate_cond.c_p', 1500*np.ones(nn))
         self.set_input_defaults('T_rate_cond.mass', .06*np.ones(nn))
+        self.set_input_defaults('T_rate_cond2.c_p', 1500*np.ones(nn))
+        self.set_input_defaults('T_rate_cond2.mass', .06*np.ones(nn))
 
         #----------------------------------------Heatpipe Sizing Vars-----------------------------------------#
         """ Currently no check to ensure feasability of dimensions """
@@ -67,7 +72,7 @@ class HeatPipeRun(om.Group):
         self.set_input_defaults('D_v', 0.00362*np.ones(nn))      # Outer diameter of HP vapor chamber
         self.set_input_defaults('t_wk', 0.00069*np.ones(nn))     # Thickness of the wick in the interior of the HP
         self.set_input_defaults('t_w', 0.0005*np.ones(nn))       # Thickness of the HP wall
-        self.set_input_defaults('L_heatpipe', 0.30*np.ones(nn))  # Overall length of the HP (including adiabatic portion)
+        # self.set_input_defaults('L_heatpipe', 0.30*np.ones(nn))  # Overall length of the HP (including adiabatic portion)
         self.set_input_defaults('L_adiabatic', 0.03*np.ones(nn)) # Length of the adiabatic section
 
 
@@ -85,6 +90,7 @@ if __name__ == "__main__":
     p['L_eff'] = (0.02+0.1)/2.+0.03
     p['evap.Rex.T_in'] = 100
     p['cond.Rex.T_in'] = 20
+    p['cond2.Rex.T_in'] = 20
 
     # p.set_val('L_evap',0.01)
     # p.set_val('L_cond',0.02)
