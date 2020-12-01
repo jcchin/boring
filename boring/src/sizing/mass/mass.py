@@ -120,7 +120,6 @@ class heatPipeMass(om.ExplicitComponent):
 
         self.add_input('D_od',val=0.03*np.ones(nn), desc='heatpipe outer diameter', units='m')
         self.add_input('D_v',val=0.03*np.ones(nn), desc='vapor outer diameter', units='m')
-        # self.add_input('r_i',val=0.03*np.ones(nn), desc='inner radius of heatpipe wall', units='m')
         self.add_input('L_heatpipe',val=0.3*np.ones(nn), desc='Total length of heatpipe', units='m')
         self.add_input('t_w', val=.0005*np.ones(nn), desc='wall thickness of heatpipe', units='m')
         self.add_input('t_wk', val=0.0005*np.ones(nn), desc='wick thickness', units='m')
