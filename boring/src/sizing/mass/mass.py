@@ -184,3 +184,23 @@ class heatPipeMass(om.ExplicitComponent):
         J['mass_wick', 'fill_wk'] =L_heatpipe*cu_density*       np.pi*( (D_v/2+t_wk)**2 - (D_v/2)**2 )
         J['mass_wick', 't_wk'] =L_heatpipe*cu_density*fill_wk*  np.pi*2*( D_v/2 + t_wk )
         J['mass_wick', 'D_v'] =L_heatpipe*cu_density*fill_wk*   np.pi*( (D_v/2+t_wk) - (D_v/2) )
+
+
+
+
+if __name__ == "__main__":
+    from openmdao.api import Problem
+
+    nn = 1
+    prob = Problem()
+
+    prob.model.add_subsystem('hp_mass', heatPipeMass(num_nodes=nn), promotes=['*'])
+
+    prob.setup(force_alloc_complex=True)
+    prob.run_model()
+    prob.check_partials(method='cs', compact_print=True)
+
+
+    print('mass_heatpipe = ', prob.get_val('hp_mass.mass_heatpipe'))
+    print('mass_liquid = ', prob.get_val('hp_mass.mass_liquid'))
+    print('mass_wick = ', prob.get_val('hp_mass.mass_wick'))
