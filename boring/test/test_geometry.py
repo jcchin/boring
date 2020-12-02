@@ -7,8 +7,8 @@ from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
-# from boring.src.sizing.heatpipe_core_geometries import CoreGeometries
 from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
+
 
 class TestSize(unittest.TestCase):
 
@@ -19,7 +19,6 @@ class TestSize(unittest.TestCase):
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
- 
     def test_geometry_outputs(self): # calculation regression test
 
         self.prob['sizing.D_od'] = 2 
