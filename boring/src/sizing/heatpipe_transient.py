@@ -47,6 +47,13 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
 
     phase.add_objective('time', loc='final', ref=1)
 
+    phase.add_timeseries_output('evap_bridge.Rv.q', output_name = 'eRvq', units='W')
+    phase.add_timeseries_output('evap_bridge.Rwa.q', output_name = 'eRwaq', units='W')
+    phase.add_timeseries_output('evap_bridge.Rwka.q', output_name = 'eRwkq', units='W')
+    phase.add_timeseries_output('cond_bridge.Rv.q', output_name = 'cRvq', units='W')
+    phase.add_timeseries_output('cond_bridge.Rwa.q', output_name = 'cRwaq', units='W')
+    phase.add_timeseries_output('cond_bridge.Rwka.q', output_name = 'cRwkq', units='W')
+
     p.model.linear_solver = om.DirectSolver()
     p.setup(force_alloc_complex=force_alloc_complex)
 
@@ -55,6 +62,8 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     p['traj.phase.states:T_cond'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
     p['traj.phase.states:T_cond2'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
     p['traj.phase.parameters:T_evap'] = 373
+    #
+
 
     p.run_model()
 
@@ -64,8 +73,9 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     print('********************************')
 
     save_csv(p, sim, '../../output/output.csv',
-             y_name=['states:T_cond','states:T_cond2'],
-             y_units=['K',          'K'])
+             y_name=['parameters:T_evap','states:T_cond','states:T_cond2',
+                    'eRvq','eRwaq','eRwkq','cRvq','cRwaq','cRwkq'],
+             y_units=['K','K','K','W','W','W','W','W','W'])
 
     if show_plots:
         import matplotlib.pyplot as plt 
@@ -103,7 +113,7 @@ if __name__ == '__main__':
     p = hp_transient(transcription='gauss-lobatto', num_segments=5,
                  transcription_order=3, compressed=False, optimizer='SLSQP',
                  run_driver=True, force_alloc_complex=True, solve_segments=False,
-                 show_plots=False, Tf_final = 300)
+                 show_plots=False, Tf_final = 370)
     end = time.time()
 
     print("elapsed time:", end - start)
