@@ -8,6 +8,9 @@ from boring.src.sizing.mass.mass import packMass
 from boring.src.sizing.pack_design import packSize, pcmSize, SizingGroup
 from boring.src.sizing.structure import tempODE
 
+"""
+Author(s): Jeff Chin
+"""
 
 class Build_Pack():
     '''

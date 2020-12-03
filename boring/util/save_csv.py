@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 import datetime
 
+"""
+Author: Jeff Chin
+"""
+
 
 def save_csv(prob, sim, file_name='output.csv', 
              traj = 'traj', phase='phase',

@@ -143,8 +143,7 @@ class Radial_Stack(om.Group):
 
         self.add_subsystem(name = 'size',
                           subsys = HeatPipeSizeGroup(num_nodes=nn),
-                          promotes_inputs=['L_flux', 'L_adiabatic', 't_w', 't_wk', 'D_od', 'D_v',
-                                           't_w', 'D_v', 'L_flux'],
+                          promotes_inputs=['L_flux', 'L_adiabatic', 't_w', 't_wk', 'D_od', 'D_v'],
                           promotes_outputs=['r_i', 'A_flux', 'A_inter']) #'A_w', 'A_wk', 'L_eff' now come from the bridge/thermal link
 
         # Calculate Fluid Properties

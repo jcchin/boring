@@ -13,6 +13,8 @@ import dymos as dm
 from boring.src.sizing.heatpipe_run import HeatPipeRun  #import the ODE
 from boring.util.save_csv import save_csv
 
+from boring.util.load_inputs import load_inputs
+
 def hp_transient(transcription='gauss-lobatto', num_segments=5,
                  transcription_order=3, compressed=False, optimizer='SLSQP',
                  run_driver=True, force_alloc_complex=True, solve_segments=False,

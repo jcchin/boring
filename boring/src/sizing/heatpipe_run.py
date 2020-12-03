@@ -16,6 +16,9 @@ import numpy as np
 from boring.src.sizing.thermal_network import Radial_Stack, thermal_link, TempRateComp
 from boring.src.sizing.mass.mass import heatPipeMass
 
+from boring.util.load_inputs import load_inputs
+
+
 class HeatPipeRun(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
@@ -49,31 +52,7 @@ class HeatPipeRun(om.Group):
         thermal_link(self,'cond','cond2', num_nodes=nn)
         self.connect('evap_bridge.k_wk',['evap.k_wk','cond.k_wk','cond2.k_wk'])
 
-        # self.set_input_defaults('k_w',11.4*np.ones(nn))
-        self.set_input_defaults('evap.Rex.R', 0.0001*np.ones(nn))
-        self.set_input_defaults('cond.Rex.R', 0.0001*np.ones(nn))
-
-        self.set_input_defaults('cond.L_flux', 0.02*np.ones(nn))
-        self.set_input_defaults('evap.L_flux', 0.01*np.ones(nn))
-        
-        self.set_input_defaults('k_w', 11.4*np.ones(nn))
-        self.set_input_defaults('epsilon', 0.46*np.ones(nn))       # Porosity of the wick (0=void, 1=solid)  
-        self.set_input_defaults('L_eff', 0.045*np.ones(nn))
-        # self.set_input_defaults('liq_density', 1000*np.ones(nn))    # Density of the liquid in HP
-        # self.set_input_defaults('fill_liq', 0.70*np.ones(nn))       # Fill perentage of liquid in HP (1=full, 0=empty)
-        self.set_input_defaults('T_rate_cond.c_p', 1500*np.ones(nn))
-        self.set_input_defaults('T_rate_cond.mass', .06*np.ones(nn))
-        self.set_input_defaults('T_rate_cond2.c_p', 1500*np.ones(nn))
-        self.set_input_defaults('T_rate_cond2.mass', .06*np.ones(nn))
-
-        #----------------------------------------Heatpipe Sizing Vars-----------------------------------------#
-        """ Currently no check to ensure feasability of dimensions """
-        self.set_input_defaults('D_od', 0.006*np.ones(nn))       # Outer diameter of overall heatpipe
-        self.set_input_defaults('D_v', 0.00362*np.ones(nn))      # Outer diameter of HP vapor chamber
-        self.set_input_defaults('t_wk', 0.00069*np.ones(nn))     # Thickness of the wick in the interior of the HP
-        self.set_input_defaults('t_w', 0.0005*np.ones(nn))       # Thickness of the HP wall
-        # self.set_input_defaults('L_heatpipe', 0.30*np.ones(nn))  # Overall length of the HP (including adiabatic portion)
-        self.set_input_defaults('L_adiabatic', 0.03*np.ones(nn)) # Length of the adiabatic section
+        load_inputs('boring.input.assumptions',self,nn)
 
 
 if __name__ == "__main__":

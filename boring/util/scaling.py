@@ -17,6 +17,9 @@ y = x/((0.00226)x+1)
 vs.
 y = 0.6666667x
 
+
+Author(s): Jeff Chin
+
 """
 
 import numpy as np
