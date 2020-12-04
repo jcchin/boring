@@ -14,6 +14,8 @@ from boring.src.sizing.thermal_resistance.radial_thermal_resistance import Radia
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
+from boring.src.sizing.material_properties.pcm_group import PCM_Group
+
 
 
 class Resistor(om.ExplicitComponent):
@@ -134,6 +136,7 @@ class Radial_Stack(om.Group):
         self.options.declare('num_nodes', types=int, default=1)  
         self.options.declare('n_in', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('n_out', types=int, default=0)  # middle = 2, end = 1
+        self.options.declare('pcm_bool', types=bool, default=False)
 
     def setup(self):
         n_in = self.options['n_in']
@@ -157,6 +160,12 @@ class Radial_Stack(om.Group):
                            subsys=RadialThermalResistance(num_nodes=nn),
                            promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_flux','r_i','D_v','h_fg','alpha'],
                            promotes_outputs=['R_w','R_wk','R_inter'])
+
+        if self.options['pcm_bool']:
+            self.add_subsystem(name='pcm',
+                               subsys=PCM_Group(num_nodes=nn),
+                               promotes_inputs=['T'],
+                               promotes_outputs=['Tdot'])
 
 
         # Define Resistors
@@ -193,6 +202,9 @@ class Radial_Stack(om.Group):
         self.connect('R_w','Rw.R')
         self.connect('R_wk','Rwk.R')
         self.connect('R_inter','Rinter.R')
+
+        if self.options['pcm_bool']:
+            self.connect('Rex.q','pcm.q')
 
 
 class Bridge(om.Group):

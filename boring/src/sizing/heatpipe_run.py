@@ -26,21 +26,21 @@ class HeatPipeRun(om.Group):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn),
+        self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn, pcm_bool=True),
                                promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
-        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1,  num_nodes=nn),
+        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1,  num_nodes=nn, pcm_bool=True),
                                promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
-        self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn),
+        self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn, pcm_bool=True),
                                promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
         
-        self.add_subsystem(name='T_rate_cond',
-                           subsys=TempRateComp(num_nodes=nn))
+        # self.add_subsystem(name='T_rate_cond',
+        #                    subsys=TempRateComp(num_nodes=nn))
 
-        self.add_subsystem(name='T_rate_cond2',
-                           subsys=TempRateComp(num_nodes=nn))
+        # self.add_subsystem(name='T_rate_cond2',
+        #                    subsys=TempRateComp(num_nodes=nn))
 
-        self.connect('cond.Rex.q', 'T_rate_cond.q')
-        self.connect('cond2.Rex.q', 'T_rate_cond2.q')
+        # self.connect('cond.Rex.q', 'T_rate_cond.q')
+        # self.connect('cond2.Rex.q', 'T_rate_cond2.q')
 
         # self.add_subsystem(name='hp_mass',
         #                    subsys=heatPipeMass(num_nodes=nn),
@@ -52,7 +52,7 @@ class HeatPipeRun(om.Group):
         thermal_link(self,'cond','cond2', num_nodes=nn)
         self.connect('evap_bridge.k_wk',['evap.k_wk','cond.k_wk','cond2.k_wk'])
 
-        load_inputs('boring.input.assumptions',self,nn)
+        load_inputs('boring.input.assumptions2',self,nn)
 
 
 if __name__ == "__main__":

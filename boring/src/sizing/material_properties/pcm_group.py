@@ -6,8 +6,48 @@ import openmdao.api as om
 from boring.src.sizing.material_properties.pcm_ps import PCM_PS
 from boring.src.sizing.material_properties.cp_func import PCM_Cp
 from boring.src.sizing.material_properties.pcm_properties import PCM_props
-from boring.src.sizing.thermal_network import TempRateComp
+# from boring.src.sizing.thermal_network import TempRateComp
 
+
+class TempRateComp(om.ExplicitComponent):
+    """Computes flux across a resistor using Ohm's law."""
+
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+
+    def setup(self):
+
+        nn = self.options['num_nodes']
+
+        self.add_input('q', val=np.ones(nn), units='W')
+        self.add_input('mass', val=np.ones(nn), units='kg')
+        self.add_input('c_p', val=np.ones(nn), units='J/(kg*K)')
+
+        self.add_output('Tdot', val=np.ones(nn), units='K/s')
+
+    def setup_partials(self):
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
+
+        self.declare_partials('Tdot', 'q', rows=ar, cols=ar)
+        self.declare_partials('Tdot', 'mass', rows=ar, cols=ar)
+        self.declare_partials('Tdot', 'c_p', rows=ar, cols=ar)
+
+    def compute(self, inputs, outputs):
+        q = inputs['q']
+        mass = inputs['mass']
+        c_p = inputs['c_p']
+
+        outputs['Tdot'] = -q/mass/c_p
+
+    def compute_partials(self, inputs, J):
+        q = inputs['q']
+        mass = inputs['mass']
+        c_p = inputs['c_p']
+
+        J['Tdot','q'] = -1/mass/c_p
+        J['Tdot','mass'] = q/mass**2/c_p
+        J['Tdot','c_p'] = q/mass/c_p**2
 
 class PCM_Group(om.Group):
     """ Computes PCM pad bulk properties, percent solid, and state (temp) rates"""
@@ -36,7 +76,7 @@ class PCM_Group(om.Group):
 
         self.add_subsystem(name = 'rate',
                            subsys = TempRateComp(num_nodes=nn),
-                           promotes_inputs=[('c_p','cp_bulk')],
+                           promotes_inputs=[('c_p','cp_bulk'),'q','mass'],
                            promotes_outputs=['Tdot'])
 
 if __name__ == "__main__":
