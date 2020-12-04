@@ -12,6 +12,8 @@ from math import pi
 
 import openmdao.api as om
 
+from cp_func import Cp_func
+
 
 class PCM_PS(om.ExplicitComponent):
 
