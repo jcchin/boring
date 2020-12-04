@@ -9,6 +9,7 @@ Author: Jeff Chin
 """
 
 import openmdao.api as om
+import numpy as np
 #from boring.src.sizing.material_properties.
 
 class PCM_Cp(om.ExplicitComponent):
@@ -25,7 +26,7 @@ class PCM_Cp(om.ExplicitComponent):
         self.add_input('T_hi', 338*np.ones(nn), units='K', desc='PCM upper temp transition point')
         
         # outputs
-        self.add_output('cp_pcm', 1.54*np.ones(nn), units='kJ/kg*K', desc='specific heat of the pcm')
+        self.add_output('cp_pcm', 1.54*np.ones(nn), units='kJ/(kg*K)', desc='specific heat of the pcm')
 
 
     def setup_partials(self):
@@ -39,7 +40,7 @@ class PCM_Cp(om.ExplicitComponent):
 
         outputs['cp_pcm'] = Cp_func(inputs['T'],inputs['T_lo'],inputs['T_hi'])
 
-    def compute_partials(self,inputs,outputs):
+    def compute_partials(self,inputs,partials):
         T = inputs['T']
 
         partials['cp_pcm','T'] = cp_dT_deriv_func(T)

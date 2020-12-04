@@ -35,6 +35,35 @@ class PCM_Group(om.Group):
                             promotes_outputs=['PS'])
 
         self.add_subsystem(name = 'rate',
-                           subsy = TempRateComp(num_nodes=nn),
-                           promotes_inputs=['(c_p,cp_bulk)'],
+                           subsys = TempRateComp(num_nodes=nn),
+                           promotes_inputs=[('c_p','cp_bulk')],
                            promotes_outputs=['Tdot'])
+
+if __name__ == "__main__":
+    p = om.Problem(model=om.Group())
+    nn = 1
+
+    p.model.add_subsystem(name='pcm',
+                          subsys=PCM_Group(num_nodes=nn),
+                          promotes_inputs=['*'],
+                          promotes_outputs=['*'])
+    
+    p.setup(force_alloc_complex=True)
+    
+    p['T'] = 334
+    p['T_lo'] = 333
+    p['T_hi'] = 338
+
+    p.check_partials(compact_print=True)
+
+    p.run_model()
+    om.n2(p)
+    # om.view_connections(p)
+    p.model.list_inputs(values=True, prom_name=True)   
+    p.model.list_outputs(values=True, prom_name=True) 
+    print('Finished Successfully')
+
+    print('\n', '\n')
+    print('--------------Outputs---------------')
+    print('The Percent Solid is ......', p.get_val('PS'))
+    print('\n', '\n')

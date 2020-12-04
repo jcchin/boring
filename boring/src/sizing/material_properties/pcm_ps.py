@@ -48,7 +48,7 @@ class PCM_PS(om.ExplicitComponent):
         # if T < T_lo: PS = >1
         # if T > T_hi: PS = <0
 
-        outputs['PS'] = (1.-(T-T_lo))/(T_hi-T_lo)
+        outputs['PS'] = 1.-((T-T_lo)/(T_hi-T_lo))
 
 
     def compute_partials(self, inputs, J):
@@ -60,8 +60,8 @@ class PCM_PS(om.ExplicitComponent):
 
 
         J['PS','T'] = 1./(T_lo-T_hi)
-        J['PS','T_lo'] = (T_hi-T+1.)/(T_hi-T_lo)**2.
-        J['PS','T_hi'] = (-T_lo+T-1.)/(T_hi-T_lo)**2.
+        J['PS','T_lo'] = (T_hi-T)/(T_hi-T_lo)**2.
+        J['PS','T_hi'] = (T-T_lo)/(T_hi-T_lo)**2.
         
 
 if __name__ == '__main__':
@@ -74,6 +74,7 @@ if __name__ == '__main__':
     prob.setup(force_alloc_complex=True)
     prob.run_model()
     prob.check_partials(method='cs', compact_print=True)
+
 
 
 
