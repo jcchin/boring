@@ -8,7 +8,7 @@ Apparent Heat Capacity Method
 Author: Jeff Chin
 """
 
-def cp_func(T, T1 = 60, T2 = 65, Cp_low = 1.5, Cp_high=50):  #kJ/kgK
+def cp_func(T, T1 = 60+273, T2 = 65+273, Cp_low = 1.5, Cp_high=50):  #kJ/kgK
     if T > T1 and T < T2:
         Cp = Cp_high
     else:
