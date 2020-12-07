@@ -3,8 +3,8 @@ import numpy as np
 import openmdao.api as om
 
 from boring.src.sizing.material_properties.pcm_ps import PCM_PS
-from boring.src.sizing.material_properties.cp_func import PCM_Cp
 from boring.src.sizing.material_properties.pcm_properties import PCM_props
+from boring.src.sizing.material_properties.cp_func import PCM_Cp
 
 
 class TempRateComp(om.ExplicitComponent):
@@ -14,7 +14,6 @@ class TempRateComp(om.ExplicitComponent):
         self.options.declare('num_nodes', types=int)
 
     def setup(self):
-
         nn = self.options['num_nodes']
 
         self.add_input('q', val=np.ones(nn), units='W')
@@ -24,7 +23,7 @@ class TempRateComp(om.ExplicitComponent):
         self.add_output('Tdot', val=np.ones(nn), units='K/s')
 
     def setup_partials(self):
-        nn=self.options['num_nodes']
+        nn = self.options['num_nodes']
         ar = np.arange(nn)
 
         self.declare_partials('Tdot', 'q', rows=ar, cols=ar)
@@ -36,16 +35,16 @@ class TempRateComp(om.ExplicitComponent):
         mass = inputs['mass']
         c_p = inputs['c_p']
 
-        outputs['Tdot'] = -q/mass/c_p
+        outputs['Tdot'] = -q / mass / c_p
 
     def compute_partials(self, inputs, J):
         q = inputs['q']
         mass = inputs['mass']
         c_p = inputs['c_p']
 
-        J['Tdot','q'] = -1/mass/c_p
-        J['Tdot','mass'] = q/mass**2/c_p
-        J['Tdot','c_p'] = q/mass/c_p**2
+        J['Tdot', 'q'] = -1 / mass / c_p
+        J['Tdot', 'mass'] = q / mass ** 2 / c_p
+        J['Tdot', 'c_p'] = q / mass / c_p ** 2
 
 
 class PCM_Group(om.Group):
