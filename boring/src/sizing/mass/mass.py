@@ -19,23 +19,19 @@ class MassGroup(om.Group):
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])
 
-
         self.add_subsystem(name='mass',
                            subsys=packMass(num_nodes=nn),
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])
 
-
         self.set_input_defaults('frame_mass', 0.01, units='kg')
-
-
 
 
 class packMass(om.ExplicitComponent):
     """sum all individual masses to estimate total mass and mass fractions"""
 
     def initialize(self):
-        self.options.declare('num_nodes', types=int) #argument for eventual dymos transient model
+        self.options.declare('num_nodes', types=int)  # argument for eventual dymos transient model
 
     def setup(self):
         nn = self.options['num_nodes']
@@ -51,7 +47,7 @@ class packMass(om.ExplicitComponent):
         self.add_output('tot_mass', desc='total pack mass')
         self.add_output('mass_frac', desc='fraction of mass not fromt the battery cells')
 
-    def compute(self,i,o):
+    def compute(self, i, o):
 
         o['p_mass'] = i['PCM_tot_mass'] + i['mass_OHP'] + i['frame_mass']*i['n_cells'] + i['ext_cool_mass']
         o['tot_mass'] = o['p_mass'] + i['cell_mass']*i['n_cells']
@@ -59,6 +55,7 @@ class packMass(om.ExplicitComponent):
 
     def setup_partials(self):
         self.declare_partials('*', '*', method='cs')
+
 
 class frameMass(om.ExplicitComponent):
     """Calculate the mass of the frame per cell"""
@@ -98,17 +95,18 @@ class busMass(om.ExplicitComponent):
         self.add_output('bar_mass', desc='bus bar mass', units='kg')
 
 
-    def compute(self,i,o):
+    def compute(self, i, o):
 
         o['lead_area'] = i['cell_h']*i['cell_w']
         o['bar_mass'] = i['t_bar']*o['lead_area']*i['rho_bar']
-
 
     def setup_partials(self):
         self.declare_partials('*', '*', method='cs')
 
 
 """Author: Dustin Hall """
+
+
 class heatPipeMass(om.ExplicitComponent):
     ''' Class to calculate only the mass of the heat pipe '''
 
@@ -147,8 +145,6 @@ class heatPipeMass(om.ExplicitComponent):
         o['mass_liquid'] = L_heatpipe*liq_density*fill_liq* np.pi/4*( D_v**2 )
         o['mass_wick'] = L_heatpipe*cu_density*fill_wk* np.pi*( (D_v/2+t_wk)**2 - (D_v/2)**2 ) # this can also be defined as fun(D_od, t_w)
 
-
-
     def setup_partials(self):
         nn=self.options['num_nodes']
         ar = np.arange(nn) 
@@ -156,8 +152,7 @@ class heatPipeMass(om.ExplicitComponent):
         self.declare_partials('mass_heatpipe', ['L_heatpipe', 'D_od', 't_w', 'cu_density'], rows=ar, cols=ar)
         self.declare_partials('mass_liquid',['L_heatpipe', 'liq_density', 'fill_liq', 'D_v'], rows=ar, cols=ar)
         self.declare_partials('mass_wick', ['L_heatpipe', 't_wk', 'cu_density', 'fill_wk', 'D_v'], rows=ar, cols=ar)
-        
-        
+
     def compute_partials(self,i,J):
         L_heatpipe = i['L_heatpipe']
         D_od = i['D_od']

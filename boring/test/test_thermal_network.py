@@ -14,8 +14,6 @@ from boring.src.sizing.thermal_network import Circuit, Radial_Stack, thermal_lin
 
 class TestCircuit(unittest.TestCase):
 
-
-
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
         p1.model.add_subsystem('circ', subsys=Circuit())
@@ -48,11 +46,9 @@ class TestCircuit(unittest.TestCase):
         self.prob['circ.Rex_c.T_out'] = 20
 
         p1.run_model()
-        #p1.model.list_outputs(values=True, prom_name=True)
+        # p1.model.list_outputs(values=True, prom_name=True)
 
- 
     def test_resistance(self):
-
         Rexe = 0.0000001
         Rexc = 0.0000001
         Rwe = 0.2545383947014702
@@ -65,32 +61,34 @@ class TestCircuit(unittest.TestCase):
         Rwa = 456.90414284754644
         Rwc = 0.1272691973507351
 
-        Rtot = (R(Rexe) + (R(Rwa) | R(Rwe) + (R(Rwka)|R(Rwke)+R(Rintere)+R(Rv)+R(Rinterc)+R(Rwkc))+ R(Rwc))+ R(Rexc))
+        Rtot = (R(Rexe) + (
+                    R(Rwa) | R(Rwe) + (R(Rwka) | R(Rwke) + R(Rintere) + R(Rv) + R(Rinterc) + R(Rwkc)) + R(Rwc)) + R(
+            Rexc))
 
         print(Rtot.simplify())
-        ans = 16731692103737332239244353077427184638278095509511778941./10680954190791611228174081719413008273307025000000000000.
+        ans = 16731692103737332239244353077427184638278095509511778941. / 10680954190791611228174081719413008273307025000000000000.
 
-        Rtot2 = (self.prob.get_val('circ.n1.T')-self.prob.get_val('circ.n8.T'))/self.prob.get_val('circ.Rex_c.q')
+        Rtot2 = (self.prob.get_val('circ.n1.T') - self.prob.get_val('circ.n8.T')) / self.prob.get_val('circ.Rex_c.q')
 
         assert_near_equal(Rtot2, ans, tolerance=1.0E-5)
 
-        draw = False # plot the thermal network
+        draw = False  # plot the thermal network
         if draw:
             Rtot.draw('Thermal_Network.pdf')
 
     def _test_link(self):
-
-        nn=1
+        nn = 1
 
         p2 = self.prob2 = Problem(model=Group())
         p2.model.add_subsystem('evap', Radial_Stack(num_nodes=nn, n_in=0, n_out=1),
-                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
+                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_wk', 'k_w', 'D_v', 'L_adiabatic',
+                                                'alpha'])  # promote shared values (geometry, mat props)
         p2.model.add_subsystem('cond', Radial_Stack(num_nodes=nn, n_in=1, n_out=0),
-                               promotes_inputs=['D_od','t_wk','t_w','k_wk','k_w','D_v','L_adiabatic','alpha'])
+                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_wk', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
 
-        thermal_link(p2.model,'evap','cond', num_nodes=nn)
+        thermal_link(p2.model, 'evap', 'cond', num_nodes=nn)
 
-        p2.model.set_input_defaults('k_w',11.4)
+        p2.model.set_input_defaults('k_w', 11.4)
 
         p2.setup(force_alloc_complex=True)
 
@@ -129,7 +127,7 @@ class TestCircuit(unittest.TestCase):
         self.prob2['k_w'] = 11.4
         self.prob2['epsilon'] = 0.46
         self.prob2['D_v'] = 0.00362
-        self.prob2['L_eff'] = (self.prob2['cond.L_flux']+self.prob2['evap.L_flux'])/2.+self.prob2['L_adiabatic']
+        self.prob2['L_eff'] = (self.prob2['cond.L_flux'] + self.prob2['evap.L_flux']) / 2. + self.prob2['L_adiabatic']
         # self.prob2['k_wk'] = (1-self.prob2['epsilon'])*self.prob2['k_w']+self.prob2['epsilon']*self.prob2['k_l'] # Bridge
         # self.prob2['A_cond'] = np.pi*self.prob2['D_od']*self.prob2['L_cond']
         # self.prob2['A_evap'] =  np.pi*self.prob2['D_od']*self.prob2['L_evap']
@@ -137,9 +135,9 @@ class TestCircuit(unittest.TestCase):
         # self.prob2['A_wk'] = np.pi*((self.prob2['D_od']/2.-self.prob2['t_w'])**2-(self.prob2['D_v']/2.)**2)
         # self.prob2['A_inter'] = np.pi*self.prob2['D_v']*self.prob2['L_evap']
 
-        #self.prob2['evap_bridge.Rv.R'] = Rv
-        #self.prob2['evap_bridge.Rwka.R'] = Rwka
-        #self.prob2['evap_bridge.Rwa.R'] = Rwa
+        # self.prob2['evap_bridge.Rv.R'] = Rv
+        # self.prob2['evap_bridge.Rwka.R'] = Rwka
+        # self.prob2['evap_bridge.Rwa.R'] = Rwa
         self.prob2['evap.Rex.T_in'] = 100
         self.prob2['cond.Rex.T_in'] = 20
 
@@ -149,13 +147,13 @@ class TestCircuit(unittest.TestCase):
         # n2(p2)
         # view_connections(p2)
 
-        Rtot3 = (self.prob2.get_val('evap.n1.T')-self.prob2.get_val('cond.n1.T'))/np.abs(self.prob2.get_val('cond.Rex.q'))
+        Rtot3 = (self.prob2.get_val('evap.n1.T') - self.prob2.get_val('cond.n1.T')) / np.abs(
+            self.prob2.get_val('cond.Rex.q'))
 
-        ans = 16731692103737332239244353077427184638278095509511778941./10680954190791611228174081719413008273307025000000000000.
+        ans = 16731692103737332239244353077427184638278095509511778941. / 10680954190791611228174081719413008273307025000000000000.
         assert_near_equal(Rtot3, ans, tolerance=3.0E-5)
 
     def test_two_port(self):
-
         Rexe = 0.0000001
         Rexc = 0.0000001
         Rwe = 0.2545383947014702
@@ -168,18 +166,24 @@ class TestCircuit(unittest.TestCase):
         Rwa = 456.90414284754644
         Rwc = 0.1272691973507351
 
-        Rtota= R(Rexe) + (R(Rwa) | R(Rwe) + (R(Rwka)|R(Rwke)+R(Rintere)+R(Rv)+R(Rinterc)+R(Rwkc))+ R(Rwc))+ R(Rexc)
+        Rtota = R(Rexe) + (
+                    R(Rwa) | R(Rwe) + (R(Rwka) | R(Rwke) + R(Rintere) + R(Rv) + R(Rinterc) + R(Rwkc)) + R(Rwc)) + R(
+            Rexc)
         #                                                                                                   |         |
-        Rtot = R(Rexe) + (R(Rwa) | R(Rwe) + (R(Rwka)|R(Rwke)+R(Rintere)+R(Rv)+R(Rinterc)+R(Rwkc))+ R(Rwc)) + (R(1.6+Rexc) | (R(Rexe) + (R(Rwa) | R(Rwe) + (R(Rwka)|R(Rwke)+R(Rintere)+R(Rv)+R(Rinterc)+R(Rwkc))+ R(Rwc))+ R(Rexc)))
+        Rtot = R(Rexe) + (
+                    R(Rwa) | R(Rwe) + (R(Rwka) | R(Rwke) + R(Rintere) + R(Rv) + R(Rinterc) + R(Rwkc)) + R(Rwc)) + (
+                           R(1.6 + Rexc) | (R(Rexe) + (
+                               R(Rwa) | R(Rwe) + (R(Rwka) | R(Rwke) + R(Rintere) + R(Rv) + R(Rinterc) + R(Rwkc)) + R(
+                           Rwc)) + R(Rexc)))
         print(Rtot.simplify())
         Rtot.draw('test.pdf')
 
-        Rtot_2 = LSection(Rtota,Rtota)
+        Rtot_2 = LSection(Rtota, Rtota)
         ans1 = Rtot_2.Y1sc
         print(ans1.simplify())
         ans2 = Rtot_2.Y2sc
         print(ans2.simplify())
 
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     unittest.main()

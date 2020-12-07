@@ -27,12 +27,13 @@ class PCMrun(om.Group):
         nn = self.options['num_nodes']
 
         self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn),
-                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha']) # promote shared values (geometry, mat props)
-        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1,  num_nodes=nn),
-                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
-        self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0,  num_nodes=nn),
-                               promotes_inputs=['D_od','t_wk','t_w','k_w','D_v','L_adiabatic','alpha'])
-        
+                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic',
+                                            'alpha'])  # promote shared values (geometry, mat props)
+        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1, num_nodes=nn),
+                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+        self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0, num_nodes=nn),
+                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+
         self.add_subsystem(name='T_rate_cond',
                            subsys=TempRateComp(num_nodes=nn))
 
@@ -47,12 +48,11 @@ class PCMrun(om.Group):
         #                    promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
         #                    promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
+        thermal_link(self, 'evap', 'cond', num_nodes=nn)
+        thermal_link(self, 'cond', 'cond2', num_nodes=nn)
+        self.connect('evap_bridge.k_wk', ['evap.k_wk', 'cond.k_wk', 'cond2.k_wk'])
 
-        thermal_link(self,'evap','cond', num_nodes=nn)
-        thermal_link(self,'cond','cond2', num_nodes=nn)
-        self.connect('evap_bridge.k_wk',['evap.k_wk','cond.k_wk','cond2.k_wk'])
-
-        load_inputs('boring.input.assumptions',self,nn)
+        load_inputs('boring.input.assumptions', self, nn)
 
 
 if __name__ == "__main__":
@@ -63,10 +63,10 @@ if __name__ == "__main__":
                           subsys=HeatPipeRun(num_nodes=nn),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
-    
+
     p.setup(force_alloc_complex=True)
-    
-    p['L_eff'] = (0.02+0.1)/2.+0.03
+
+    p['L_eff'] = (0.02 + 0.1) / 2. + 0.03
     p['evap.Rex.T_in'] = 100
     p['cond.Rex.T_in'] = 20
     p['cond2.Rex.T_in'] = 20
@@ -85,10 +85,10 @@ if __name__ == "__main__":
     p.check_partials(compact_print=True)
 
     p.run_model()
-    #om.n2(p)
+    # om.n2(p)
     # om.view_connections(p)
-    p.model.list_inputs(values=True, prom_name=True)   
-    p.model.list_outputs(values=True, prom_name=True) 
+    p.model.list_inputs(values=True, prom_name=True)
+    p.model.list_outputs(values=True, prom_name=True)
     print('Finished Successfully')
 
     print('\n', '\n')

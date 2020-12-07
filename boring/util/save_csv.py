@@ -7,8 +7,8 @@ Author: Jeff Chin
 """
 
 
-def save_csv(prob, sim, file_name='output.csv', 
-             traj = 'traj', phase='phase',
+def save_csv(prob, sim, file_name='output.csv',
+             traj='traj', phase='phase',
              x_name='time', x_units='s', y_name='', y_units=''):
     ''' Save Time History to CSV file for convenient portabilitiy
 
@@ -41,17 +41,16 @@ def save_csv(prob, sim, file_name='output.csv',
         print(f'{traj}.{phase}.timeseries.time')
 
     try:
-        t_s = sim.get_val(f'{traj}.{phase}.timeseries.time') 
+        t_s = sim.get_val(f'{traj}.{phase}.timeseries.time')
         print('Explicit Save')
     except:
         print('Fail Explicit Save')
 
-    varDict.update({'t' : np.concatenate(t).ravel().tolist()})
-
+    varDict.update({'t': np.concatenate(t).ravel().tolist()})
 
     for name in y_name:
         d = {}
-        d2 = {} # TMS system has a different size
+        d2 = {}  # TMS system has a different size
         try:
             y = prob.get_val(f'{traj}.{phase}.timeseries.{name}')
             d[f"{name}"] = np.concatenate(y).ravel().tolist()
@@ -60,17 +59,14 @@ def save_csv(prob, sim, file_name='output.csv',
         except:
             print(f'Unable to save: {name} ...')
 
-
     df = pd.DataFrame(varDict)
     df = df.set_index(['t'])
     df.index = pd.to_datetime(df.index, unit='s')
-    df = df[~df.index.duplicated()] #remove duplicate timestamps
-    df = df.resample('1s').bfill(limit=1).interpolate() #resample every 5 sec
-    deltaT = df.index.to_series()-datetime.datetime(1970,1,1) # calculate timedelta
-    df.index = deltaT.dt.total_seconds() # convert index back to elapsed seconds
-    df['t'] = df.index # make explicit column with index
+    df = df[~df.index.duplicated()]  # remove duplicate timestamps
+    df = df.resample('1s').bfill(limit=1).interpolate()  # resample every 5 sec
+    deltaT = df.index.to_series() - datetime.datetime(1970, 1, 1)  # calculate timedelta
+    df.index = deltaT.dt.total_seconds()  # convert index back to elapsed seconds
+    df['t'] = df.index  # make explicit column with index
 
     df.to_pickle('./output.pkl')
-    df.to_csv(file_name,index=False)
-
-
+    df.to_csv(file_name, index=False)

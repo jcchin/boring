@@ -8,6 +8,7 @@ from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 from boring.util.spec_test import assert_match_spec
 from boring.src.sizing.material_properties.pcm_properties import PCM_props
 
+
 class TestPCMProps(unittest.TestCase):
 
     def setUp(self):
@@ -26,9 +27,10 @@ class TestPCMProps(unittest.TestCase):
         self.prob['props.porosity'] = 0.
         self.prob['props.k_foam'] = 21.
         self.prob.run_model()
-        assert_near_equal(self.prob.get_val('props.k_bulk'), 21., tolerance=1.0E-5) #check the same exact output, make sure it changes
+        assert_near_equal(self.prob.get_val('props.k_bulk'), 21.,
+                          tolerance=1.0E-5)  # check the same exact output, make sure it changes
 
-    def test_partials(self): # derivative check
+    def test_partials(self):  # derivative check
 
         data = self.prob.check_partials(out_stream=None, method='cs')
         assert_check_partials(data, atol=1e-10, rtol=1e-10)
@@ -39,5 +41,5 @@ class TestPCMProps(unittest.TestCase):
     #     assert_match_spec(subsystem, 'Design_specs/struct.json')
 
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     unittest.main()

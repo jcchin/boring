@@ -12,11 +12,12 @@ from boring.src.sizing.structure import tempODE
 Author(s): Jeff Chin
 """
 
+
 class Build_Pack():
-    '''
+    """
     Use Dymos to minimize the thickness of the insulator,
     while still maintaining a temperature below 100degC after a 45 second transient
-    '''
+    """
 
     p = om.Problem(model=om.Group())
     model = p.model
@@ -24,13 +25,13 @@ class Build_Pack():
     p.driver = om.ScipyOptimizeDriver()
     p.driver = om.pyOptSparseDriver(optimizer='SLSQP')
     # p.driver.opt_settings['iSumm'] = 6
-    #record_file = 'geometry.sql'
-    #p.add_recorder(om.SqliteRecorder(record_file))
-    #p.recording_options['includes'] = ['*']
-    #p.recording_options['record_objectives'] = True
-    #p.recording_options['record_constraints'] = True
-    #p.recording_options['record_desvars'] = True
-    #p.recording_options['record_inputs'] = True
+    # record_file = 'geometry.sql'
+    # p.add_recorder(om.SqliteRecorder(record_file))
+    # p.recording_options['includes'] = ['*']
+    # p.recording_options['record_objectives'] = True
+    # p.recording_options['record_constraints'] = True
+    # p.recording_options['record_desvars'] = True
+    # p.recording_options['record_inputs'] = True
 
     p.driver.declare_coloring()
 
@@ -45,16 +46,16 @@ class Build_Pack():
     phase.add_state('T', rate_source='Tdot', units='K', ref=333.15, defect_ref=333.15,
                     fix_initial=True, fix_final=False, solve_segments=False)
 
-
     phase.add_boundary_constraint('T', loc='final', units='K', upper=333.15, lower=293.15, shape=(1,))
     phase.add_parameter('d', opt=True, lower=0.001, upper=0.5, val=0.001, units='m', ref0=0, ref=1)
     phase.add_objective('d', loc='final', ref=1)
 
     model.add_subsystem('sizing', SizingGroup(num_nodes=nn), promotes=['*'])
 
-    p.model.connect('traj.phase0.timeseries.parameters:d','cell_s_w',src_indices=[-1]) #connect final value of d with cell_s_w
-    #model.add_design_var('sizing.L', lower=-1, upper=1)
-    #model.add_objective('OD1.Eff')
+    p.model.connect('traj.phase0.timeseries.parameters:d', 'cell_s_w',
+                    src_indices=[-1])  # connect final value of d with cell_s_w
+    # model.add_design_var('sizing.L', lower=-1, upper=1)
+    # model.add_objective('OD1.Eff')
     p.model.linear_solver = om.DirectSolver()
     p.setup(force_alloc_complex=True)
 
@@ -62,9 +63,8 @@ class Build_Pack():
     p['traj.phase0.t_duration'] = 45
     p['traj.phase0.states:T'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
     p['traj.phase0.parameters:d'] = 0.001
-    
 
-    #p.set_val('DESIGN.rot_ir' , 60)
+    # p.set_val('DESIGN.rot_ir' , 60)
 
     p.run_model()
     # cpd = p.check_partials(method='cs', compact_print=True) #check partial derivatives
@@ -73,7 +73,7 @@ class Build_Pack():
 
     dm.run_problem(p)
 
-    #p.record('final') #trigger problem record (or call run_driver if it's attached to the driver)
+    # p.record('final') #trigger problem record (or call run_driver if it's attached to the driver)
 
     # p.run_driver()
     # p.cleanup()
@@ -90,12 +90,11 @@ class Build_Pack():
     print("packaging mass: ", p['p_mass'])
     print("total mass: ", p['tot_mass'])
     print("package mass fraction: ", p['mass_frac'])
-    print("pack energy density: ", p['energy']/(p['tot_mass']))
+    print("pack energy density: ", p['energy'] / (p['tot_mass']))
     print("cell energy density: ", (p['q_max'] * p['v_n_c']) / (p['cell_mass']))
-    print("pack energy (kWh): ", p['energy']/1000.)
-    print("pack cost ($K): ", p['n_cells']*0.4)
+    print("pack energy (kWh): ", p['energy'] / 1000.)
+    print("pack cost ($K): ", p['n_cells'] * 0.4)
 
 
 if __name__ == "__main__":
-
     Build_Pack()

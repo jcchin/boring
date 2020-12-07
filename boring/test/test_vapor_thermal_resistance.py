@@ -8,6 +8,7 @@ from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 from boring.util.spec_test import assert_match_spec
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 
+
 class TestVaporResistance(unittest.TestCase):
 
     def setUp(self):
@@ -18,9 +19,8 @@ class TestVaporResistance(unittest.TestCase):
         p1.run_model()
 
     def test_vapor_outputs(self):
-
         self.prob.run_model()
-        
+
         assert_near_equal(self.prob.get_val('vapor_thermal.r_h'), 0.05, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('vapor_thermal.R_v'), 0.1100079, tolerance=1.0E-5)
 
@@ -38,7 +38,7 @@ class TestVaporResistance(unittest.TestCase):
         assert_near_equal(self.prob.get_val('vapor_thermal.r_h'), 5.05, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('vapor_thermal.R_v'), 1.05715426e-09, tolerance=1.0E-5)
 
-    def test_partials(self): # derivative check
+    def test_partials(self):  # derivative check
 
         data = self.prob.check_partials(out_stream=None, method='cs')
         assert_check_partials(data, atol=1e-10, rtol=1e-10)
@@ -49,5 +49,5 @@ class TestVaporResistance(unittest.TestCase):
     #     assert_match_spec(subsystem, 'Design_specs/struct.json')
 
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     unittest.main()
