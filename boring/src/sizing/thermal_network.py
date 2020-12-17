@@ -14,6 +14,7 @@ from boring.src.sizing.thermal_resistance.radial_thermal_resistance import Radia
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
+from boring.src.sizing.material_properties.pcm_group import PCM_Group, TempRateComp
 
 
 class Resistor(om.ExplicitComponent):
@@ -46,45 +47,6 @@ class Resistor(om.ExplicitComponent):
         J['q','T_out'] = -1./inputs['R']
         J['q','R'] = -(inputs['T_in'] - inputs['T_out'])/inputs['R']**2
 
-class TempRateComp(om.ExplicitComponent):
-    """Computes flux across a resistor using Ohm's law."""
-
-    def initialize(self):
-        self.options.declare('num_nodes', types=int)
-
-    def setup(self):
-
-        nn = self.options['num_nodes']
-
-        self.add_input('q', val=np.ones(nn), units='W')
-        self.add_input('mass', val=np.ones(nn), units='kg')
-        self.add_input('c_p', val=np.ones(nn), units='J/(kg*K)')
-
-        self.add_output('Tdot', val=np.ones(nn), units='K/s')
-
-    def setup_partials(self):
-        nn=self.options['num_nodes']
-        ar = np.arange(nn) 
-
-        self.declare_partials('Tdot', 'q', rows=ar, cols=ar)
-        self.declare_partials('Tdot', 'mass', rows=ar, cols=ar)
-        self.declare_partials('Tdot', 'c_p', rows=ar, cols=ar)
-
-    def compute(self, inputs, outputs):
-        q = inputs['q']
-        mass = inputs['mass']
-        c_p = inputs['c_p']
-
-        outputs['Tdot'] = -q/mass/c_p
-
-    def compute_partials(self, inputs, J):
-        q = inputs['q']
-        mass = inputs['mass']
-        c_p = inputs['c_p']
-
-        J['Tdot','q'] = -1/mass/c_p
-        J['Tdot','mass'] = q/mass**2/c_p
-        J['Tdot','c_p'] = q/mass/c_p**2
 
 class Node(om.ImplicitComponent):
     """Computes temperature residual across a node based on incoming and outgoing flux."""
@@ -134,6 +96,7 @@ class Radial_Stack(om.Group):
         self.options.declare('num_nodes', types=int, default=1)  
         self.options.declare('n_in', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('n_out', types=int, default=0)  # middle = 2, end = 1
+        self.options.declare('pcm_bool', types=bool, default=False)
 
     def setup(self):
         n_in = self.options['n_in']
@@ -157,6 +120,12 @@ class Radial_Stack(om.Group):
                            subsys=RadialThermalResistance(num_nodes=nn),
                            promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_flux','r_i','D_v','h_fg','alpha'],
                            promotes_outputs=['R_w','R_wk','R_inter'])
+
+        if self.options['pcm_bool']:
+            self.add_subsystem(name='pcm',
+                               subsys=PCM_Group(num_nodes=nn),
+                               promotes_inputs=['T'],
+                               promotes_outputs=['Tdot'])
 
 
         # Define Resistors
@@ -193,6 +162,9 @@ class Radial_Stack(om.Group):
         self.connect('R_w','Rw.R')
         self.connect('R_wk','Rwk.R')
         self.connect('R_inter','Rinter.R')
+
+        if self.options['pcm_bool']:
+            self.connect('Rex.q','pcm.q')
 
 
 class Bridge(om.Group):

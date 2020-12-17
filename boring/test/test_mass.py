@@ -19,16 +19,16 @@ class TestMass(unittest.TestCase):
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
- 
-    def test_tot_mass(self): # calculation regression test
+    def test_tot_mass(self):  # calculation regression test
 
-        self.prob['mass.n_cells'] = 100 # set input vals
+        self.prob['mass.n_cells'] = 100  # set input vals
 
         self.prob.run_model()
-        
-        assert_near_equal(self.prob.get_val('mass.tot_mass'), 109.32, tolerance=1.0E-5) # check you get the expected output
 
-    def test_partials(self): # derivative check
+        assert_near_equal(self.prob.get_val('mass.tot_mass'), 109.32,
+                          tolerance=1.0E-5)  # check you get the expected output
+
+    def test_partials(self):  # derivative check
 
         data = self.prob.check_partials(out_stream=None, method='cs')
         assert_check_partials(data, atol=1e-10, rtol=1e-10)
@@ -39,5 +39,5 @@ class TestMass(unittest.TestCase):
     #     assert_match_spec(subsystem, 'Design_specs/struct.json')
 
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     unittest.main()

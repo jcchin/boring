@@ -37,7 +37,6 @@ class TestSize(unittest.TestCase):
         assert_near_equal(self.prob.get_val('sizing.A_flux'), 37.69911184, tolerance=1.0E-5)
         #assert_near_equal(self.prob.get_val('sizing.L_eff'), 5.51, tolerance=1.0E-5) #this calc will no longer be an output of this component
 
-
     def test_partials(self): # derivative check
 
         data = self.prob.check_partials(out_stream=None, method='cs')

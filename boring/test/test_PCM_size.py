@@ -19,9 +19,7 @@ class TestPCM(unittest.TestCase):
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
- 
     def test_num_cells(self):
-
         assert_near_equal(self.prob.get_val('pcm.n_cells'), 2941.17647059, tolerance=1.0E-5)
 
     # def test_partials(self):
@@ -29,9 +27,7 @@ class TestPCM(unittest.TestCase):
     #     data = self.prob.check_partials(out_stream=None, method='cs')
     #     assert_check_partials(data, atol=1e-10, rtol=1e-10)
 
-    def skip_test_io_spec(self): 
-
-
+    def skip_test_io_spec(self):
         p1 = self.prob = Problem(model=Group())
 
         # self.prob.model.set_input_defaults('frac_absorb', 240.)
@@ -59,16 +55,15 @@ class TestPCM(unittest.TestCase):
         self.prob.model.set_input_defaults('cell_w', 0.)
         self.prob.model.set_input_defaults('missionJ', 0.)
 
-
         p1.model.add_subsystem('size', subsys=SizingGroup(num_nodes=1), promotes_inputs=[
-                               'frame_mass', 'cell_mass', 'cell_h', 'ext_cooling', 'dur', 't_HP', 'cell_l',
-                               'ext_cool_mass', 'runawayJ', 'W', 'LH_PCM', 'rho_PCM', 'cell_s_l', 'q_max',
-                               'cell_s_h', 'L', 'frac_absorb', 'v_n_c', 'energy', 'cell_s_w', 'cell_w', 'missionJ',
-                               ('n_cpb','n_{cpk}'),('n_bps','n_{kps}')])
+            'frame_mass', 'cell_mass', 'cell_h', 'ext_cooling', 'dur', 't_HP', 'cell_l',
+            'ext_cool_mass', 'runawayJ', 'W', 'LH_PCM', 'rho_PCM', 'cell_s_l', 'q_max',
+            'cell_s_h', 'L', 'frac_absorb', 'v_n_c', 'energy', 'cell_s_w', 'cell_w', 'missionJ',
+            ('n_cpb', 'n_{cpk}'), ('n_bps', 'n_{kps}')])
         p1.setup()
         p1.model.list_inputs(prom_name=True)
         assert_match_spec(p1.model, 'Design_specs/PCM.json')
 
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     unittest.main()

@@ -33,7 +33,6 @@ class MassGroup(om.Group):
                            promotes_outputs=['*'])
 
 
-
 class FHP(om.ExplicitComponent):
     """flat heat pipe calculation"""
 
@@ -55,7 +54,7 @@ class FHP(om.ExplicitComponent):
         self.add_output('fhp_mass', desc='total heat pipe mass')
         self.add_output('t_hp', desc='heat pipe thickness')
 
-    def compute(self,i,o):
+    def compute(self, i, o):
 
         D = i['d_init']
         L_scale = (i['tot_len']+50) / i['ref_len']
@@ -91,8 +90,8 @@ class OHP(om.ExplicitComponent):
 
     def compute(self, i, o):
 
-        o['flux'] = i['runawayJ']*1000/i['dur'] #heat flux during runaway
-        o['Areal_weight'] = 0.3866*o['flux']+1.7442 # NH3   kg/m^2
+        o['flux'] = i['runawayJ']*1000/i['dur']  # heat flux during runaway
+        o['Areal_weight'] = 0.3866*o['flux']+1.7442  # NH3   kg/m^2
         o['mass_OHP'] = o['Areal_weight']*i['cell_area']*i['n_cells']/2
 
     def setup_partials(self):

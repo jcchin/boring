@@ -3,9 +3,9 @@
 
 
 """
-Revision Reason: First attempt
+Revision Reason: PCM stuff
 Revised by: Jeff Chin
-Revised on: 12/3/20
+Revised on: 12/4/20
 """
 
 inputs = {
@@ -29,10 +29,12 @@ inputs = {
 
     'cond.L_flux': [0.02, 'm'],  # Length of Condensor exposed to heat pipe
     'evap.L_flux': [0.01, 'm'],
-    'T_rate_cond.c_p': [1500],  # Specific Heat
-    'T_rate_cond.mass': [.06],
-    'T_rate_cond2.c_p': [1500],
-    'T_rate_cond2.mass': [.06],
+    'cond.pcm.cp_bulk': [1500],  # Specific Heat
+    'cond.pcm.mass': [.06],
+    'cond2.pcm.cp_bulk': [1500],
+    'cond2.pcm.mass': [.06],
+    'evap.pcm.cp_bulk': [1500],
+    'evap.pcm.mass': [.06],
     'evap.Rex.R': [0.0001],  # Thermal resistance external to heat pipe wall
     'cond.Rex.R': [0.0001],
 

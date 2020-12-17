@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import unittest
 
 import numpy as np
-from openmdao.api import Problem, Group, IndepVarComp
+from openmdao.api import Problem, Group
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
@@ -20,7 +20,6 @@ class TestHeatPipeMass(unittest.TestCase):
         p1.run_model()
 
     def test_hp_mass(self):
-
         self.prob['hp_mass.D_od'] = 0.03
         self.prob['hp_mass.D_v'] = 0.03
         self.prob['hp_mass.L_heatpipe'] = 0.3
@@ -42,6 +41,5 @@ class TestHeatPipeMass(unittest.TestCase):
         assert_check_partials(data, atol=1e-10, rtol=1e-10)
 
 
-
-if __name__ =='__main__':
+if __name__ == '__main__':
     unittest.main()

@@ -5,6 +5,7 @@ from math import pi
 import openmdao.api as om
 import numpy as np
 
+
 class AxialThermalResistance(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
@@ -31,7 +32,7 @@ class AxialThermalResistance(om.ExplicitComponent):
         self.declare_partials('R_aw', ['L_eff', 'A_w', 'k_w'], rows=ar, cols=ar)
         self.declare_partials('R_awk', ['L_eff', 'A_wk', 'epsilon', 'k_w', 'k_l'], rows=ar, cols=ar)
 
-    def compute(self,inputs,outputs):
+    def compute(self, inputs, outputs):
 
         epsilon = inputs['epsilon']
         k_w = inputs['k_w']
@@ -45,7 +46,7 @@ class AxialThermalResistance(om.ExplicitComponent):
         outputs['R_aw']=L_eff/(A_w*k_w)
         outputs['R_awk']=L_eff/(A_wk*outputs['k_wk'])
 
-    def compute_partials(self,inputs,J):
+    def compute_partials(self, inputs, J):
 
         epsilon = inputs['epsilon']
         k_w = inputs['k_w']

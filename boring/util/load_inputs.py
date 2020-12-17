@@ -16,17 +16,14 @@ load_inputs('boring.input.assumptions',p)
 Author: Jeff Chin
 """
 
-def load_inputs(filename, prob,nn=1):
 
-
+def load_inputs(filename, prob, nn=1):
     x = importlib.import_module(filename)
 
-    myDict = getattr(x,'inputs')
+    myDict = getattr(x, 'inputs')
 
-    
-    for key,val in myDict.items():
-        if len(val)==1: #no units
-            prob.set_input_defaults(name=key,val=val*np.ones(nn))
-        if len(val)==2: #units provided
-            prob.set_input_defaults(name=key,val=val[0]*np.ones(nn),units=val[1])
- 
+    for key, val in myDict.items():
+        if len(val) == 1:  # no units
+            prob.set_input_defaults(name=key, val=val * np.ones(nn))
+        if len(val) == 2:  # units provided
+            prob.set_input_defaults(name=key, val=val[0] * np.ones(nn), units=val[1])

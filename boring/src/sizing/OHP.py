@@ -30,30 +30,30 @@ Author: Jeff Chin
 """
 import numpy as np
 
-rho_l = 763.3 # kg/m^3 @ 50C
-rho_v = 3.2 # kg/m^3 @ 100C
-d = 0.00165 # m
-sigma = 0.02155 # N/m @ 30C (working fluid surface tension)
-g = 9.81 # gravity m/s^2
-h_fg = 846000 # J/kg
-D_max = 2*(sigma/(g*(rho_l-rho_v)))**0.5
-Beta = 0. # radians
-Cp_l = 2570 # J/kg*K
-mu = 694. # N*s/m^2 @ 50C
-k = 0.171 # W/m*K
-delT = 50 # K
-delP = 2000 # N/m^2
-Le = .038 # m
-La = .102 # m
-Lc = .06 # m
+rho_l = 763.3  # kg/m^3 @ 50C
+rho_v = 3.2  # kg/m^3 @ 100C
+d = 0.00165  # m
+sigma = 0.02155  # N/m @ 30C (working fluid surface tension)
+g = 9.81  # gravity m/s^2
+h_fg = 846000  # J/kg
+D_max = 2 * (sigma / (g * (rho_l - rho_v))) ** 0.5
+Beta = 0.  # radians
+Cp_l = 2570  # J/kg*K
+mu = 694.  # N*s/m^2 @ 50C
+k = 0.171  # W/m*K
+delT = 50  # K
+delP = 2000  # N/m^2
+Le = .038  # m
+La = .102  # m
+Lc = .06  # m
 n = 16
 
-#delP = sigma*(2/((d/2)-delt) - 1/((d/2)-delt))
+# delP = sigma*(2/((d/2)-delt) - 1/((d/2)-delt))
 
 
 # Closed End Oscillating Heat Pipe
 # Experimental
-#Ku_0 = 0.0052*((D**4.3*Lt**0.1*Le**-4.4)*n**0.5*(rho_v/rho_l)**-0.2*Pr**-25)**0.116
+# Ku_0 = 0.0052*((D**4.3*Lt**0.1*Le**-4.4)*n**0.5*(rho_v/rho_l)**-0.2*Pr**-25)**0.116
 
 
 # p1 = D/L
@@ -66,15 +66,15 @@ n = 16
 #                                             #flooding term (Wallis Number)
 
 # Closed Loop Oscillating Heat Pipe
-Bo = d**2*g*(rho_l-rho_v)/sigma
-Ja = h_fg / (Cp_l*delT)
-Pr = Cp_l*mu/k
-Ka = rho_l*delP*d**2/(mu**2*0.5*(Le + Lc)*La) #evap, condenser, adiabatic
+Bo = d ** 2 * g * (rho_l - rho_v) / sigma
+Ja = h_fg / (Cp_l * delT)
+Pr = Cp_l * mu / k
+Ka = rho_l * delP * d ** 2 / (mu ** 2 * 0.5 * (Le + Lc) * La)  # evap, condenser, adiabatic
 
 # heat flux (W/m^2)
-q_dot = 0.54*(np.exp(Beta))**0.48*Ka**0.47*Pr**0.27*Ja**1.43*n**-0.27
+q_dot = 0.54 * (np.exp(Beta)) ** 0.48 * Ka ** 0.47 * Pr ** 0.27 * Ja ** 1.43 * n ** -0.27
 
-#Ku_90 = 0.0004*(Bo**2.2*Fr**1.42*Ja**1.2*Pr**1.02*(rho_v/rho_l)**0.98*R_cv**1.4*We**0.8*Le_di**0.5)**0.107
+# Ku_90 = 0.0004*(Bo**2.2*Fr**1.42*Ja**1.2*Pr**1.02*(rho_v/rho_l)**0.98*R_cv**1.4*We**0.8*Le_di**0.5)**0.107
 # 30% std dev error
 
 print(q_dot)

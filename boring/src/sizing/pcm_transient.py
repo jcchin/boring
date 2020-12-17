@@ -37,15 +37,13 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
 
     phase.set_time_options(fix_initial=True, fix_duration=False, duration_bounds=(1., 3200.))
 
-    phase.add_state('T_cond', rate_source='T_rate_cond.Tdot', targets='cond.Rex.T_in', units='K',
-                    # ref=333.15, defect_ref=333.15,
+    phase.add_state('T_cond', rate_source='cond.Tdot', targets='cond.T', units='K',  # ref=333.15, defect_ref=333.15,
                     fix_initial=True, fix_final=False, solve_segments=solve_segments)
-    phase.add_state('T_cond2', rate_source='T_rate_cond2.Tdot', targets='cond2.Rex.T_in', units='K',
-                    # ref=333.15, defect_ref=333.15,
+    phase.add_state('T_cond2', rate_source='cond2.Tdot', targets='cond2.T', units='K',  # ref=333.15, defect_ref=333.15,
                     fix_initial=True, fix_final=False, solve_segments=solve_segments)
 
-    phase.add_parameter('T_evap', targets='evap.Rex.T_in', units='K',
-                        dynamic=True, opt=False)
+    phase.add_control('T_evap', targets='evap.Rex.T_in', units='K',
+                      opt=False)
 
     phase.add_boundary_constraint('T_cond', loc='final', equals=Tf_final)
 
@@ -57,6 +55,9 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     phase.add_timeseries_output('cond_bridge.Rv.q', output_name='cRvq', units='W')
     phase.add_timeseries_output('cond_bridge.Rwa.q', output_name='cRwaq', units='W')
     phase.add_timeseries_output('cond_bridge.Rwka.q', output_name='cRwkq', units='W')
+    phase.add_timeseries_output('evap.pcm.PS', output_name='ePS', units='W')
+    phase.add_timeseries_output('cond.pcm.PS', output_name='cPS', units='W')
+    phase.add_timeseries_output('cond2.pcm.PS', output_name='c2PS', units='W')
 
     p.model.linear_solver = om.DirectSolver()
     p.setup(force_alloc_complex=force_alloc_complex)
@@ -65,13 +66,12 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     p['traj.phase.t_duration'] = 195.
     p['traj.phase.states:T_cond'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
     p['traj.phase.states:T_cond2'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
-    p['traj.phase.parameters:T_evap'] = 373
-    #
+    p['traj.phase.controls:T_evap'] = phase.interpolate(ys=[333., 338.], nodes='control_input')
 
     p.run_model()
 
     opt = p.run_driver()
-    sim = traj.simulate()
+    sim = traj.simulate(times_per_seg=10)
 
     print('********************************')
 
@@ -89,12 +89,17 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
         T_cond_opt = p.get_val('traj.phase.timeseries.states:T_cond', units='K')
         T_cond2 = sim.get_val('traj.phase.timeseries.states:T_cond2', units='K')
         T_cond2_opt = p.get_val('traj.phase.timeseries.states:T_cond2', units='K')
+        T_evap = sim.get_val('traj.phase.timeseries.controls:T_evap', units='K')
+        T_evap_opt = p.get_val('traj.phase.timeseries.controls:T_evap', units='K')
 
         plt.plot(time_opt, T_cond_opt, 'o')
         plt.plot(time, T_cond)
 
         plt.plot(time_opt, T_cond2_opt, '*')
         plt.plot(time, T_cond2)
+
+        plt.plot(time_opt, T_evap_opt, '^')
+        plt.plot(time, T_evap)
 
         plt.xlabel('time, s')
         plt.ylabel('T_cond, K')
