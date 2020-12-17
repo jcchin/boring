@@ -71,7 +71,7 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     p.run_model()
 
     opt = p.run_driver()
-    sim = traj.simulate(times_per_seg=10)
+    sim = traj.simulate()
 
     print('********************************')
 
