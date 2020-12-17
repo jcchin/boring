@@ -70,7 +70,7 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     p.run_model()
 
     opt = p.run_driver()
-    sim = traj.simulate(times_per_seg=10)
+    sim = traj.simulate()
 
     print('********************************')
 
@@ -113,9 +113,9 @@ if __name__ == '__main__':
     start = time.time()
 
     p = hp_transient(transcription='gauss-lobatto', num_segments=5,
-                 transcription_order=3, compressed=False, optimizer='SLSQP',
+                 transcription_order=3, compressed=False, optimizer='SNOPT',
                  run_driver=True, force_alloc_complex=True, solve_segments=False,
-                 show_plots=False, Tf_final = 370)
+                 show_plots=True, Tf_final = 370)
     end = time.time()
 
     print("elapsed time:", end - start)
