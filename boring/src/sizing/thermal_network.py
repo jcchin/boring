@@ -195,7 +195,7 @@ class Bridge(om.Group):
         self.connect('axial.R_aw','Rwa.R')
         self.connect('axial.R_awk', 'Rwka.R')
 
-def thermal_link(model, l_comp, r_comp, num_nodes):
+def thermal_link(model, l_comp, r_comp, num_nodes=1):
     nn = num_nodes
 
     l_name = l_comp
@@ -347,10 +347,10 @@ if __name__ == "__main__":
     model = p.model
 
     # # Circuit
-    # model.add_subsystem('circuit', Circuit())
-    # p.setup()
-    # p['circuit.Rex_e.T_in'] = 100.
-    # p['circuit.Rex_c.T_out'] = 20.
+    model.add_subsystem('circuit', Circuit())
+    p.setup()
+    p['circuit.Rex_e.T_in'] = 100.
+    p['circuit.Rex_c.T_out'] = 20.
 
     # # Simple Circuit
     # model.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1))
@@ -365,17 +365,17 @@ if __name__ == "__main__":
     # thermal_link(model,'evap','cond2')
 
     # ECC
-    model.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1))
-    model.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1))
-    model.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0))
-    thermal_link(model,'evap','cond')
-    thermal_link(model,'cond','cond2')
+    # model.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1))
+    # model.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1))
+    # model.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0))
+    # thermal_link(model,'evap','cond')
+    # thermal_link(model,'cond','cond2')
 
-    p.setup()
+    # p.setup()
 
-    p.set_val('evap.Rex.T_in', 100.)
-    p.set_val('cond.Rex.T_in', 20.)
-    p.set_val('cond2.Rex.T_in', 20.)
+    # p.set_val('evap.Rex.T_in', 100.)
+    # p.set_val('cond.Rex.T_in', 20.)
+    # p.set_val('cond2.Rex.T_in', 20.)
 
     #p.check_partials(compact_print=True)
 

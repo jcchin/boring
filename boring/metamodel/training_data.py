@@ -5,9 +5,9 @@ spacing = 1.5
 
 
 
-time_data = np.array([0., 1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16., 17., 18., 19., 20., 21., 22., 23., 24., 25., 26., 27., 28., 29., 30., 31., 32., 33., 34., 35., 36., 37., 38., 39., 40., 41., 42., 43., 44., 45., 46., 47., 48., 49., 50., 51., 52., 53., 54., 55., 56., 57., 58., 59., 60])
-ratio_data = np.array([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0])
-spacing_data = np.array([1.0, 1.1, 1.2, 1.3, 1.4, 1.5])
+time_data = np.linspace(0,60,61)  # start, stop, # of elements
+ratio_data = np.linspace(0.5,2.0,7)
+spacing_data = np.linspace(1.,1.5,6) 
 
 p_data = np.array([
 
@@ -72,13 +72,19 @@ p_data = np.array([
     ]
     ])
 
+# print("time",time_data.shape)
+# print("ratio",ratio_data.shape)
+# print("spacing", spacing_data.shape)
+# print(p_data.shape)
+
+# quit()
 
 
 temp_interp = om.MetaModelStructuredComp(method='scipy_cubic')
 
+temp_interp.add_input('spacing_data', val=1, training_data=spacing_data, units='mm')
 temp_interp.add_input('ratio_data', val=1, training_data=ratio_data)
 temp_interp.add_input('time_data', val=1, training_data= time_data, units='s')
-temp_interp.add_input('spacing_data', val=1, training_data=spacing_data, units='mm')
 
 temp_interp.add_output('t_data', 300, training_data=p_data)
 
@@ -88,8 +94,8 @@ model.add_subsystem('temp', temp_interp, promotes=['*'])
 prob = om.Problem(model)
 prob.setup()
 
-prob.set_val('ratio_data', 2)        
-prob.set_val('time_data', 0)        
+prob.set_val('ratio_data', 2.)        
+prob.set_val('time_data', 60)        
 prob.set_val('spacing_data', 1)    
 
 prob.run_model()

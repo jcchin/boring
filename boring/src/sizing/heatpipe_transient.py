@@ -65,7 +65,7 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     p['traj.phase.t_duration'] = 195.
     p['traj.phase.states:T_cond'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
     p['traj.phase.states:T_cond2'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
-    p['traj.phase.parameters:T_evap'] = 373
+    p['traj.phase.parameters:T_evap'] = 373 # make a control, add profile (akima spline)
     #
 
     p.run_model()
