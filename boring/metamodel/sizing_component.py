@@ -52,7 +52,11 @@ class MetaPackSizeComp(om.ExplicitComponent):
         '''
         area = (square with sides equal to the diameter + the extra) - (cell cutouts) - (air cutouts)
         '''
-        outputs['solid_area'] = ( (2*cell_rad + 2*extra)**2) * n**2 
+        diagonal = (n*cell_d)+((n)*(cell_d/ratio))*extra    ## From Jeff
+        side = diagonal/(2^0.5)                             ## From Jeff
+        solid_area = side^2                                 ## From Jeff
+
+        outputs['solid_area'] = ( (2*cell_rad + 2*extra)**2) **2 
         outputs['cell_cutout_area'] = (pi*cell_rad**2)*n**2
         outputs['air_cutout_area'] = (pi*(cell_rad*ratio)**2)*n**2
         outputs['area'] = outputs['solid_area'] - outputs['cell_cutout_area'] - outputs['air_cutout_area']
