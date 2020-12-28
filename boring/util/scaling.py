@@ -29,13 +29,18 @@ x = np.arange(0., 600, 5)
 y1 = x / ((0.00226) * x + 1.)
 y2 = 0.6666667 * x
 
-SMALL_SIZE = 12
-MEDIUM_SIZE = 20
-BIGGER_SIZE = 28
 
 plt.plot(x, y1, 'b-', label='thermal based scaling')
 plt.plot(x, y2, 'g--', label='naive weight scaling')
+plt.plot(225, 149, 'ro', label='X-57 (empirical data)')
+plt.plot(259, 150, 'r*', label='ER HK-36') #NCR18650GA, 2520
+#plt.plot(135, 'r^', label='Alpha Electro')
+
 plt.fill_between(x, y1, y2, where=(y1 < y2), color='C0', alpha=0.3)  # shade region between
+
+SMALL_SIZE = 12
+MEDIUM_SIZE = 20
+BIGGER_SIZE = 28
 plt.annotate("",
              xy=(600, 250), xycoords='data',
              xytext=(600, 400), textcoords='data',

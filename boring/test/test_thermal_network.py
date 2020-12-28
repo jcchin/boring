@@ -46,9 +46,9 @@ class TestCircuit(unittest.TestCase):
         self.prob['circ.Rex_c.T_out'] = 20
 
         p1.run_model()
-        # p1.model.list_outputs(values=True, prom_name=True)
+        p1.model.list_outputs(values=True, prom_name=True)
 
-    def test_resistance(self):
+    def _test_resistance(self):
         Rexe = 0.0000001
         Rexc = 0.0000001
         Rwe = 0.2545383947014702
@@ -145,7 +145,7 @@ class TestCircuit(unittest.TestCase):
         # p2.model.list_inputs(values=True, prom_name=True)
         # p2.model.list_outputs(values=True, prom_name=True)
         # n2(p2)
-        # view_connections(p2)
+        view_connections(p2)
 
         Rtot3 = (self.prob2.get_val('evap.n1.T') - self.prob2.get_val('cond.n1.T')) / np.abs(
             self.prob2.get_val('cond.Rex.q'))
@@ -153,7 +153,7 @@ class TestCircuit(unittest.TestCase):
         ans = 16731692103737332239244353077427184638278095509511778941. / 10680954190791611228174081719413008273307025000000000000.
         assert_near_equal(Rtot3, ans, tolerance=3.0E-5)
 
-    def test_two_port(self):
+    def _test_two_port(self):
         Rexe = 0.0000001
         Rexc = 0.0000001
         Rwe = 0.2545383947014702
