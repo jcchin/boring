@@ -147,7 +147,7 @@ class TestCircuit(unittest.TestCase):
         # p2.model.list_inputs(values=True, prom_name=True)
         # p2.model.list_outputs(values=True, prom_name=True)
         # n2(p2)
-        view_connections(p2)
+        # view_connections(p2)
 
         Rtot3 = (self.prob2.get_val('evap.n1.T') - self.prob2.get_val('cond.n1.T')) / np.abs(
             self.prob2.get_val('cond.Rex.q'))
