@@ -1,7 +1,13 @@
+""""
+Top level group for the pack meta model
+
+Author: Dustin Hall
+"""
+
 import openmdao.api as om
 
 from boring.metamodel.sizing_component import MetaPackSizeComp
-# from boring.metamodel.training_data_if import MetaTempComp
+from boring.metamodel.training_data import MetaTempGroup
 
 
 
@@ -17,10 +23,10 @@ class MetaCaseGroup(om.Group):
                            promotes_inputs=['cell_rad','extra', 'ratio', 'length','al_density','n'],
                            promotes_outputs=['solid_area', 'cell_cutout_area', 'air_cutout_area', 'area', 'volume', 'mass'])
 
-        # self.add_subsystem(name='t_neighbor',
-        #                    subsys=MetaTempComp(num_nodes=nn, extra=1.0),
-        #                    promotes_inputs=['ratio', 'time'],
-        #                    promotes_outputs=['t_data'])
+        self.add_subsystem(name='temp',
+                           subsys=MetaTempGroup(num_nodes=nn),
+                           promotes_inputs=['ratio', 'time', 'extra'],
+                           promotes_outputs=['temp_data'])
 
 
 if __name__ == "__main__":
@@ -35,22 +41,26 @@ if __name__ == "__main__":
 
     p.setup()
 
+
     p.set_val('cell_rad', 9, units='mm')
-    p.set_val('extra', 1, units='mm')
-    p.set_val('ratio', 0.5)
+    p.set_val('extra', 1.5)
+    p.set_val('ratio', 2.0)
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
     p.set_val('n',4)
-    # p.set_val('time',0)
+    p.set_val('time',5, units='s')
 
     p.run_model()
 
     print('\n \n')
     print('-----------Area of a dollar bill is 10,338 mm**2----------------')
-    print('Solid Area. . . . . . . . . . . . . . ', p.get_val('solid_area', units='mm**2'))
-    print('Cross sectional area (voids removed). ', p.get_val('area', units='mm**2'))
-    print('Volume. . . . . . . . . . . . . . . . ', p.get_val('volume', units='mm**3'))
-    print('Mass. . . . . . . . . . . . . . . . . ', p.get_val('mass', units='kg'))    
+    print('Solid Area (mm**2). . . . . . . . . . . . . . ', p.get_val('solid_area', units='mm**2'))
+    print('Cell Cut out Area (mm**2) . . . . . . . . . . ', p.get_val('cell_cutout_area', units='mm**2'))
+    print('Air Void Cut out Area (mm**2) . . . . . . . . ', p.get_val('air_cutout_area', units='mm**2'))
+    print('Cross sectional area (voids removed) (mm**2). ', p.get_val('area', units='mm**2'))
+    print('Volume (mm**3). . . . . . . . . . . . . . . . ', p.get_val('volume', units='mm**3'))
+    print('Mass (kg). .. . . . . . . . . . . . . . . . . ', p.get_val('mass', units='kg'))  
+    print('Temperature (deg K). . . . . . . . . . . . . .', p.get_val('temp_data', units='K'))  
     # print('Cell Area . . . . . . . . . . . . . . ', p.get_val('cell_cutout_area'))
     # print('Air Area. . . . . . . . . . . . . . . ', p.get_val('air_cutout_area'))
     print('-------------------------------------------------------------')
