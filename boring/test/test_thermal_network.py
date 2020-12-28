@@ -9,6 +9,8 @@ from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 from lcapy import R, LSection, Series
 
 from boring.util.spec_test import assert_match_spec
+from boring.util.load_inputs import load_inputs
+
 from boring.src.sizing.thermal_network import Circuit, Radial_Stack, thermal_link
 
 
@@ -48,7 +50,7 @@ class TestCircuit(unittest.TestCase):
         p1.run_model()
         p1.model.list_outputs(values=True, prom_name=True)
 
-    def _test_resistance(self):
+    def test_resistance(self):
         Rexe = 0.0000001
         Rexc = 0.0000001
         Rwe = 0.2545383947014702
@@ -76,7 +78,7 @@ class TestCircuit(unittest.TestCase):
         if draw:
             Rtot.draw('Thermal_Network.pdf')
 
-    def _test_link(self):
+    def test_link(self):
         nn = 1
 
         p2 = self.prob2 = Problem(model=Group())
@@ -145,7 +147,7 @@ class TestCircuit(unittest.TestCase):
         # p2.model.list_inputs(values=True, prom_name=True)
         # p2.model.list_outputs(values=True, prom_name=True)
         # n2(p2)
-        view_connections(p2)
+        # view_connections(p2)
 
         Rtot3 = (self.prob2.get_val('evap.n1.T') - self.prob2.get_val('cond.n1.T')) / np.abs(
             self.prob2.get_val('cond.Rex.q'))

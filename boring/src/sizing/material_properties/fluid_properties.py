@@ -15,7 +15,7 @@ class FluidPropertiesComp(om.ExplicitComponent):
 
         self.add_input('Q_hp', 50 * np.ones(nn), desc='heat flux')
         self.add_input('A_cond', 0.0003769911184307752 * np.ones(nn), units='m**2', desc='Conductor Area')
-        self.add_input('h_c', 1200 * np.ones(nn), desc='external convection at the condensor')
+        self.add_input('h_c', 1200 * np.ones(nn), units='W/(m**2*K)', desc='external convection heat transfer coefficient at the condensor')
         self.add_input('T_coolant', 285 * np.ones(nn), units='K', desc='coolant temperature')
 
         self.add_output('T_hp', val=1.0 * np.ones(nn), units='degC', desc='vapor temperature')

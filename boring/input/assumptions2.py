@@ -1,5 +1,6 @@
 # Dictionary must be called 'inputs', to be used with boring.src.utils.load_inputs
 # first item is the value (which will be automatically vectorized), the second is an optionally provided unit
+# this import gets used in heatpipe_run.py
 
 
 """
