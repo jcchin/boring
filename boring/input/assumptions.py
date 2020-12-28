@@ -35,5 +35,9 @@ inputs = {
     'T_rate_cond2.mass': [.06],
     'evap.Rex.R': [0.0001],  # Thermal resistance external to heat pipe wall
     'cond.Rex.R': [0.0001],
+    'evap.h_c': [1200], #  Heat Transfer Coef
+    'cond.h_c': [1200], #  Heat Transfer Coef
+    'evap.T_coolant': [285],
+    'cond.T_coolant': [285],
 
 }

@@ -132,6 +132,11 @@ for Q_hp in range(50, 51, 1):
     plt.xlabel('Heat Load [W]')
 
 # plt.show()
+print("r_i",r_i)
+print("D_v",D_v)
+print("L_evap", L_evap)
+print("k_wk", k_wk)
+print("k_l", k_l)
 print("Rwe", R_we)
 print("Rwke", R_wke)
 print("Rintere", R_intere)
