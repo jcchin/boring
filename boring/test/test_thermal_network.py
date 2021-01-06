@@ -83,12 +83,13 @@ class TestCircuit(unittest.TestCase):
 
         p2 = self.prob2 = Problem(model=Group())
         p2.model.add_subsystem('evap', Radial_Stack(num_nodes=nn, n_in=0, n_out=1),
-                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_wk', 'k_w', 'D_v', 'L_adiabatic',
+                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic',
                                                 'alpha'])  # promote shared values (geometry, mat props)
         p2.model.add_subsystem('cond', Radial_Stack(num_nodes=nn, n_in=1, n_out=0),
-                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_wk', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
 
         thermal_link(p2.model, 'evap', 'cond', num_nodes=nn)
+        p2.model.connect('evap_bridge.k_wk', ['evap.k_wk', 'cond.k_wk'])
 
         p2.model.set_input_defaults('k_w', 11.4)
 

@@ -21,7 +21,7 @@ class TestHPtransient(unittest.TestCase):
         Tf = p.get_val('traj.phase.timeseries.states:T_cond')[-1]
         assert_near_equal(Tf, 300., tolerance=1.E-5)
 
-    def _test_hp_transient(self):
+    def test_hp_transient(self):
         p = hp_transient(show_plots=False, Tf_final=300)
         self.run_asserts(p)
 

@@ -126,9 +126,9 @@ class heatPipeMass(om.ExplicitComponent):
         self.add_input('liq_density', val=1000*np.ones(nn), desc='density of the heat pipe liquid', units='kg/m**3')
         self.add_input('fill_liq', val=0.85*np.ones(nn), desc='fill factor for liquid inside heat pipe')
 
-        self.add_output('mass_heatpipe', desc='mass of the heat pipe', units='kg')
-        self.add_output('mass_wick', desc='mass of the heat pipe', units='kg')
-        self.add_output('mass_liquid', desc='mass of the heat pipe', units='kg')
+        self.add_output('mass_heatpipe', val=1.0 * np.ones(nn), desc='mass of the heat pipe', units='kg')
+        self.add_output('mass_wick', val=1.0 * np.ones(nn), desc='mass of the heat pipe', units='kg')
+        self.add_output('mass_liquid', val=1.0 * np.ones(nn), desc='mass of the heat pipe', units='kg')
 
     def compute(self, i, o):
         L_heatpipe = i['L_heatpipe']

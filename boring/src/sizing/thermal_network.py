@@ -178,7 +178,7 @@ class Bridge(om.Group):
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
                            promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_eff', 'A_w', 'A_wk'],
-                           promotes_outputs=['k_wk'])
+                           promotes_outputs=['k_wk'])  
 
         self.add_subsystem(name='vapor',
                            subsys=VaporThermalResistance(num_nodes=nn),
@@ -208,8 +208,8 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1):
     #                     promotes_outputs=['L_eff'])
 
     model.add_subsystem(b_name, Bridge(num_nodes=nn),
-                        promotes_inputs=['D_v','L_eff','k_w','epsilon'],
-                        promotes_outputs=['k_wk'])
+                        promotes_inputs=['D_v','L_eff','k_w','epsilon'])#,
+                        #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
     
     model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
     # Link Geometry

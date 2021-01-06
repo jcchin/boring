@@ -14,7 +14,7 @@ import openmdao.api as om
 import numpy as np
 
 from boring.src.sizing.thermal_network import Radial_Stack, thermal_link, TempRateComp
-# from boring.src.sizing.mass.mass import heatPipeMass
+from boring.src.sizing.mass.mass import heatPipeMass
 
 from boring.util.load_inputs import load_inputs
 
@@ -34,19 +34,19 @@ class HeatPipeRun(om.Group):
         self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0, num_nodes=nn, pcm_bool=True),
                            promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
 
-        # self.add_subsystem(name='T_rate_cond',
-        #                    subsys=TempRateComp(num_nodes=nn))
+        self.add_subsystem(name='T_rate_cond',
+                           subsys=TempRateComp(num_nodes=nn))
 
-        # self.add_subsystem(name='T_rate_cond2',
-        #                    subsys=TempRateComp(num_nodes=nn))
+        self.add_subsystem(name='T_rate_cond2',
+                           subsys=TempRateComp(num_nodes=nn))
 
-        # self.connect('cond.Rex.q', 'T_rate_cond.q')
-        # self.connect('cond2.Rex.q', 'T_rate_cond2.q')
+        self.connect('cond.Rex.q', 'T_rate_cond.q')
+        self.connect('cond2.Rex.q', 'T_rate_cond2.q')
 
-        # self.add_subsystem(name='hp_mass',
-        #                    subsys=heatPipeMass(num_nodes=nn),
-        #                    promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
-        #                    promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
+        self.add_subsystem(name='hp_mass',
+                           subsys=heatPipeMass(num_nodes=nn),
+                           promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
+                           promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
         thermal_link(self, 'evap', 'cond', num_nodes=nn)
         thermal_link(self, 'cond', 'cond2', num_nodes=nn)
