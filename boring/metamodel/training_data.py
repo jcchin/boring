@@ -70,13 +70,6 @@ t_data = np.array([
     ]
     ])
 
-# print("time",time_data.shape)
-# print("ratio",ratio_data.shape)
-# print("extra", extra_data.shape)
-# print(p_data.shape)
-
-# quit()
-
 
 class MetaTempGroup(om.Group):
     def initialize(self):
@@ -84,10 +77,6 @@ class MetaTempGroup(om.Group):
 
     def setup(self):
         nn = self.options['num_nodes']
-
-        # self.add_input('ratio', 1, desc='')
-        # self.add_input('time', 1, units='s', desc='time stamp of temperature data')
-        # self.add_input('extra', 1, desc='additional case material')
 
         temp_interp = om.MetaModelStructuredComp(method='scipy_cubic')
 
@@ -98,36 +87,9 @@ class MetaTempGroup(om.Group):
         temp_interp.add_input('extra', val=1, training_data=extra_data, units='mm')
         temp_interp.add_input('ratio', val=1, training_data=ratio_data)
         temp_interp.add_input('time', val=1, training_data= time_data, units='s')
-        temp_interp.add_output('temp_data', 300, training_data=t_data, units='K')
+
+        temp_interp.add_output('temp_data', val=300*np.ones(nn), training_data=t_data, units='C')
 
         self.add_subsystem('meta_temp_data', temp_interp,
-            promotes=['*'])
-
-
-
-
-
-# temp_interp = om.MetaModelStructuredComp(method='scipy_cubic')
-
-# temp_interp.add_input('extra_data', val=1, training_data=extra_data, units='mm')
-# temp_interp.add_input('ratio_data', val=1, training_data=ratio_data)
-# temp_interp.add_input('time_data', val=1, training_data= time_data, units='s')
-
-# temp_interp.add_output('t_data', 300, training_data=p_data)
-
-
-# model = om.Group()
-# model.add_subsystem('temp', temp_interp, promotes=['*'])
-# prob = om.Problem(model)
-# prob.setup()
-
-# prob.set_val('ratio_data', 2.)        
-# prob.set_val('time_data', 60)        
-# prob.set_val('extra_data', 1)    
-
-# prob.run_model()
-
-# computed = prob.get_val('t_data')
-# actual = 293.15                      
-
-# print(computed)
+            promotes_inputs=['extra', 'ratio', 'time'],
+            promotes_outputs=['temp_data'])
