@@ -22,8 +22,8 @@ class MetaPackSizeComp(om.ExplicitComponent):
         self.add_input('extra',  1, units='mm', desc='extra spacing along the diagonal')
         self.add_input('ratio', 1., desc='cell radius to cutout radius')
         self.add_input('length', 65, units='mm', desc='length of the case')
-        self.add_input('al_density', 2700, units='kg/m**3', desc='density of aluminum')
-        self.add_input('n', 4 ,  desc='cell array deminsion')
+        self.add_input('al_density', 2.7e-6, units='kg/mm**3', desc='density of aluminum')
+        self.add_input('n', 4,  desc='cell array deminsion')
 
         self.add_output('diagonal', 100, units='mm', desc='diagonal length of the square case')
         self.add_output('side', 100, units='mm', desc='side length of the case')

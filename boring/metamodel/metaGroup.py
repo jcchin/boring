@@ -25,7 +25,7 @@ class MetaCaseGroup(om.Group):
 
         self.add_subsystem(name='temp',
                            subsys=MetaTempGroup(num_nodes=nn),
-                           promotes_inputs=['ratio', 'time', 'extra'],
+                           promotes_inputs=['ratio','extra'],
                            promotes_outputs=['temp_data'])
 
 
@@ -43,12 +43,11 @@ if __name__ == "__main__":
 
 
     p.set_val('cell_rad', 9, units='mm')
-    p.set_val('extra', 1.5)
+    p.set_val('extra', 1.0)
     p.set_val('ratio', 2.0)
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
     p.set_val('n',4)
-    p.set_val('time',5, units='s')
 
     p.run_model()
 
@@ -60,7 +59,7 @@ if __name__ == "__main__":
     print('Cross sectional area (voids removed) (mm**2). ', p.get_val('area', units='mm**2'))
     print('Volume (mm**3). . . . . . . . . . . . . . . . ', p.get_val('volume', units='mm**3'))
     print('Mass (kg). .. . . . . . . . . . . . . . . . . ', p.get_val('mass', units='kg'))  
-    print('Temperature (deg K). . . . . . . . . . . . . .', p.get_val('temp_data', units='K'))  
+    print('Temperature (deg C). . . . . . . . . . . . . .', p.get_val('temp_data', units='C'))  
     # print('Cell Area . . . . . . . . . . . . . . ', p.get_val('cell_cutout_area'))
     # print('Air Area. . . . . . . . . . . . . . . ', p.get_val('air_cutout_area'))
     print('-------------------------------------------------------------')
