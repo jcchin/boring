@@ -18,7 +18,7 @@ class MetaOptimize(om.Group):
 
         self.add_subsystem(name='meta_model_group',
                            subsys = MetaCaseGroup(num_nodes=nn),
-                           promotes_inputs=[ 'time', 'cell_rad', 'extra', 'ratio', 'length','al_density','n'],
+                           promotes_inputs=[ 'cell_rad', 'extra', 'ratio', 'length','al_density','n'],
                            promotes_outputs=['solid_area', 'cell_cutout_area', 'air_cutout_area', 'area', 'volume', 'mass', 'temp_data'])
 
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     p.model.add_design_var('extra', lower=1, upper=1.5)
     p.model.add_design_var('ratio', lower=0.5, upper=2)
-    # p.model.add_design_var('time', lower=0, upper=60)
+
 
     p.model.add_objective('mass', ref=1)
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     p.model.add_constraint('al_density', lower=2.7e-6)
     p.model.add_constraint('n', lower=4)
     p.model.add_constraint('cell_rad', lower=9)
-    p.model.add_constraint('temp_data', lower=500, upper=550)
+    p.model.add_constraint('temp_data', lower=300, upper=550)
     # p.model.add_constraint('solid_area', lower=6000)
 
 
@@ -60,12 +60,11 @@ if __name__ == "__main__":
 
     print('\n \n')
     print('-------------------------------------------------------')
-    print('Time . . . . . . . . . . . . . . . .', p.get_val('time', units='s'))
     print('Temperature (deg C). . . . . . . . .', p.get_val('temp_data', units='C'))  
     print('Mass (kg). . . . . . . . . . . . . .', p.get_val('mass', units='kg'))  
-    print('Solid Area, no cutouts (mm**2). . . ', p.get_val('solid_area', units='mm**2'))
-    print('Area, with cutouts (mm**2). . . . . ', p.get_val('area', units='mm**2'))
-    print('Volume (mm**3). . . . . . . . . . . ', p.get_val('volume', units='mm**3'))
+    print('Total X-Sectional Area (mm**2). . . ', p.get_val('solid_area', units='mm**2'))
+    print('Area, with holes (mm**2). . . . . . ', p.get_val('area', units='mm**2'))
+    print('Material Volume (mm**3). . . . . . .', p.get_val('volume', units='mm**3'))
     print('extra. . . . . . . . . . . . . . . .', p.get_val('extra'))
     print('ratio. . . . . . . . . . . . . . . .', p.get_val('ratio'))
     print('-------------------------------------------------------')
