@@ -26,6 +26,7 @@ class MetaCaseGroup(om.Group):
         self.add_subsystem(name='temp',
                            subsys=MetaTempGroup(num_nodes=nn),
                            promotes_inputs=['ratio', 'time', 'extra'],
+                           # promotes_inputs=['ratio', 'extra'],
                            promotes_outputs=['temp_data'])
 
 
@@ -43,12 +44,12 @@ if __name__ == "__main__":
 
 
     p.set_val('cell_rad', 9, units='mm')
-    p.set_val('extra', 1.5)
+    p.set_val('extra', 1.0)
     p.set_val('ratio', 2.0)
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
     p.set_val('n',4)
-    p.set_val('time',5, units='s')
+    p.set_val('time',0, units='s')
 
     p.run_model()
 

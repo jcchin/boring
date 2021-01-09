@@ -40,9 +40,9 @@ if __name__ == "__main__":
 
     p.model.add_design_var('extra', lower=1, upper=1.5)
     p.model.add_design_var('ratio', lower=0.5, upper=2)
-    p.model.add_design_var('time', lower=0, upper=60)
+    # p.model.add_design_var('time', lower=0, upper=60)
 
-    p.model.add_objective('solid_area', ref=1)
+    p.model.add_objective('mass', ref=1)
 
     p.model.add_constraint('length', lower=65.0)
     p.model.add_constraint('al_density', lower=2.7e-6)
