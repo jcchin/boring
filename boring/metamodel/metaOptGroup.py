@@ -41,18 +41,20 @@ if __name__ == "__main__":
     p.model.add_design_var('extra', lower=1, upper=1.5)
     p.model.add_design_var('ratio', lower=0.5, upper=2)
 
-
     p.model.add_objective('mass', ref=1)
 
-    p.model.add_constraint('length', lower=65.0)
-    p.model.add_constraint('al_density', lower=2.7e-6)
-    p.model.add_constraint('n', lower=4)
-    p.model.add_constraint('cell_rad', lower=9)
-    p.model.add_constraint('temp_data', lower=300, upper=550)
+    p.model.add_constraint('temp_data', upper=550)
     # p.model.add_constraint('solid_area', lower=6000)
 
 
     p.setup()
+
+    p.set_val('cell_rad', 9, units='mm')
+    # p.set_val('extra', 1.5)
+    # p.set_val('ratio', 1.0)
+    p.set_val('length', 65.0, units='mm')
+    p.set_val('al_density', 2.7e-6, units='kg/mm**3')
+    p.set_val('n',4)
 
     p.run_driver()
 
