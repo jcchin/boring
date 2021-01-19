@@ -30,8 +30,11 @@ class HeatPipeRun(om.Group):
         n = self.options['num_cells']
         pcm_bool = self.options['pcm_bool']
 
+        n_in = np.append(np.ones(n-1),append(0))
+        print(n_in)
         # TODO: make this smaller (arrays)
         for i in np.arange(n):
+
             print(i)
             if i == 0:
                 n_in = 0
@@ -45,7 +48,7 @@ class HeatPipeRun(om.Group):
                 n_in = 1
                 n_out = 1
 
-            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=n_in, n_out=n_out, num_nodes=nn, pcm_bool=pcm_bool),
+            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=n_i(i), n_out=n_out, num_nodes=nn, pcm_bool=pcm_bool),
                                                     promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
 
 
