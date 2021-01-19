@@ -22,36 +22,63 @@ from boring.util.load_inputs import load_inputs
 class HeatPipeRun(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('num_cells', types=int)
+        self.options.declare('pcm_bool', types=bool)
 
     def setup(self):
         nn = self.options['num_nodes']
+        n = self.options['num_cells']
+        pcm_bool = self.options['pcm_bool']
 
-        self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn, pcm_bool=True),
-                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic',
-                                            'alpha'])  # promote shared values (geometry, mat props)
-        self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1, num_nodes=nn, pcm_bool=True),
-                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
-        self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0, num_nodes=nn, pcm_bool=True),
-                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+        # TODO: make this smaller (arrays)
+        for i in np.arange(n):
+            print(i)
+            if i == 0:
+                n_in = 0
+                n_out = 1
 
-        self.add_subsystem(name='T_rate_cond',
-                           subsys=TempRateComp(num_nodes=nn))
+            elif i == n:
+                n_out = 0
+                n_in = 1
 
-        self.add_subsystem(name='T_rate_cond2',
-                           subsys=TempRateComp(num_nodes=nn))
+            else: 
+                n_in = 1
+                n_out = 1
 
-        self.connect('cond.Rex.q', 'T_rate_cond.q')
-        self.connect('cond2.Rex.q', 'T_rate_cond2.q')
+            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=n_in, n_out=n_out, num_nodes=nn, pcm_bool=pcm_bool),
+                                                    promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+
+
+        # self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn, pcm_bool=True),
+        #                    promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic',
+        #                                     'alpha'])  # promote shared values (geometry, mat props)
+        # self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1, num_nodes=nn, pcm_bool=True),
+        #                    promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+        # self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0, num_nodes=nn, pcm_bool=True),
+        #                    promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+
+            self.add_subsystem(name='T_rate_cell_{}'.format(i),
+                               subsys=TempRateComp(num_nodes=nn))
+
+            self.connect('cell_{}.Rex.q'.format(i), 'T_rate_cell_{}.q'.format(i))
+
+        # for 
+        # self.connect('cond.Rex.q', 'T_rate_cond.q')
+        # self.connect('cond2.Rex.q', 'T_rate_cond2.q')
 
         self.add_subsystem(name='hp_mass',
                            subsys=heatPipeMass(num_nodes=nn),
                            promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
                            promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
-        thermal_link(self, 'evap', 'cond', num_nodes=nn)
-        thermal_link(self, 'cond', 'cond2', num_nodes=nn)
-        self.connect('evap_bridge.k_wk', ['evap.k_wk', 'cond.k_wk', 'cond2.k_wk'])
+        for j in range(n-1):
+            thermal_link(self, 'cell_{}'.format(j), 'cell_{}'.format(j+1))
+            self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(j))
+        # thermal_link(self, 'evap', 'cond', num_nodes=nn)
+        # thermal_link(self, 'cond', 'cond2', num_nodes=nn)
+        # self.connect('evap_bridge.k_wk', ['evap.k_wk', 'cond.k_wk', 'cond2.k_wk'])
 
+        self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(n-1))
         load_inputs('boring.input.assumptions2', self, nn)
 
 
@@ -60,16 +87,16 @@ if __name__ == "__main__":
     nn = 1
 
     p.model.add_subsystem(name='hp',
-                          subsys=HeatPipeRun(num_nodes=nn),
+                          subsys=HeatPipeRun(num_nodes=nn, num_cells=3, pcm_bool=True),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
 
     p.setup(force_alloc_complex=True)
 
     p['L_eff'] = (0.02 + 0.1) / 2. + 0.03
-    p['evap.Rex.T_in'] = 100
-    p['cond.Rex.T_in'] = 20
-    p['cond2.Rex.T_in'] = 20
+    p['cell_0.Rex.T_in'] = 100
+    p['cell_1.Rex.T_in'] = 20
+    p['cell_2.Rex.T_in'] = 20
 
     # p.set_val('L_evap',0.01)
     # p.set_val('L_cond',0.02)
