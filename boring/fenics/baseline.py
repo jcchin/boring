@@ -53,6 +53,8 @@ mesh = generate_mesh(domain, mresolution)
 
 markers = MeshFunction('size_t', mesh, 2, mesh.domains())  # size_t = non-negative integers
 dx = Measure('dx', domain=mesh, subdomain_data=markers)
+boundaries = MeshFunction('size_t', mesh, 1, mesh.domains())
+
 
 plot(markers,"Subdomains")
 
@@ -81,9 +83,9 @@ class Conductivity(UserExpression):
         self.markers = markers
     def eval_cell(self, values, x, cell):
         if self.markers[cell.index] == 0:
-            values[0] = 0.5 # copper
+            values[0] = 11.4 # copper
         else:
-            values[0] = 3      # aluminum
+            values[0] = 1      # aluminum
 
 
   
@@ -106,11 +108,29 @@ t, T = 0., 5.; # Start and end time
 # Exact solution
 kappa = 1e-1
 rho = 1.0;
-# Boundary Condition
-ue = Expression("rho*exp(-(x[0]*x[0]+x[1]*x[1]))", rho=rho,a=kappa, t=0, domain=mesh, degree=degree+1)  #rho*exp(-(x[0]*x[0]+x[1]*x[1])/(4*a*t))/(4*pi*a*t)
+
+# Boundray Conditions (Ezra)
+tol = 1E-14
+for f in facets(mesh):
+    domains = []
+    for c in cells(f):
+        domains.append(markers[c])
+
+    domains = list(set(domains))
+    # Domains with [0,i] refer to each boundary within the "copper" plate
+    # Domains 1-9 refer to the domains of the batteries
+    if domains == [1]:
+        boundaries[f] = 2
+
+u1= Constant(298.0)
+ue = Constant(325.0)
 ue.t = k/10.;
-u0 = ue;
-#k_coeff = 3;
+u0 = u1;
+
+Q = Constant(71000)
+L_N = Q*v*dx(2)
+
+bc_D = DirichletBC(V, ue, boundaries, 2)
 
 # Inititalize time stepping
 pl, ax = None, None; 
@@ -126,14 +146,21 @@ while t < T:
     r = (u - u0)/k*v*dx + k_coeff*inner(grad(um), grad(v))*dx 
     
     # Solve the Heat equation (one timestep)
-    solve(r==0, u)  
+    solve(r==0, u, bc_D)  
     
     # Plot all quantities (see implementation above)
     #plt.clf()
     pl, ax=plot_compact(u, t, stepcounter, V, pl, ax)
     #ani = FuncAnimation(plt.figure(), plot_compact, blit=True)
-    plt.show()
+    #plt.show()
     # Shift to next timestep
     t += k; u0 = project(u, V); 
     ue.t = t;
     stepcounter += 1 
+
+
+W = VectorFunctionSpace(mesh, 'P', degree)
+flux_u = project(-k_coeff*grad(u),W)
+plot(flux_u, title='Flux Field')
+plt.show()
+print(flux_u.vector().max())
