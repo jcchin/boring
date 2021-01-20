@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     p.model.add_objective('mass', ref=1)
 
-    p.model.add_constraint('temp_data', upper=550)
+    p.model.add_constraint('temp_data', upper=450)
     # p.model.add_constraint('solid_area', lower=6000)
 
 
