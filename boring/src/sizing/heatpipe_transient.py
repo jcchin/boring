@@ -10,7 +10,7 @@ import openmdao.api as om
 import numpy as np
 import dymos as dm
 
-from boring.src.sizing.heatpipe_run import HeatPipeRun  # import the ODE
+from boring.src.sizing.heatpipe_run import HeatPipeGroup  # import the ODE
 from boring.util.save_csv import save_csv
 
 from boring.util.load_inputs import load_inputs
@@ -19,7 +19,8 @@ from boring.util.load_inputs import load_inputs
 def hp_transient(transcription='gauss-lobatto', num_segments=5,
                  transcription_order=3, compressed=False, optimizer='SLSQP',
                  run_driver=True, force_alloc_complex=True, solve_segments=False,
-                 show_plots=False, save=True, Tf_final=370):
+                 show_plots=False, save=True, Tf_final=370, num_cells=3):
+
     p = om.Problem(model=om.Group())
     model = p.model
     nn = 1
@@ -31,41 +32,40 @@ def hp_transient(transcription='gauss-lobatto', num_segments=5,
     traj = p.model.add_subsystem('traj', dm.Trajectory())
 
     phase = traj.add_phase('phase',
-                           dm.Phase(ode_class=HeatPipeRun,
+                           dm.Phase(ode_class=HeatPipeGroup,
                                     transcription=dm.GaussLobatto(num_segments=num_segments, order=transcription_order,
                                                                   compressed=compressed)))
 
     phase.set_time_options(fix_initial=True, fix_duration=False, duration_bounds=(1., 3200.))
 
-    phase.add_state('T_cond', rate_source='cond.Tdot', targets='cond.Rex.T_in', units='K',
-                    # ref=333.15, defect_ref=333.15,
-                    fix_initial=True, fix_final=False, solve_segments=solve_segments)
-    phase.add_state('T_cond2', rate_source='cond2.Tdot', targets='cond2.Rex.T_in', units='K',
-                    # ref=333.15, defect_ref=333.15,
-                    fix_initial=True, fix_final=False, solve_segments=solve_segments)
+    for i in np.arange(num_cells):
 
-    phase.add_parameter('T_evap', targets='evap.Rex.T_in', units='K',
-                        dynamic=True, opt=False)
+        phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_cell_{}.Tdot'.format(i), targets='cell_{}.Rex.T_in'.format(i), units='K',
+                        # ref=333.15, defect_ref=333.15,
+                        fix_initial=True, fix_final=False, solve_segments=solve_segments)
 
-    phase.add_boundary_constraint('T_cond', loc='final', equals=Tf_final)
+    # phase.add_parameter('T_evap', targets='evap.Rex.T_in', units='K',
+    #                     dynamic=True, opt=False)
+
+    phase.add_boundary_constraint('T_cell_1', loc='final', equals=Tf_final)
 
     phase.add_objective('time', loc='final', ref=1)
 
-    phase.add_timeseries_output('evap_bridge.Rv.q', output_name='eRvq', units='W')
-    phase.add_timeseries_output('evap_bridge.Rwa.q', output_name='eRwaq', units='W')
-    phase.add_timeseries_output('evap_bridge.Rwka.q', output_name='eRwkq', units='W')
-    phase.add_timeseries_output('cond_bridge.Rv.q', output_name='cRvq', units='W')
-    phase.add_timeseries_output('cond_bridge.Rwa.q', output_name='cRwaq', units='W')
-    phase.add_timeseries_output('cond_bridge.Rwka.q', output_name='cRwkq', units='W')
+    # phase.add_timeseries_output('evap_bridge.Rv.q', output_name='eRvq', units='W')
+    # phase.add_timeseries_output('evap_bridge.Rwa.q', output_name='eRwaq', units='W')
+    # phase.add_timeseries_output('evap_bridge.Rwka.q', output_name='eRwkq', units='W')
+    # phase.add_timeseries_output('cond_bridge.Rv.q', output_name='cRvq', units='W')
+    # phase.add_timeseries_output('cond_bridge.Rwa.q', output_name='cRwaq', units='W')
+    # phase.add_timeseries_output('cond_bridge.Rwka.q', output_name='cRwkq', units='W')
 
     p.model.linear_solver = om.DirectSolver()
     p.setup(force_alloc_complex=force_alloc_complex)
 
     p['traj.phase.t_initial'] = 0.0
     p['traj.phase.t_duration'] = 195.
-    p['traj.phase.states:T_cond'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
-    p['traj.phase.states:T_cond2'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
-    p['traj.phase.parameters:T_evap'] = 373
+    p['traj.phase.states:T_cell_1'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
+    p['traj.phase.states:T_cell_2'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
+    p['traj.phase.states:T_cell_0'] = phase.interpolate(ys=[393, 393], nodes='state_input')
     #
 
     p.run_model()
