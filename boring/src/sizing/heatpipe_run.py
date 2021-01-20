@@ -63,7 +63,7 @@ class HeatPipeGroup(om.Group):
 
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
-    nn = 1
+    nn = 10
 
     num_cells_tot = 15
     cell_therm_run = 5
