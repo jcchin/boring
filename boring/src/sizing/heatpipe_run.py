@@ -33,8 +33,6 @@ class HeatPipeGroup(om.Group):
         n_out = np.append(np.ones(n-1),0)
         n_in = np.append(0, np.ones(n-1))
 
-        print(n_out)
-
         for i in np.arange(n):
 
             self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool),
@@ -60,21 +58,11 @@ class HeatPipeGroup(om.Group):
 
         load_inputs('boring.input.assumptions2', self, nn)
 
-        self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
-        self.nonlinear_solver.options['iprint'] = 2
-        self.nonlinear_solver.options['maxiter'] = 20
-        self.linear_solver = om.DirectSolver()
-        self.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
-        self.nonlinear_solver.linesearch.options['maxiter'] = 10
-        self.nonlinear_solver.linesearch.options['iprint'] = 2
-
-
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
-    nn = 10
+    nn = 1
 
-    num_cells_tot = 5
-    cell_therm_run = 1
+    num_cells_tot = 15
 
     p.model.add_subsystem(name='hp',
                           subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False),
@@ -86,28 +74,15 @@ if __name__ == "__main__":
     p['L_eff'] = (0.02 + 0.1) / 2. + 0.03
 
     T_in = 20 * np.ones(num_cells_tot)
-    T_in[cell_therm_run] = 100
+    T_in[1] = 100
 
     for x in np.arange(num_cells_tot):
         p['cell_{}.Rex.T_in'.format(x)] = T_in[x]
         p['cell_{}.L_flux'.format(x)] = 0.02
         p['cell_{}.Rex.R'.format(x)] = [0.0001],
 
-    # p.set_val('L_adiabatic',0.03)
-    # p.set_val('t_w',0.0005)
-    # p.set_val('t_wk',0.00069)
-    # p.set_val('D_od', 0.006)
-    # p.set_val('D_v',0.00362)
-    # p.set_val('Q_hp',1)
-    # p.set_val('h_c',1200)
-    # p.set_val('T_coolant',293)
-
-    p.check_partials(compact_print=True)
-
-    quit()
-
     p.run_model()
-    # om.n2(p)
+
     # om.view_connections(p)
     p.model.list_inputs(values=True, prom_name=True)
     p.model.list_outputs(values=True, prom_name=True)

@@ -1,8 +1,6 @@
 """
 Construct thermal network, then solve for flux and equivalent resistance
-
 Assume all flux connection directions are pointed down and right
-
 Author: Jeff Chin
 """
 
@@ -27,7 +25,7 @@ class Resistor(om.ExplicitComponent):
         nn=self.options['num_nodes']
         self.add_input('T_in', val=np.ones(nn), units='K')
         self.add_input('T_out', val=np.ones(nn), units='K')
-        self.add_input('R', val=.0001*np.ones(nn), units='K/W')
+        self.add_input('R', val=10*np.ones(nn), units='K/W')
         self.add_output('q', val=np.ones(nn), units='W')
 
     def setup_partials(self):
@@ -252,9 +250,9 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1):
     model.nonlinear_solver.options['iprint'] = 2
     model.nonlinear_solver.options['maxiter'] = 20
     model.linear_solver = om.DirectSolver()
-    model.nonlinear_solver.linesearch = om.BoundsEnforceLS()
-    model.nonlinear_solver.options['solve_subsystems'] = True
-    model.nonlinear_solver.options['err_on_non_converge'] = True
+    model.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
+    model.nonlinear_solver.linesearch.options['maxiter'] = 10
+    model.nonlinear_solver.linesearch.options['iprint'] = 2
 
 
 class Circuit(om.Group):
@@ -331,13 +329,13 @@ class Circuit(om.Group):
 
 
 
-        # self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
-        # self.nonlinear_solver.options['iprint'] = 2
-        # self.nonlinear_solver.options['maxiter'] = 20
-        # self.linear_solver = om.DirectSolver()
-        # self.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
-        # self.nonlinear_solver.linesearch.options['maxiter'] = 10
-        # self.nonlinear_solver.linesearch.options['iprint'] = 2
+        self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
+        self.nonlinear_solver.options['iprint'] = 2
+        self.nonlinear_solver.options['maxiter'] = 20
+        self.linear_solver = om.DirectSolver()
+        self.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
+        self.nonlinear_solver.linesearch.options['maxiter'] = 10
+        self.nonlinear_solver.linesearch.options['iprint'] = 2
 
     
 
@@ -386,4 +384,3 @@ if __name__ == "__main__":
     p.model.list_outputs(values=True, prom_name=True)   
 
     #print(p.get_val('cond.Rex.T_in'))
-
