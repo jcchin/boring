@@ -10,109 +10,87 @@ import openmdao.api as om
 import numpy as np
 import dymos as dm
 
-from boring.src.sizing.heatpipe_run import HeatPipeRun  # import the ODE
+from boring.src.sizing.heatpipe_run import HeatPipeGroup  # import the ODE
 from boring.util.save_csv import save_csv
 
 from boring.util.load_inputs import load_inputs
 
 
-def hp_transient(transcription='gauss-lobatto', num_segments=5,
-                 transcription_order=3, compressed=False, optimizer='SLSQP',
-                 run_driver=True, force_alloc_complex=True, solve_segments=False,
-                 show_plots=False, save=True, Tf_final=370):
-    p = om.Problem(model=om.Group())
-    model = p.model
-    nn = 1
-    p.driver = om.ScipyOptimizeDriver()
-    p.driver = om.pyOptSparseDriver(optimizer=optimizer)
-
-    p.driver.declare_coloring()
-
-    traj = p.model.add_subsystem('traj', dm.Trajectory())
+def get_hp_phase(transcription='gauss-radau', num_segments=5,
+                 transcription_order=3, compressed=False,
+                 solve_segments=False, num_cells=3, db=(1, 300),
+                 pcm=False):
 
     phase = traj.add_phase('phase',
-                           dm.Phase(ode_class=HeatPipeRun,
+                           dm.Phase(ode_class=HeatPipeGroup,
+                                    ode_init_kwargs= {'num_cells': num_cells,
+                                                      'pcm_bool': pcm},
                                     transcription=dm.GaussLobatto(num_segments=num_segments, order=transcription_order,
                                                                   compressed=compressed)))
 
-    phase.set_time_options(fix_initial=True, fix_duration=False, duration_bounds=(1., 3200.))
+    phase.set_time_options(fix_initial=True, fix_duration=False, duration_bounds=db)
 
-    phase.add_state('T_cond', rate_source='T_rate_cond.Tdot', targets='cond.Rex.T_in', units='K',
-                    # ref=333.15, defect_ref=333.15,
-                    fix_initial=True, fix_final=False, solve_segments=solve_segments)
-    phase.add_state('T_cond2', rate_source='T_rate_cond2.Tdot', targets='cond2.Rex.T_in', units='K',
-                    # ref=333.15, defect_ref=333.15,
-                    fix_initial=True, fix_final=False, solve_segments=solve_segments)
+    for i in np.arange(num_cells):
 
-    phase.add_parameter('T_evap', targets='evap.Rex.T_in', units='K',
-                        dynamic=True, opt=False)
+        phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_cell_{}.Tdot'.format(i), targets='cell_{}.Rex.T_in'.format(i), units='K',
+                        lower=250, upper=400, fix_initial=True, fix_final=False, solve_segments=solve_segments)
 
-    phase.add_boundary_constraint('T_cond', loc='final', equals=Tf_final)
+        phase.add_input_parameter('cell_{}.L_flux'.format(i), val=0.02, units='m', targets='cell_{}.L_flux'.format(i), include_timeseries=False)
+        phase.add_input_parameter('cell_{}.R'.format(i), val=0.0001, units='K/W', targets='cell_{}.Rex.R'.format(i), include_timeseries=False)
 
-    phase.add_objective('time', loc='final', ref=1)
-
-    phase.add_timeseries_output('evap_bridge.Rv.q', output_name='eRvq', units='W')
-    phase.add_timeseries_output('evap_bridge.Rwa.q', output_name='eRwaq', units='W')
-    phase.add_timeseries_output('evap_bridge.Rwka.q', output_name='eRwkq', units='W')
-    phase.add_timeseries_output('cond_bridge.Rv.q', output_name='cRvq', units='W')
-    phase.add_timeseries_output('cond_bridge.Rwa.q', output_name='cRwaq', units='W')
-    phase.add_timeseries_output('cond_bridge.Rwka.q', output_name='cRwkq', units='W')
-
-    p.model.linear_solver = om.DirectSolver()
-    p.setup(force_alloc_complex=force_alloc_complex)
-
-    p['traj.phase.t_initial'] = 0.0
-    p['traj.phase.t_duration'] = 195.
-    p['traj.phase.states:T_cond'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
-    p['traj.phase.states:T_cond2'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
-    p['traj.phase.parameters:T_evap'] = 373 # make a control, add profile (akima spline)
-    #
-
-    p.run_model()
-
-    opt = p.run_driver()
-    sim = traj.simulate()
-
-    print('********************************')
-
-    save_csv(p, sim, '../../output/output.csv',
-             y_name=['parameters:T_evap', 'states:T_cond', 'states:T_cond2',
-                     'eRvq', 'eRwaq', 'eRwkq', 'cRvq', 'cRwaq', 'cRwkq'],
-             y_units=['K', 'K', 'K', 'W', 'W', 'W', 'W', 'W', 'W'])
-
-    if show_plots:
-        import matplotlib.pyplot as plt
-
-        time = sim.get_val('traj.phase.timeseries.time', units='s')
-        time_opt = p.get_val('traj.phase.timeseries.time', units='s')
-        T_cond = sim.get_val('traj.phase.timeseries.states:T_cond', units='K')
-        T_cond_opt = p.get_val('traj.phase.timeseries.states:T_cond', units='K')
-        T_cond2 = sim.get_val('traj.phase.timeseries.states:T_cond2', units='K')
-        T_cond2_opt = p.get_val('traj.phase.timeseries.states:T_cond2', units='K')
-
-        plt.plot(time_opt, T_cond_opt, 'o')
-        plt.plot(time, T_cond)
-
-        plt.plot(time_opt, T_cond2_opt, '*')
-        plt.plot(time, T_cond2)
-
-        plt.xlabel('time, s')
-        plt.ylabel('T_cond, K')
-
-        plt.show()
-
-    return p
-
+    return phase
 
 if __name__ == '__main__':
     import time
 
     start = time.time()
 
-    p = hp_transient(transcription='gauss-lobatto', num_segments=5,
-                     transcription_order=3, compressed=False, optimizer='SLSQP',
-                     run_driver=True, force_alloc_complex=True, solve_segments=False,
-                     show_plots=False, Tf_final=370)
-    end = time.time()
+    traj=dm.Trajectory()
+    p = om.Problem(model=traj)
+    p.driver = om.ScipyOptimizeDriver()
+    p.driver = om.pyOptSparseDriver(optimizer='SNOPT')
 
-    print("elapsed time:", end - start)
+    p.driver.declare_coloring()
+
+    num_cells = 6
+
+    phase = get_hp_phase(num_cells=num_cells, db=(1, 100), num_segments=5, solve_segments=False)
+
+    phase = traj.add_phase('phase', phase)
+
+    # phase.add_boundary_constraint('T_cell_0', loc='final', equals=300)
+
+    phase.add_objective('time', loc='final', ref=1)
+
+    p.model.options['assembled_jac_type'] = 'csc'
+    p.model.linear_solver = om.DirectSolver(assemble_jac=True)
+    p.setup()
+
+    p['phase.t_initial'] = 0.0
+    p['phase.t_duration'] = 100.
+
+    for cell in np.arange(num_cells):
+        p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
+
+    p['phase.states:T_cell_2'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
+
+    p.run_driver()
+
+    import matplotlib.pyplot as plt
+
+    time_opt = p.get_val('phase.timeseries.time', units='s')
+
+    for j in np.arange(num_cells):
+
+        T_cell = p.get_val('phase.timeseries.states:T_cell_{}'.format(j), units='K')
+        plt.plot(time_opt, T_cell, label='cell {}'.format(j))
+
+    plt.xlabel('time, s')
+    plt.ylabel('T_cell, K')
+    plt.legend()
+
+    plt.show()
+
+
+
+
