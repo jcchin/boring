@@ -52,7 +52,7 @@ class HeatPipeGroup(om.Group):
 
         for j in range(n-1):
 
-            thermal_link(self, 'cell_{}'.format(j), 'cell_{}'.format(j+1))
+            thermal_link(self, 'cell_{}'.format(j), 'cell_{}'.format(j+1), num_nodes=nn)
 
             self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(j))
 
@@ -60,13 +60,21 @@ class HeatPipeGroup(om.Group):
 
         load_inputs('boring.input.assumptions2', self, nn)
 
+        self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
+        self.nonlinear_solver.options['iprint'] = 2
+        self.nonlinear_solver.options['maxiter'] = 20
+        self.linear_solver = om.DirectSolver()
+        self.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
+        self.nonlinear_solver.linesearch.options['maxiter'] = 10
+        self.nonlinear_solver.linesearch.options['iprint'] = 2
+
 
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
     nn = 10
 
-    num_cells_tot = 15
-    cell_therm_run = 5
+    num_cells_tot = 5
+    cell_therm_run = 1
 
     p.model.add_subsystem(name='hp',
                           subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False),
@@ -82,14 +90,7 @@ if __name__ == "__main__":
 
     for x in np.arange(num_cells_tot):
         p['cell_{}.Rex.T_in'.format(x)] = T_in[x]
-
-    # p['cell_0.Rex.T_in'] = 100
-    # p['cell_1.Rex.T_in'] = 20
-    # p['cell_2.Rex.T_in'] = 20
-
         p['cell_{}.L_flux'.format(x)] = 0.02
-        # p['cell_{}.pcm.cp_bulk'.format(x)] = 1500,  # Specific Heat
-        # p['cell_{}.pcm.mass'.format(x)] = .06,
         p['cell_{}.Rex.R'.format(x)] = [0.0001],
 
     # p.set_val('L_adiabatic',0.03)
@@ -102,6 +103,8 @@ if __name__ == "__main__":
     # p.set_val('T_coolant',293)
 
     p.check_partials(compact_print=True)
+
+    quit()
 
     p.run_model()
     # om.n2(p)
@@ -130,10 +133,10 @@ if __name__ == "__main__":
 
         for i in cells:
 
-            T_cells_1[i] = p.get_val('cell_{}.n1.T'.format(i))
-            T_cells_2[i] = p.get_val('cell_{}.n2.T'.format(i))
-            T_cells_3[i] = p.get_val('cell_{}.n3.T'.format(i))
-            T_cells_4[i] = p.get_val('cell_{}.n4.T'.format(i))
+            T_cells_1[i] = p.get_val('cell_{}.n1.T'.format(i))[0]
+            T_cells_2[i] = p.get_val('cell_{}.n2.T'.format(i))[0]
+            T_cells_3[i] = p.get_val('cell_{}.n3.T'.format(i))[0]
+            T_cells_4[i] = p.get_val('cell_{}.n4.T'.format(i))[0]
 
         plt.plot(cells, T_cells_1, 'o', label='node 1')
         plt.plot(cells, T_cells_2, 'o', label='node 2')
