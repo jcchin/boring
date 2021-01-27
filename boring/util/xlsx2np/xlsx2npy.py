@@ -84,5 +84,8 @@ xlrd.biffh.XLRDError: Excel xlsx file; not supported [duplicate]
 https://stackoverflow.com/questions/65254535/xlrd-biffh-xlrderror-excel-xlsx-file-not-supported
 
 
+training_data = np.load('file.npy')
+
+
 '''
 
