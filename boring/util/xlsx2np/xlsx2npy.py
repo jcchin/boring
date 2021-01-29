@@ -32,7 +32,7 @@ Anaconda environment file is provided in this folder as _env-spec-file.txt_ a hu
 import os
 import pandas as pd
 import numpy as np
-from test2 import t_data # Verification data
+# from test2 import t_data # Verification data
 
 cwd = os.path.dirname(os.path.realpath(__file__))
 
@@ -59,11 +59,11 @@ for layer in df.iloc[:,0].unique():
 
 np_arr = np.moveaxis(np_arr,2,0) #Make the axes match verification data
 
-#Verification test
-diff = np_arr - t_data
-maxdiff_loc = np.unravel_index(np.argmax(abs(diff)),(6,7,61))
-maxdiff = np.max(abs(diff))
-print("\n### Verification test (for test2.xlsx only) ### : The maximum difference is {}, at location {}".format(maxdiff,maxdiff_loc))
+#### Verification test ####
+# diff = np_arr - t_data
+# maxdiff_loc = np.unravel_index(np.argmax(abs(diff)),(6,7,61))
+# maxdiff = np.max(abs(diff))
+# print("\n### Verification test (for test2.xlsx only) ### : The maximum difference is {}, at location {}".format(maxdiff,maxdiff_loc))
 
 
 output_file = os.path.join(cwd,'outputs',os.path.splitext(os.path.basename(input_file))[0]+".npy")
