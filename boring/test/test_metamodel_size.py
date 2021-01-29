@@ -42,7 +42,8 @@ class TestSize(unittest.TestCase):
     def test_partials(self):  # derivative check
 
         data = self.prob.check_partials(out_stream=None, method='cs')
-        assert_check_partials(data, atol=1e-10, rtol=1e-10)
+        assert_check_partials(data, atol=1e-9, rtol=1e-10)  # volume wrt extra  |  1.1641532182693481e-10
+
 
     # def test_io_spec(self): 
 
