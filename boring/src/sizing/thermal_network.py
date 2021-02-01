@@ -1,8 +1,6 @@
 """
 Construct thermal network, then solve for flux and equivalent resistance
-
 Assume all flux connection directions are pointed down and right
-
 Author: Jeff Chin
 """
 
@@ -386,4 +384,3 @@ if __name__ == "__main__":
     p.model.list_outputs(values=True, prom_name=True)   
 
     #print(p.get_val('cond.Rex.T_in'))
-

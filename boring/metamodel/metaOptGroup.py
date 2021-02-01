@@ -38,7 +38,7 @@ if __name__ == "__main__":
     p.driver.options['optimizer'] = 'SNOPT'
     p.driver.opt_settings['Major feasibility tolerance'] = 1e-6
 
-    p.model.add_design_var('extra', lower=1, upper=1.5)
+    p.model.add_design_var('extra', lower=1.1, upper=1.5)
     p.model.add_design_var('ratio', lower=0.5, upper=2)
 
     p.model.add_objective('mass', ref=1)

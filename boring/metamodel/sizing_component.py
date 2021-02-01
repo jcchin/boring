@@ -128,7 +128,7 @@ class MetaPackSizeComp(om.ExplicitComponent):
         J['area', 'ratio']    = d_solid_area__d_ratio + 2*pi*n**2*cell_rad**2 / ratio**3
 
         J['volume', 'cell_rad'] = (d_solid_area__d_cell_rad - 2*pi*cell_rad*n**2 - 2*pi*cell_rad/ratio**2 * n**2) * length
-        J['volume', 'extra']    = (d_solid_area__d_extra) * length 
+        J['volume', 'extra']    = d_solid_area__d_extra * length 
         J['volume', 'n']        = (d_solid_area__d_n - (pi*cell_rad**2)*n*2 - (pi*(cell_rad/ratio)**2)*n*2) * length 
         J['volume', 'ratio']    = (d_solid_area__d_ratio + 2*pi*n**2*cell_rad**2 / ratio**3) * length 
         J['volume', 'length']   = area 
@@ -146,9 +146,12 @@ if __name__ == '__main__':
     from openmdao.api import Problem
 
     nn = 1
-    prob=Problem()
-    prob.model.add_subsystem('sys1', MetaPackSizeComp(num_nodes=nn), promotes=['*'])
+    p=Problem()
+    p.model.add_subsystem('sys1', MetaPackSizeComp(num_nodes=nn), promotes=['*'])
 
-    prob.setup(force_alloc_complex=True)
-    prob.run_model()
-    prob.check_partials(method='cs', compact_print=True)
+    
+
+
+    p.setup(force_alloc_complex=True)
+    p.run_model()
+    p.check_partials(method='cs', compact_print=True)

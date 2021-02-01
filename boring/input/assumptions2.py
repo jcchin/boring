@@ -28,15 +28,22 @@ inputs = {
     # ----------------------------------------Battery Sizing Vars-----------------------------------------#
     #                   """ Currently no check to ensure feasability of dimensions """
 
-    'cond.L_flux': [0.02, 'm'],  # Length of Condensor exposed to heat pipe
-    'evap.L_flux': [0.01, 'm'],
-    'cond.pcm.cp_bulk': [1500],  # Specific Heat
-    'cond.pcm.mass': [.06],
-    'cond2.pcm.cp_bulk': [1500],
-    'cond2.pcm.mass': [.06],
-    'evap.pcm.cp_bulk': [1500],
-    'evap.pcm.mass': [.06],
-    'evap.Rex.R': [0.0001],  # Thermal resistance external to heat pipe wall
-    'cond.Rex.R': [0.0001],
+    # 'cell_1.L_flux': [0.02, 'm'],  # Length of Condensor exposed to heat pipe
+    # 'cell_0.L_flux': [0.01, 'm'],
+    # 'cell_1.pcm.cp_bulk': [1500],  # Specific Heat
+    # 'cell_1.pcm.mass': [.06],
+    # 'cell_2.pcm.cp_bulk': [1500],
+    # 'cell_2.pcm.mass': [.06],
+    # 'cell_0.pcm.cp_bulk': [1500],
+    # 'cell_0.pcm.mass': [.06],
+    # 'cell_0.Rex.R': [0.0001],  # Thermal resistance external to heat pipe wall
+    # 'cell_1.Rex.R': [0.0001],
+
+    # 'cell_{}.L_flux'.format(n): [0.02, 'm'],
+    # 'cell_{}.pcm.cp_bulk'.format(n): [1500],  # Specific Heat
+    # 'cell_{}.pcm.mass'.format(n): [.06],
+    # 'cell_{}.Rex.R'.format(n): [0.0001],
+
+
 
 }
