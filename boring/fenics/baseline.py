@@ -72,7 +72,12 @@ def plot_compact(u, t, stepcounter, QQ, pl, ax): # Compact plot utility function
     plt.subplot(1, 2, 1); pp = plot(uEuclidnorm, cmap="coolwarm"); plt.title("Solution at t=%f" % (t)) # Plot norm of velocity
     if t == 0.: plt.axis(G); # plt.colorbar(pp, shrink=0.5); 
     plt.subplot(1, 2, 2);
-    if t == 0.: plot(QQ.mesh()); plt.title("Mesh") # Plot mesh
+    #if t == 0.: plot(QQ.mesh()); plt.title("Mesh") # Plot mesh
+    vol = assemble(Constant('1.0')*dx(1)) # Compute the area/volume of 1 battery cell
+    T_2 = assemble(u*dx(2))/vol           # Compute area-average T over cell 2
+    plt.plot(t,T_2,marker='o',color='k')
+    plt.xlabel('Time[s]')
+    plt.ylabel('Temperature [K]')
     plt.tight_layout(); dpl = display(pl, display_id="test");
   
   return (pl, ax)
@@ -151,8 +156,8 @@ while t < T:
     # Plot all quantities (see implementation above)
     #plt.clf()
     pl, ax=plot_compact(u, t, stepcounter, V, pl, ax)
-    #ani = FuncAnimation(plt.figure(), plot_compact, blit=True)
-    #plt.show()
+    # ani = FuncAnimation(plt.figure(), plot_compact, blit=True)
+    # plt.show()
     # Shift to next timestep
     t += k; u0 = project(u, V); 
     ue.t = t;
@@ -164,3 +169,20 @@ flux_u = project(-k_coeff*grad(u),W)
 plot(flux_u, title='Flux Field')
 plt.show()
 print(flux_u.vector().max())
+
+# Evaluate Temperature of neighboring batteries
+vol = assemble(Constant('1.0')*dx(1)) # Compute the area/volume of 1 battery cell
+T_1 = assemble(u*dx(1))/vol           # Compute area-average T over cell 1
+T_2 = assemble(u*dx(2))/vol           # Compute area-average T over cell 2
+T_4 = assemble(u*dx(4))/vol           # Compute area-average T over cell 4
+T_5 = assemble(u*dx(5))/vol           # Compute area-average T over cell 4
+print("Average T_1[K] = ", T_1)
+print("Average T_2[K] = ", T_2)
+print("Average T_4[K] = ", T_4)
+print("Average T_5[K] = ", T_5)
+print("Maximum T[K] = ", u.vector().max())
+print("Minimum T[K] = ", u.vector().min())
+c = plot(u,cmap='jet');
+plt.colorbar(c);
+plt.title("Solution at t=" +str(T));
+plt.show()
