@@ -1,0 +1,3 @@
+*.npy
+/ALPSO_print.out
+/opt_out.csv
