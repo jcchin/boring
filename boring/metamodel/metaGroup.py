@@ -20,13 +20,13 @@ class MetaCaseGroup(om.Group):
 
         self.add_subsystem(name='size',
                            subsys = MetaPackSizeComp(num_nodes=nn),
-                           promotes_inputs=['cell_rad','extra', 'ratio', 'length','al_density','n'],
+                           promotes_inputs=['cell_rad', 'extra', 'ratio', 'length','al_density','n'],
                            promotes_outputs=['solid_area', 'cell_cutout_area', 'air_cutout_area', 'area', 'volume', 'mass'])
 
         self.add_subsystem(name='temp',
                            subsys=MetaTempGroup(num_nodes=nn),
-                           promotes_inputs=['ratio','extra'],
-                           promotes_outputs=['temp_data'])
+                           promotes_inputs=['energy','extra', 'ratio','resistance'],
+                           promotes_outputs=['temp2_data','temp3_data'])
 
 
 if __name__ == "__main__":
