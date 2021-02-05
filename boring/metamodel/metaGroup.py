@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
 
     p.set_val('cell_rad', 9, units='mm')
-    p.set_val('extra', 1.0)
+    p.set_val('extra', 1.)
     p.set_val('ratio', 2.0)
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
