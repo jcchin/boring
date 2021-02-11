@@ -42,32 +42,27 @@ if __name__ == "__main__":
                           promotes_outputs=['*'])
     
     p.driver = om.pyOptSparseDriver()
-    p.driver.options['optimizer'] = 'ALPSO'
-    p.driver.options['print_results'] = True
+    # p.driver.options['optimizer'] = 'ALPSO'
+    # p.driver.options['print_results'] = True
     # # p.driver.pyopt_solution.optInform["value"]
     # p.driver = om.ScipyOptimizeDriver()
-    # p.driver.options['optimizer'] = 'SLSQP'
-    #p.driver.opt_settings['Major feasibility tolerance'] = 1e-6
-    #p.set_solver_print(level=2)
+    p.driver.options['optimizer'] = 'SNOPT'
+    p.driver.opt_settings['Major optimality tolerance'] = 1e-8
+    p.driver.opt_settings['Linesearch tolerance'] = 0.001
+    p.set_solver_print(level=2)
     # p.driver = om.SimpleGADriver()
-
-
     p.model.add_design_var('extra', lower=1.0, upper=1.5)
-    p.model.add_design_var('ratio', lower=1.9, upper=2)
-    p.model.add_design_var('resistance', lower=0.003, upper=0.009)
-
+    p.model.add_design_var('ratio', lower=1.0, upper=2) 
+    # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
     p.model.add_objective('mass', ref=1)
-
-    p.model.add_constraint('temp2_data', upper=425)
-    p.model.add_constraint('temp_ratio', upper=1.13)
+    p.model.add_constraint('temp2_data', upper=450)
+    p.model.add_constraint('temp_ratio', upper=1.29)
     # p.model.add_constraint('solid_area', lower=6000)
-
-
     p.setup()
-
     p.set_val('cell_rad', 9, units='mm')
+    p.set_val('resistance', 0.004)
     # p.set_val('extra', 1.5)
-    # p.set_val('ratio', 1.0)
+    # p.set_val('ratio', 1.2)
     p.set_val('energy',16., units='kJ')
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
@@ -115,6 +110,7 @@ if __name__ == "__main__":
 
     #225 Wh/kg
     #150 Wh/kg
+
 
     # 128 Wh pack
     # n = 128/Wh
