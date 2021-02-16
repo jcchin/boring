@@ -14,5 +14,6 @@ setup(name='boring_battery',
         'lcapy',
         'testflo',
         'openpyxl',
+        'more_itertools',
       ]
 )

@@ -1,6 +1,12 @@
 '''
 Training data recieved from the COMSOL model
 
+OpenMDAO viewer for the metamodel data. Run the command:
+<openmdao view_mm training_data.py -m temp.meta_temp2_data>
+
+Then open a browser and navigate to 
+<localhost:5007>
+
 Author: Dustin Hall, Jeff Chin
 '''
 
@@ -10,8 +16,8 @@ import pickle
 
 ## File containing the COMSOL temperature data from xlsx2npy.py script
 #t_data = np.load('../util/xlsx2np/outputs/test3.npy')
-t_data2 = np.load('cell2_16_24kj.npy')
-t_data3 = np.load('cell3_16_24kj.npy')
+t_data2 = np.load('cell2_16_32kj.npy')
+t_data3 = np.load('cell3_16_32kj.npy')
 
 # bp = pickle.load( open( "cell2.pickle", "rb" ) )
 # print(bp)
@@ -36,7 +42,7 @@ class MetaTempGroup(om.Group):
         temp3_interp = om.MetaModelStructuredComp(method='scipy_slinear')
 
 
-        energy_bp = np.linspace(16.,24.,5)
+        energy_bp = np.linspace(16.,32.,9)
         extra_bp = np.linspace(1.,1.5,6)
         ratio_bp = np.linspace(1.,2.0,5)
         res_bp = np.linspace(0.003, 0.009, 3)
