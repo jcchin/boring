@@ -15,16 +15,19 @@ from boring.util.save_csv import save_csv
 
 from boring.util.load_inputs import load_inputs
 
+import matplotlib.pyplot as plt
+
 
 def get_hp_phase(transcription='gauss-radau', num_segments=5,
                  transcription_order=3, compressed=False,
                  solve_segments=False, num_cells=3, db=(1, 300),
-                 pcm=False):
+                 pcm=False, geom='ROUND'):
 
     phase = traj.add_phase('phase',
                            dm.Phase(ode_class=HeatPipeGroup,
                                     ode_init_kwargs= {'num_cells': num_cells,
-                                                      'pcm_bool': pcm},
+                                                      'pcm_bool': pcm,
+                                                      'geom': geom},
                                     transcription=dm.GaussLobatto(num_segments=num_segments, order=transcription_order,
                                                                   compressed=compressed)))
 
@@ -52,38 +55,52 @@ if __name__ == '__main__':
 
     p.driver.declare_coloring()
 
-    num_cells = 6
+    num_cells = [5, 10, 15]
+    color = ('C0', 'C1', 'C2', 'C3', 'C4')
 
-    phase = get_hp_phase(num_cells=num_cells, db=(1, 100), num_segments=5, solve_segments=False)
+    geoms = ['ROUND', 'FLAT']
 
-    phase = traj.add_phase('phase', phase)
+    i = 0
 
-    # phase.add_boundary_constraint('T_cell_0', loc='final', equals=300)
+    cells = 10
 
-    phase.add_objective('time', loc='final', ref=1)
+    for geom in geoms:
 
-    p.model.options['assembled_jac_type'] = 'csc'
-    p.model.linear_solver = om.DirectSolver(assemble_jac=True)
-    p.setup()
+        phase = get_hp_phase(num_cells=cells, db=(1, 100), num_segments=5, solve_segments=False, geom=geom)
 
-    p['phase.t_initial'] = 0.0
-    p['phase.t_duration'] = 100.
+        phase = traj.add_phase('phase', phase)
 
-    for cell in np.arange(num_cells):
-        p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
+        # phase.add_boundary_constraint('T_cell_0', loc='final', equals=300)
 
-    p['phase.states:T_cell_2'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
+        phase.add_objective('time', loc='final', ref=1)
 
-    p.run_driver()
+        p.model.options['assembled_jac_type'] = 'csc'
+        p.model.linear_solver = om.DirectSolver(assemble_jac=True)
+        p.setup()
 
-    import matplotlib.pyplot as plt
+        p['phase.t_initial'] = 0.0
+        p['phase.t_duration'] = 100.
 
-    time_opt = p.get_val('phase.timeseries.time', units='s')
+        for cell in np.arange(cells):
+            p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
 
-    for j in np.arange(num_cells):
+        p['phase.states:T_cell_2'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
 
-        T_cell = p.get_val('phase.timeseries.states:T_cell_{}'.format(j), units='K')
-        plt.plot(time_opt, T_cell, label='cell {}'.format(j))
+        p.run_driver()
+
+        time_opt = p.get_val('phase.timeseries.time', units='s')
+
+        for j in np.arange(cells):
+
+            T_cell = p.get_val('phase.timeseries.states:T_cell_{}'.format(j), units='K')
+
+            if j == 0:
+                plt.plot(time_opt, T_cell, '{}'.format(color[i]), label='{}'.format(geom))
+
+            else:
+                plt.plot(time_opt, T_cell, '{}'.format(color[i]))
+
+        i = i + 1
 
     plt.xlabel('time, s')
     plt.ylabel('T_cell, K')

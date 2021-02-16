@@ -24,18 +24,21 @@ class HeatPipeGroup(om.Group):
         self.options.declare('num_nodes', types=int)
         self.options.declare('num_cells', types=int, default=3)
         self.options.declare('pcm_bool', types=bool, default=False)
+        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+
 
     def setup(self):
         nn = self.options['num_nodes']
         n = self.options['num_cells']
         pcm_bool = self.options['pcm_bool']
+        geom = self.options['geom']
 
         n_out = np.append(np.ones(n-1),0)
         n_in = np.append(0, np.ones(n-1))
 
         for i in np.arange(n):
 
-            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool),
+            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
                                                     promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
 
             self.add_subsystem(name='T_rate_cell_{}'.format(i),
@@ -50,7 +53,7 @@ class HeatPipeGroup(om.Group):
 
         for j in range(n-1):
 
-            thermal_link(self, 'cell_{}'.format(j), 'cell_{}'.format(j+1), num_nodes=nn)
+            thermal_link(self, 'cell_{}'.format(j), 'cell_{}'.format(j+1), num_nodes=nn, geom=geom)
 
             self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(j))
 
@@ -65,7 +68,7 @@ if __name__ == "__main__":
     num_cells_tot = 15
 
     p.model.add_subsystem(name='hp',
-                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False),
+                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='flat'),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
 
