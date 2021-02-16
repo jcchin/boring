@@ -38,8 +38,8 @@ class MetaTempGroup(om.Group):
     def setup(self):
         nn = self.options['num_nodes']
 
-        temp2_interp = om.MetaModelStructuredComp(method='scipy_slinear')
-        temp3_interp = om.MetaModelStructuredComp(method='scipy_slinear')
+        temp2_interp = om.MetaModelStructuredComp(method='scipy_slinear', extrapolate=True)
+        temp3_interp = om.MetaModelStructuredComp(method='scipy_slinear', extrapolate=True)
 
 
         energy_bp = np.linspace(16.,32.,9)
