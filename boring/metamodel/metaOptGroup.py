@@ -54,22 +54,22 @@ if __name__ == "__main__":
     # p.driver = om.ScipyOptimizeDriver()
     p.driver.options['optimizer'] = 'SNOPT'
     p.driver.opt_settings['Major optimality tolerance'] = 1e-8
-    p.driver.opt_settings['Linesearch tolerance'] = 0.001
+    p.driver.opt_settings['Linesearch tolerance'] = 0.01
     p.set_solver_print(level=2)
     # p.driver = om.SimpleGADriver()
     p.model.add_design_var('extra', lower=1.0, upper=1.5)
     p.model.add_design_var('ratio', lower=1.0, upper=2) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
     p.model.add_objective('mass', ref=1)
-    p.model.add_constraint('temp2_data', upper=480)
-    p.model.add_constraint('temp_ratio', upper=1.29)
+    p.model.add_constraint('temp2_data', upper=415)
+    p.model.add_constraint('temp_ratio', upper=1.14)
     #p.model.add_constraint('diagonal', upper=145)
     # p.model.add_constraint('solid_area', lower=6000)
     p.setup()
     p.set_val('cell_rad', 9, units='mm')
-    p.set_val('resistance', 0.004)
-    # p.set_val('extra', 1.5)
-    # p.set_val('ratio', 1.2)
+    p.set_val('resistance', 0.008)
+    p.set_val('extra', 1.2)
+    #p.set_val('ratio', 2.0)
     p.set_val('energy',16., units='kJ')
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
@@ -115,7 +115,7 @@ if __name__ == "__main__":
                 yield group[0], group[-1]
 
     zones = list(find_ranges(indices))
-
+    print(zones)
     fig, ax = plt.subplots(3,3)
 
     ax[0,2].plot(nrg_list,opt_temp)
@@ -140,8 +140,14 @@ if __name__ == "__main__":
     ax[1,1].plot(nrg_list,opt_t_ratio)
     ax[1,1].set_ylabel('temp ratio')
     ax[2,1].plot(nrg_list,opt_success)
-    for (minz,maxz) in zones:  # plot vertical red zones on all subplots (except the last plot)
-        [ax2.axvspan(nrg_list[minz], nrg_list[maxz], alpha=0.5, color='red') for ax2 in ax.flatten()[:-1]]
+    for zone in zones:  # plot vertical red zones on all subplots (except the last plot)
+        if type(zone) is tuple: #it's a range
+            (minz,maxz) = zone
+            [ax2.axvspan(nrg_list[minz], nrg_list[maxz], alpha=0.5, color='red') for ax2 in ax.flatten()[:-1]]
+        else: # it's just one point
+            [ax2.axvspan(nrg_list[zone-1], nrg_list[zone+1], alpha=0.5, color='red') for ax2 in ax.flatten()[:-1]]
+    # https://stackoverflow.com/questions/2154249/identify-groups-of-continuous-numbers-in-a-list
+    
     ax[2,1].set_ylabel('opt_success')
     ax[2,1].set_xlabel('energy (kJ)')
     plt.show()
