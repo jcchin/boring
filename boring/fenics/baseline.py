@@ -186,3 +186,54 @@ c = plot(u,cmap='jet');
 plt.colorbar(c);
 plt.title("Solution at t=" +str(T));
 plt.show()
+
+# Scaled variables
+L = 1; W = 1
+mu = 1
+rho = 1
+delta = W/L
+gamma = 0.4*delta**2
+beta = 1.25
+lambda_ = beta
+G_force = 20
+g = gamma
+
+# Define function space
+V = VectorFunctionSpace(mesh, 'P', 1);
+
+# Define boundary conditions
+tol = 1E-14
+
+def clamped_boundary(x, on_boundary):
+    return on_boundary and near(x[1], 0, tol)
+
+bc = DirichletBC(V, Constant((0,0)), clamped_boundary)
+
+# Define strain and stress
+def epsilon(u):
+    return 0.5*(nabla_grad(u) + nabla_grad(u).T)
+
+def sigma(u):
+    return lambda_*nabla_grad(u)*Identity(d) + 2*mu*epsilon(u)
+
+# Define variational problem
+u = TrialFunction(V)
+d = u.geometric_dimension()  # space dimension
+v = TestFunction(V)
+f = Constant((G_force*g, -G_force*g))   # Body force per unit volume
+T = Constant((0, 0))                    # Traction forces (tension/compression)
+a = inner(sigma(u), epsilon(v))*dx
+L = dot(f, v)*dx + dot(T, v)*ds
+
+# Compute solution
+u = Function(V)
+solve(a == L, u, bc)
+
+# Plot stress
+s = sigma(u) - (1./3)*tr(sigma(u))*Identity(d)  # deviatoric stress
+von_Mises = sqrt(3./2*inner(s, s))
+V = FunctionSpace(mesh, 'P', 1)
+von_Mises = project(von_Mises, V)
+c = plot(von_Mises,cmap='jet');
+plt.colorbar(c);
+plt.show()
