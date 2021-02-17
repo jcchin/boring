@@ -63,13 +63,13 @@ if __name__ == "__main__":
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
     # p.model.add_objective('mass', ref=1e1)
     p.model.add_objective('diagonal', ref=1)
-    p.model.add_constraint('temp2_data', upper=460)
-    p.model.add_constraint('temp_ratio', upper=1.25)
+    p.model.add_constraint('temp2_data', upper=400)
+    p.model.add_constraint('temp_ratio', upper=1.2)
     #p.model.add_constraint('diagonal', upper=145)
     # p.model.add_constraint('solid_area', lower=6000)
     p.setup()
     p.set_val('cell_rad', 9, units='mm')
-    p.set_val('resistance', 0.004)
+    p.set_val('resistance', 0.006)
     p.set_val('extra', 1.0)
     p.set_val('ratio', 1.0)
     p.set_val('energy',16., units='kJ')
@@ -116,6 +116,7 @@ if __name__ == "__main__":
 
     cell_dens = 225*((nrg_list*2/3)/12)
     pack_dens = (16*nrg_list*2/3)/(.048*16+ opt_mass)
+    #= 13.88888*nrg_list/opt_mass
 
     indices = [i for i in range(len(opt_success)) if opt_success[i] > 3]  # record indices where 32,41
     def find_ranges(iterable):  #     Yield range of consecutive numbers
