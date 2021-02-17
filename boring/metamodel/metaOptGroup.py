@@ -53,29 +53,38 @@ if __name__ == "__main__":
     # # p.driver.pyopt_solution.optInform["value"]
     # p.driver = om.ScipyOptimizeDriver()
     p.driver.options['optimizer'] = 'SNOPT'
-    p.driver.opt_settings['Major optimality tolerance'] = 1e-8
-    p.driver.opt_settings['Linesearch tolerance'] = 0.01
+    p.driver.opt_settings['Major optimality tolerance'] = 1e-6
+    # p.driver.opt_settings['Major step limit'] = .1
+    # p.driver.opt_settings['Linesearch tolerance'] = 0.99
     p.set_solver_print(level=2)
     # p.driver = om.SimpleGADriver()
-    p.model.add_design_var('extra', lower=1.0, upper=1.5)
+    p.model.add_design_var('extra', lower=1.0, upper=2.0)
     p.model.add_design_var('ratio', lower=1.0, upper=2) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
-    p.model.add_objective('mass', ref=1)
-    p.model.add_constraint('temp2_data', upper=415)
-    p.model.add_constraint('temp_ratio', upper=1.14)
+    # p.model.add_objective('mass', ref=1e1)
+    p.model.add_objective('diagonal', ref=1)
+    p.model.add_constraint('temp2_data', upper=460)
+    p.model.add_constraint('temp_ratio', upper=1.25)
     #p.model.add_constraint('diagonal', upper=145)
     # p.model.add_constraint('solid_area', lower=6000)
     p.setup()
     p.set_val('cell_rad', 9, units='mm')
-    p.set_val('resistance', 0.008)
-    p.set_val('extra', 1.2)
-    #p.set_val('ratio', 2.0)
+    p.set_val('resistance', 0.004)
+    p.set_val('extra', 1.0)
+    p.set_val('ratio', 1.0)
     p.set_val('energy',16., units='kJ')
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
     p.set_val('n',4)
 
     x = 30
+    nrg_list = np.linspace(16.,32.,x)
+    # print('foobar', nrg_list[7])
+    # exit()
+
+    # nrg_list = np.array([28.444444444444443,])
+    # x = len(nrg_list)
+
     opt_mass = np.zeros(x)
     opt_ratio = np.zeros(x)
     opt_spacing = np.zeros(x)
@@ -85,10 +94,14 @@ if __name__ == "__main__":
     opt_success = np.zeros(x)
     opt_diag = np.zeros(x)
     opt_temp = np.zeros(x)
-    nrg_list = np.linspace(16.,32.,x)
 
-    for i in range(x):
+
+    for i, nrg in enumerate(nrg_list):
         p.set_val('energy',nrg_list[i])
+
+        p.set_val('extra', 1.0)
+        p.set_val('ratio', 1.0)
+
         p.run_driver()
         opt_success[i]=p.driver.pyopt_solution.optInform['value']
         print(p.driver.pyopt_solution.optInform)  # print out the convergence success (SNOPT only)
@@ -104,7 +117,6 @@ if __name__ == "__main__":
     cell_dens = 225*((nrg_list*2/3)/12)
     pack_dens = (16*nrg_list*2/3)/(.048*16+ opt_mass)
 
-
     indices = [i for i in range(len(opt_success)) if opt_success[i] > 3]  # record indices where 32,41
     def find_ranges(iterable):  #     Yield range of consecutive numbers
         for group in mit.consecutive_groups(iterable):
@@ -116,6 +128,7 @@ if __name__ == "__main__":
 
     zones = list(find_ranges(indices))
     print(zones)
+    
     fig, ax = plt.subplots(3,3)
 
     ax[0,2].plot(nrg_list,opt_temp)
@@ -173,7 +186,7 @@ if __name__ == "__main__":
 
     print('\n \n')
     print('-------------------------------------------------------')
-    print('Temperature (deg C). . . . . . . . .', p.get_val('temp2_data', units='degC'))  
+    print('Temperature (deg C). . . . . . . . .', p.get_val('temp2_data', units='degK'))  
     print('Mass (kg). . . . . . . . . . . . . .', p.get_val('mass', units='kg'))  
     print('Total X-Sectional Area (mm**2). . . ', p.get_val('solid_area', units='mm**2'))
     print('Area, with holes (mm**2). . . . . . ', p.get_val('area', units='mm**2'))
