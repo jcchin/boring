@@ -34,16 +34,17 @@ class MetaPackSizeComp(om.ExplicitComponent):
         self.add_output('volume', 85000, units='mm**3', desc='volume of the case with voids removed')
         self.add_output('mass', 5, units='kg', desc='mass of the case')
 
-        r = c = np.arange(nn) 
-        self.declare_partials('diagonal', ['n', 'cell_rad', 'ratio', 'extra'])
-        self.declare_partials('side', ['n', 'cell_rad', 'ratio', 'extra'])
-        self.declare_partials('solid_area', ['n', 'cell_rad', 'ratio', 'extra'])
-        self.declare_partials('cell_cutout_area', ['cell_rad', 'n'])
-        self.declare_partials('air_cutout_area', ['cell_rad', 'ratio', 'n'])
-        self.declare_partials('area', ['cell_rad', 'extra', 'n', 'ratio'])
-        self.declare_partials('volume', ['cell_rad', 'extra', 'n', 'ratio', 'length'])
-        self.declare_partials('mass', ['cell_rad', 'extra', 'n', 'ratio', 'length', 'al_density'])
-      
+        # r = c = np.arange(nn) 
+        # self.declare_partials('diagonal', ['n', 'cell_rad', 'ratio', 'extra'])
+        # self.declare_partials('side', ['n', 'cell_rad', 'ratio', 'extra'])
+        # self.declare_partials('solid_area', ['n', 'cell_rad', 'ratio', 'extra'])
+        # self.declare_partials('cell_cutout_area', ['cell_rad', 'n'])
+        # self.declare_partials('air_cutout_area', ['cell_rad', 'ratio', 'n'])
+        # self.declare_partials('area', ['cell_rad', 'extra', 'n', 'ratio'])
+        # self.declare_partials('volume', ['cell_rad', 'extra', 'n', 'ratio', 'length'])
+        # self.declare_partials('mass', ['cell_rad', 'extra', 'n', 'ratio', 'length', 'al_density'])
+        self.declare_partials('*', '*', method='cs')
+
 
     def compute(self, inputs, outputs):
         cell_rad = inputs['cell_rad']
@@ -53,12 +54,15 @@ class MetaPackSizeComp(om.ExplicitComponent):
         ratio = inputs['ratio']
         al_density = inputs['al_density']
         
-        outputs['diagonal'] = (n*cell_rad*2)+((n)*(cell_rad*2/ratio))*extra
-        outputs['side'] = outputs['diagonal']/(2**0.5)
+        # outputs['diagonal'] = (n*cell_rad*2)+((n)*(cell_rad*2/ratio))*extra
+        # outputs['side'] = outputs['diagonal']/(2**0.5)
+
+        outputs['side'] = cell_rad*2*extra*n
         outputs['solid_area'] = outputs['side']**2
+        hole_r = ratio*0.5*cell_rad*2*((2**0.5*extra)-1)
 
         outputs['cell_cutout_area'] = (pi*cell_rad**2)*n**2
-        outputs['air_cutout_area'] = (pi*(cell_rad/ratio)**2)*n**2
+        outputs['air_cutout_area'] = (pi*(hole_r)**2)*n**2
 
         outputs['area'] = outputs['solid_area'] - outputs['cell_cutout_area'] - outputs['air_cutout_area']
 
