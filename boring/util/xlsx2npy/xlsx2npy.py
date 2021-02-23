@@ -95,7 +95,7 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 
 def getFiles():
     
-    files = glob.glob(os.path.join(cwd,'inputs','*.xlsx'))
+    files = glob.glob(os.path.join(cwd,'inputs','cell3_h*.xlsx'))
     
     
     #Check there are >0 files, and that they are all xlsx
