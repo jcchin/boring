@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # p.model.add_objective('side', ref=1)
     p.model.add_constraint('temp2_data', upper=360)
     p.model.add_constraint('temp_ratio', upper=1.2)
-    #p.model.add_constraint('side', upper=145)
+    # p.model.add_constraint('side', upper=100)
     # p.model.add_constraint('solid_area', lower=6000)
     p.setup()
     p.set_val('cell_rad', 9, units='mm')
