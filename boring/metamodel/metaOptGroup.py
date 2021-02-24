@@ -21,6 +21,8 @@ class MetaOptimize(om.Group):
     def setup(self):
         nn = self.options['num_nodes']
 
+        # self.add_subsystem('xform', om.ExecComp('extra=exp(xtra)', units='mm'), promotes=['*'])
+
         self.add_subsystem(name='size',
                            subsys = MetaPackSizeComp(num_nodes=nn),
                            promotes_inputs=['cell_rad', 'extra', 'ratio', 'length','al_density','n'],
@@ -50,7 +52,8 @@ if __name__ == "__main__":
     p.driver = om.pyOptSparseDriver()
 
     p.driver.options['optimizer'] = 'SNOPT'
-    p.driver.opt_settings['Major optimality tolerance'] = 1e-6
+    p.driver.opt_settings['Major optimality tolerance'] = 6e-5
+    # p.driver.opt_settings['Major step limit'] = 0.01
     p.set_solver_print(level=2)
 
     # p.driver.options['optimizer'] = 'ALPSO'
@@ -62,19 +65,25 @@ if __name__ == "__main__":
     # (DV-ref0)/ref
 
 
-    p.model.add_design_var('extra', lower=1.0, upper=2.0, ref0=1, ref=2)
-    p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref0=0.25, ref=1) 
+    p.model.add_design_var('extra', lower=1.0, upper=2.02, ref=1e-3)
+    # p.model.add_design_var('xtra', lower=0, upper=0.69, ref=1e-1)
+
+    p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref=1) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
-    #p.model.add_objective('mass') #, ref=1e2)
+    p.model.add_objective('mass', ref=1e-2)
     # p.model.add_objective('side', ref=1)
-    p.model.add_constraint('temp2_data', upper=360, ref=360)
+    p.model.add_constraint('temp2_data', upper=360, ref=1e3)
     p.model.add_constraint('temp_ratio', upper=1.2)
-    p.model.add_objective('side', ref=120) # upper=120,
+    # p.model.add_objective('side', ref=1e2) # upper=120,
     # p.model.add_constraint('solid_area', lower=6000)
-    p.setup()
+
+
+    p.model.linear_solver = om.DirectSolver()
+
+    p.setup(force_alloc_complex=True)
     p.set_val('cell_rad', 9, units='mm')
     #p.set_val('resistance', 0.003)
-    p.set_val('extra', 1.4)
+    # p.set_val('extra', 1.4)
     p.set_val('ratio', 0.4)
     p.set_val('energy',16., units='kJ')
     p.set_val('length', 65.0, units='mm')
@@ -83,11 +92,11 @@ if __name__ == "__main__":
 
     x = 30
     nrg_list = np.linspace(16.,32.,x)
-    # print('foobar', nrg_list[7])
+    # print('foobar', nrg_list[24])
     # exit()
 
-    # nrg_list = np.array([28.444444444444443,])
-    # x = len(nrg_list)
+    # nrg_list = np.array([22.8,])
+    x = len(nrg_list)
 
 
     opt_mass = np.zeros(x)
@@ -101,14 +110,17 @@ if __name__ == "__main__":
     opt_temp = np.zeros(x)
 
 
+
     for i, nrg in enumerate(nrg_list):
         p.set_val('energy',nrg_list[i])
         print('current energy: ',nrg_list[i], " (running between 16 - 32)" )
 
-        p.set_val('extra', 1.4)
-        p.set_val('ratio', 0.4)
+        p.set_val('extra', 1.01)
+        p.set_val('ratio', 0.25)
 
         p.run_driver()
+        p.run_model()
+        # p.check_totals(method='cs')
         #opt_success[i]=p.driver.pyopt_solution.optInform['stopCriteria']
         opt_success[i]=p.driver.pyopt_solution.optInform['value']
         print(p.driver.pyopt_solution.optInform)  # print out the convergence success (SNOPT only)
@@ -204,6 +216,7 @@ if __name__ == "__main__":
     print('energy . . . . . . . . . . . . . . .', p.get_val('energy'))
     print('extra. . . . . . . . . . . . . . . .', p.get_val('extra'))
     print('ratio. . . . . . . . . . . . . . . .', p.get_val('ratio'))
+    print('sanity check. . . . . . . . . . . . ', p.get_val('energy')/p.get_val('extra'))
     # print('resistance . . . . . . . . . . . . .', p.get_val('resistance'))
     print('temp ratio . . . . . . . . . . . . .', p.get_val('temp_ratio'))
     print('-------------------------------------------------------')

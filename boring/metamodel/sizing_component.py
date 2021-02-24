@@ -71,78 +71,78 @@ class MetaPackSizeComp(om.ExplicitComponent):
         outputs['mass'] = outputs['area'] * length * al_density
 
 
-    def compute_partials(self, inputs, J):
-        cell_rad = inputs['cell_rad']
-        length = inputs['length']
-        n = inputs['n']
-        extra = inputs['extra']
-        ratio = inputs['ratio']
-        al_density = inputs['al_density']
+    # def compute_partials(self, inputs, J):
+    #     cell_rad = inputs['cell_rad']
+    #     length = inputs['length']
+    #     n = inputs['n']
+    #     extra = inputs['extra']
+    #     ratio = inputs['ratio']
+    #     al_density = inputs['al_density']
 
-        diagonal = (n*cell_rad*2)+((n)*(cell_rad*2/ratio))*extra
-        side = diagonal/(2**0.5)
-        solid_area = side**2
-        cell_cutout_area = (pi*cell_rad**2)*n**2
-        air_cutout_area = (pi*(cell_rad/ratio)**2)*n**2
+    #     diagonal = (n*cell_rad*2)+((n)*(cell_rad*2/ratio))*extra
+    #     side = diagonal/(2**0.5)
+    #     solid_area = side**2
+    #     cell_cutout_area = (pi*cell_rad**2)*n**2
+    #     air_cutout_area = (pi*(cell_rad/ratio)**2)*n**2
 
-        area = solid_area - cell_cutout_area - air_cutout_area
+    #     area = solid_area - cell_cutout_area - air_cutout_area
 
-        d_diagonal__d_n         = 2*cell_rad*(1+extra/ratio)
-        d_diagonal__d_cell_rad  = 2*n*(1+extra/ratio)
-        d_diagonal__d_ratio     = -2*cell_rad*n*(extra/ratio**2)
-        d_diagonal__d_extra     = 2*cell_rad*n*(1/ratio)
+    #     d_diagonal__d_n         = 2*cell_rad*(1+extra/ratio)
+    #     d_diagonal__d_cell_rad  = 2*n*(1+extra/ratio)
+    #     d_diagonal__d_ratio     = -2*cell_rad*n*(extra/ratio**2)
+    #     d_diagonal__d_extra     = 2*cell_rad*n*(1/ratio)
 
-        d_side__d_n       =  d_diagonal__d_n       /2**0.5
-        d_side__d_cell_rad=  d_diagonal__d_cell_rad/2**0.5
-        d_side__d_ratio   =  d_diagonal__d_ratio   /2**0.5
-        d_side__d_extra   =  d_diagonal__d_extra   /2**0.5
+    #     d_side__d_n       =  d_diagonal__d_n       /2**0.5
+    #     d_side__d_cell_rad=  d_diagonal__d_cell_rad/2**0.5
+    #     d_side__d_ratio   =  d_diagonal__d_ratio   /2**0.5
+    #     d_side__d_extra   =  d_diagonal__d_extra   /2**0.5
 
-        d_solid_area__d_n        = 2*(side)*(d_side__d_n)
-        d_solid_area__d_cell_rad = 2*(side)*(d_side__d_cell_rad)
-        d_solid_area__d_ratio    = 2*(side)*(d_side__d_ratio)
-        d_solid_area__d_extra    = 2*(side)*(d_side__d_extra)
+    #     d_solid_area__d_n        = 2*(side)*(d_side__d_n)
+    #     d_solid_area__d_cell_rad = 2*(side)*(d_side__d_cell_rad)
+    #     d_solid_area__d_ratio    = 2*(side)*(d_side__d_ratio)
+    #     d_solid_area__d_extra    = 2*(side)*(d_side__d_extra)
         
 
-        J['diagonal', 'n']          =  d_diagonal__d_n       
-        J['diagonal', 'cell_rad']   =  d_diagonal__d_cell_rad
-        J['diagonal', 'ratio']      =  d_diagonal__d_ratio   
-        J['diagonal', 'extra']      =  d_diagonal__d_extra   
+    #     J['diagonal', 'n']          =  d_diagonal__d_n       
+    #     J['diagonal', 'cell_rad']   =  d_diagonal__d_cell_rad
+    #     J['diagonal', 'ratio']      =  d_diagonal__d_ratio   
+    #     J['diagonal', 'extra']      =  d_diagonal__d_extra   
 
-        J['side', 'n']          = d_side__d_n       
-        J['side', 'cell_rad']   = d_side__d_cell_rad
-        J['side', 'ratio']      = d_side__d_ratio   
-        J['side', 'extra']      = d_side__d_extra   
+    #     J['side', 'n']          = d_side__d_n       
+    #     J['side', 'cell_rad']   = d_side__d_cell_rad
+    #     J['side', 'ratio']      = d_side__d_ratio   
+    #     J['side', 'extra']      = d_side__d_extra   
 
 
-        J['solid_area', 'n']        = d_solid_area__d_n       
-        J['solid_area', 'cell_rad'] = d_solid_area__d_cell_rad
-        J['solid_area', 'ratio']    = d_solid_area__d_ratio   
-        J['solid_area', 'extra']    = d_solid_area__d_extra   
+    #     J['solid_area', 'n']        = d_solid_area__d_n       
+    #     J['solid_area', 'cell_rad'] = d_solid_area__d_cell_rad
+    #     J['solid_area', 'ratio']    = d_solid_area__d_ratio   
+    #     J['solid_area', 'extra']    = d_solid_area__d_extra   
 
-        J['cell_cutout_area', 'cell_rad'] = 2*pi*cell_rad*n**2
-        J['cell_cutout_area', 'n'] = (pi*cell_rad**2)*n*2
+    #     J['cell_cutout_area', 'cell_rad'] = 2*pi*cell_rad*n**2
+    #     J['cell_cutout_area', 'n'] = (pi*cell_rad**2)*n*2
 
-        J['air_cutout_area', 'cell_rad'] = 2*pi*cell_rad/ratio**2 * n**2
-        J['air_cutout_area', 'ratio'] = -2*pi*n**2*cell_rad**2 / ratio**3
-        J['air_cutout_area', 'n'] = (pi*(cell_rad/ratio)**2)*n*2
+    #     J['air_cutout_area', 'cell_rad'] = 2*pi*cell_rad/ratio**2 * n**2
+    #     J['air_cutout_area', 'ratio'] = -2*pi*n**2*cell_rad**2 / ratio**3
+    #     J['air_cutout_area', 'n'] = (pi*(cell_rad/ratio)**2)*n*2
 
-        J['area', 'cell_rad'] = d_solid_area__d_cell_rad - 2*pi*cell_rad*n**2 - 2*pi*cell_rad/ratio**2 * n**2
-        J['area', 'extra']    = d_solid_area__d_extra
-        J['area', 'n']        = d_solid_area__d_n - (pi*cell_rad**2)*n*2 - (pi*(cell_rad/ratio)**2)*n*2
-        J['area', 'ratio']    = d_solid_area__d_ratio + 2*pi*n**2*cell_rad**2 / ratio**3
+    #     J['area', 'cell_rad'] = d_solid_area__d_cell_rad - 2*pi*cell_rad*n**2 - 2*pi*cell_rad/ratio**2 * n**2
+    #     J['area', 'extra']    = d_solid_area__d_extra
+    #     J['area', 'n']        = d_solid_area__d_n - (pi*cell_rad**2)*n*2 - (pi*(cell_rad/ratio)**2)*n*2
+    #     J['area', 'ratio']    = d_solid_area__d_ratio + 2*pi*n**2*cell_rad**2 / ratio**3
 
-        J['volume', 'cell_rad'] = (d_solid_area__d_cell_rad - 2*pi*cell_rad*n**2 - 2*pi*cell_rad/ratio**2 * n**2) * length
-        J['volume', 'extra']    = d_solid_area__d_extra * length 
-        J['volume', 'n']        = (d_solid_area__d_n - (pi*cell_rad**2)*n*2 - (pi*(cell_rad/ratio)**2)*n*2) * length 
-        J['volume', 'ratio']    = (d_solid_area__d_ratio + 2*pi*n**2*cell_rad**2 / ratio**3) * length 
-        J['volume', 'length']   = area 
+    #     J['volume', 'cell_rad'] = (d_solid_area__d_cell_rad - 2*pi*cell_rad*n**2 - 2*pi*cell_rad/ratio**2 * n**2) * length
+    #     J['volume', 'extra']    = d_solid_area__d_extra * length 
+    #     J['volume', 'n']        = (d_solid_area__d_n - (pi*cell_rad**2)*n*2 - (pi*(cell_rad/ratio)**2)*n*2) * length 
+    #     J['volume', 'ratio']    = (d_solid_area__d_ratio + 2*pi*n**2*cell_rad**2 / ratio**3) * length 
+    #     J['volume', 'length']   = area 
 
-        J['mass', 'cell_rad']   = (d_solid_area__d_cell_rad - 2*pi*cell_rad*n**2 - 2*pi*cell_rad/ratio**2 * n**2) * length*al_density
-        J['mass', 'extra']      = (d_solid_area__d_extra) * length * al_density
-        J['mass', 'n']          = (d_solid_area__d_n - (pi*cell_rad**2)*n*2 - (pi*(cell_rad/ratio)**2)*n*2) * length * al_density
-        J['mass', 'ratio']      = (d_solid_area__d_ratio - -2*pi*n**2*cell_rad**2 / ratio**3) * length * al_density
-        J['mass', 'length']     = area * al_density
-        J['mass', 'al_density'] = area * length
+    #     J['mass', 'cell_rad']   = (d_solid_area__d_cell_rad - 2*pi*cell_rad*n**2 - 2*pi*cell_rad/ratio**2 * n**2) * length*al_density
+    #     J['mass', 'extra']      = (d_solid_area__d_extra) * length * al_density
+    #     J['mass', 'n']          = (d_solid_area__d_n - (pi*cell_rad**2)*n*2 - (pi*(cell_rad/ratio)**2)*n*2) * length * al_density
+    #     J['mass', 'ratio']      = (d_solid_area__d_ratio - -2*pi*n**2*cell_rad**2 / ratio**3) * length * al_density
+    #     J['mass', 'length']     = area * al_density
+    #     J['mass', 'al_density'] = area * length
 
 
 
