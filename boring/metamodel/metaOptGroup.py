@@ -48,30 +48,34 @@ if __name__ == "__main__":
                           promotes_outputs=['*'])
     
     p.driver = om.pyOptSparseDriver()
+
+    p.driver.options['optimizer'] = 'SNOPT'
+    p.driver.opt_settings['Major optimality tolerance'] = 1e-6
+    p.set_solver_print(level=2)
+
     # p.driver.options['optimizer'] = 'ALPSO'
+    # p.driver.opt_settings['SwarmSize'] = 200
     # p.driver.options['print_results'] = True
     # # p.driver.pyopt_solution.optInform["value"]
     # p.driver = om.ScipyOptimizeDriver()
-    p.driver.options['optimizer'] = 'SNOPT'
-    p.driver.opt_settings['Major optimality tolerance'] = 1e-6
-    # p.driver.opt_settings['Major step limit'] = .1
-    # p.driver.opt_settings['Linesearch tolerance'] = 0.99
-    p.set_solver_print(level=2)
-    # p.driver = om.SimpleGADriver()
-    p.model.add_design_var('extra', lower=1.0, upper=2.0)
-    p.model.add_design_var('ratio', lower=0.25, upper=1.0) 
+
+    # (DV-ref0)/ref
+
+
+    p.model.add_design_var('extra', lower=1.0, upper=2.0, ref0=1, ref=2)
+    p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref0=0.25, ref=1) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
-    p.model.add_objective('mass', ref=1e1)
+    #p.model.add_objective('mass') #, ref=1e2)
     # p.model.add_objective('side', ref=1)
-    p.model.add_constraint('temp2_data', upper=360)
+    p.model.add_constraint('temp2_data', upper=360, ref=360)
     p.model.add_constraint('temp_ratio', upper=1.2)
-    # p.model.add_constraint('side', upper=100)
+    p.model.add_objective('side', ref=120) # upper=120,
     # p.model.add_constraint('solid_area', lower=6000)
     p.setup()
     p.set_val('cell_rad', 9, units='mm')
     #p.set_val('resistance', 0.003)
-    p.set_val('extra', 1.0)
-    p.set_val('ratio', 1.0)
+    p.set_val('extra', 1.4)
+    p.set_val('ratio', 0.4)
     p.set_val('energy',16., units='kJ')
     p.set_val('length', 65.0, units='mm')
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
@@ -99,11 +103,13 @@ if __name__ == "__main__":
 
     for i, nrg in enumerate(nrg_list):
         p.set_val('energy',nrg_list[i])
+        print('current energy: ',nrg_list[i], " (running between 16 - 32)" )
 
-        p.set_val('extra', 1.0)
-        p.set_val('ratio', 1.0)
+        p.set_val('extra', 1.4)
+        p.set_val('ratio', 0.4)
 
         p.run_driver()
+        #opt_success[i]=p.driver.pyopt_solution.optInform['stopCriteria']
         opt_success[i]=p.driver.pyopt_solution.optInform['value']
         print(p.driver.pyopt_solution.optInform)  # print out the convergence success (SNOPT only)
         opt_mass[i]=p.get_val('mass')
@@ -138,7 +144,7 @@ if __name__ == "__main__":
     ax[1,2].plot(nrg_list,opt_side)
     ax[1,2].set_ylabel('side')
     ax[2,2].plot(cell_dens,pack_dens)
-    ax[2,2].plot(cell_dens,cell_dens*0.412+80)
+    ax[2,2].plot(cell_dens,cell_dens*0.3+45) # *0.412+80
     ax[2,2].set_ylabel('Wh/kg pack')
     ax[2,2].set_xlabel('Wh/kg cell')
     #fig.delaxes(ax[1][2])

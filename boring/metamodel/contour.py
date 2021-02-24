@@ -36,7 +36,7 @@ for i,spacing in enumerate(extra_bp):
         p.set_val('extra', spacing)
         p.set_val('ratio', ratio)
         # p.set_val('resistance', 0.006)
-        p.set_val('energy', 28.13793103)
+        p.set_val('energy', 32)
 
         p.run_driver()
         
@@ -49,7 +49,7 @@ for i,spacing in enumerate(extra_bp):
             RATIO[i][j] = 1.
 
 
-print(TEMP)
+# print(TEMP)
 print(RATIO)
 df = pd.read_csv('opt_out.csv')
 spacing = df['spacing'].to_numpy()
@@ -57,24 +57,28 @@ ratio = df['ratio'].to_numpy()
 error = df['success'].to_numpy()
 print(error)
 
+side_range = np.linspace(10,120,20)
+temp_range = np.linspace(300,360,20)
+ratio_range = np.linspace(1,1.2,20)
+
 
 # Plotting
 fig, ax = plt.subplots(3,3)
 ax[0,1].contour(ratio_bp, extra_bp, MASS, 20, cmap='Greens');
 ax[0,1].set_title('Mass')
 
-ax[1,1].contour(ratio_bp, extra_bp, SIDE, 20, cmap='Greys');
+ax[1,1].contour(ratio_bp, extra_bp, SIDE, levels=side_range, cmap='Greys');
 ax[1,1].contour(ratio_bp, extra_bp, MASS, 20, cmap='Greens');
-ax[1,1].contour(ratio_bp, extra_bp, TEMP, levels=np.linspace(300,900,20), cmap='Reds');
-ax[1,1].contour(ratio_bp, extra_bp, RATIO, levels=np.linspace(1,2,20), cmap='Blues');
+ax[1,1].contour(ratio_bp, extra_bp, TEMP, levels=temp_range, cmap='Reds');
+ax[1,1].contour(ratio_bp, extra_bp, RATIO, levels=ratio_range, cmap='Blues');
 ax[1,1].plot(ratio[error<3],spacing[error<3],"x")  # converged cases
 ax[1,1].plot(ratio[error>3],spacing[error>3],"o")  # failed cases
-ax[2,1].contour(ratio_bp, extra_bp, SIDE, 20, cmap='Greys');
+ax[2,1].contour(ratio_bp, extra_bp, SIDE, levels=side_range, cmap='Greys');
 ax[2,1].set_title('side')
-t = ax[1,2].contour(ratio_bp, extra_bp, TEMP, levels=np.linspace(300,900,20), cmap='Reds');
+t = ax[1,2].contour(ratio_bp, extra_bp, TEMP, levels=temp_range, cmap='Reds');
 #ax[1,2].clabel(t, inline=True, fontsize=10)
 ax[1,2].set_title('Temp')
-ax[1,0].contour(ratio_bp, extra_bp, RATIO, levels=np.linspace(1,2,20), cmap='Blues');
+ax[1,0].contour(ratio_bp, extra_bp, RATIO, levels=ratio_range, cmap='Blues');
 ax[1,0].set_title('Ratio')
 
 # plt.colorbar()
