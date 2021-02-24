@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
         phase = get_hp_phase(num_cells=cells, db=(1, 100), num_segments=5, solve_segments=False, geom=geom)
 
-        phase = traj.add_phase('phase', phase)
+        # phase = traj.add_phase('phase', phase)
 
         # phase.add_boundary_constraint('T_cell_0', loc='final', equals=300)
 
