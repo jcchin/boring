@@ -13,5 +13,7 @@ setup(name='boring_battery',
         'pandas',
         'lcapy',
         'testflo',
+        'openpyxl',
+        'more_itertools',
       ]
 )
