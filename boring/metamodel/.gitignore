@@ -2,3 +2,5 @@
 /ALPSO_print.out
 /opt_out.csv
 /driver_scaling_report.html
+*.gif
+*.csv

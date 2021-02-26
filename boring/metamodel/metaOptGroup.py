@@ -9,10 +9,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import time
-import more_itertools as mit
 
 from boring.metamodel.sizing_component import MetaPackSizeComp
 from boring.metamodel.training_data import MetaTempGroup
+from boring.util.opt_plots import opt_plots
 
 class MetaOptimize(om.Group):
     def initialize(self):
@@ -38,6 +38,11 @@ class MetaOptimize(om.Group):
                                 promotes_inputs=['temp2_data','temp3_data'],
                                 promotes_outputs=['temp_ratio'])
 
+        self.add_subsystem(name='obj',
+                                subsys=om.ExecComp('obj = mass + side/80'),
+                                promotes_inputs=['mass','side'],
+                                promotes_outputs=['obj'])
+
 if __name__ == "__main__":
     p = om.Problem()
     model = p.model
@@ -53,6 +58,7 @@ if __name__ == "__main__":
 
     p.driver.options['optimizer'] = 'SNOPT'
     p.driver.opt_settings['Major optimality tolerance'] = 6e-5
+    # p.driver.opt_settings['Major iterations limit'] = 10000
     # p.driver.opt_settings['Major step limit'] = 0.01
     p.set_solver_print(level=2)
 
@@ -65,16 +71,16 @@ if __name__ == "__main__":
     # (DV-ref0)/ref
 
 
-    p.model.add_design_var('extra', lower=1.0, upper=2.02, ref=1e-3)
+    p.model.add_design_var('extra', lower=1.0, upper=2.02, ref=2e-3)
     # p.model.add_design_var('xtra', lower=0, upper=0.69, ref=1e-1)
 
     p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref=1) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
-    p.model.add_objective('mass', ref=1e-2)
+    p.model.add_objective('obj', ref=1e-2)
     # p.model.add_objective('side', ref=1)
-    p.model.add_constraint('temp2_data', upper=360, ref=1e3)
-    p.model.add_constraint('temp_ratio', upper=1.2)
-    # p.model.add_objective('side', ref=1e2) # upper=120,
+    p.model.add_constraint('temp2_data', upper=340, ref=1e2)
+    p.model.add_constraint('temp_ratio', upper=1.1)
+    # p.model.add_constraint('side', upper=120, ref=1e2) # 
     # p.model.add_constraint('solid_area', lower=6000)
 
 
@@ -90,12 +96,10 @@ if __name__ == "__main__":
     p.set_val('al_density', 2.7e-6, units='kg/mm**3')
     p.set_val('n',4)
 
-    x = 30
-    nrg_list = np.linspace(16.,32.,x)
-    # print('foobar', nrg_list[24])
-    # exit()
+    #x = 30
+    #nrg_list = np.linspace(16.,32.,x)
 
-    # nrg_list = np.array([22.8,])
+    nrg_list = np.array([24,])
     x = len(nrg_list)
 
 
@@ -115,8 +119,8 @@ if __name__ == "__main__":
         p.set_val('energy',nrg_list[i])
         print('current energy: ',nrg_list[i], " (running between 16 - 32)" )
 
-        p.set_val('extra', 1.01)
-        p.set_val('ratio', 0.25)
+        p.set_val('extra', 1.3)  # 1.3
+        p.set_val('ratio', 0.75)  # .75
 
         p.run_driver()
         p.run_model()
@@ -133,60 +137,9 @@ if __name__ == "__main__":
         opt_temp[i]=p.get_val('temp2_data')
         # density[i] = 128/(.048*16*12/kJ + mass*(12/kJ))
 
+    
     cell_dens = 225*((nrg_list*2/3)/12)
     pack_dens = (16*nrg_list*2/3)/(.048*16 + opt_mass)
-    # = 10.666*nrg_list/(0.768 + opt_mass)
-
-    indices = [i for i in range(len(opt_success)) if opt_success[i] > 3]  # record indices where 32,41
-    def find_ranges(iterable):  #     Yield range of consecutive numbers
-        for group in mit.consecutive_groups(iterable):
-            group = list(group)
-            if len(group) == 1:
-                yield group[0]
-            else:
-                yield group[0], group[-1]
-
-    zones = list(find_ranges(indices))
-    print(zones)
-    
-    fig, ax = plt.subplots(3,3)
-
-    ax[0,2].plot(nrg_list,opt_temp)
-    ax[0,2].set_ylabel('Neighbor Temp')
-    ax[1,2].plot(nrg_list,opt_side)
-    ax[1,2].set_ylabel('side')
-    ax[2,2].plot(cell_dens,pack_dens)
-    ax[2,2].plot(cell_dens,cell_dens*0.3+45) # *0.412+80
-    ax[2,2].set_ylabel('Wh/kg pack')
-    ax[2,2].set_xlabel('Wh/kg cell')
-    #fig.delaxes(ax[1][2])
-    #fig.delaxes(ax[2][2])
-    ax[0,0].plot(nrg_list,opt_mass)
-    ax[0,0].set_ylabel('optimal mass (kg)')
-    ax[1,0].plot(nrg_list,opt_spacing)
-    ax[1,0].set_ylabel('optimal spacing')
-    ax[2,0].plot(nrg_list,opt_ratio)
-    ax[2,0].set_ylabel('optimal hole ratio')
-    ax[2,0].set_xlabel('energy (kJ)')
-    # ax[0,1].plot(nrg_list,opt_res)
-    # ax[0,1].set_ylabel('opt resistance')
-    ax[1,1].plot(nrg_list,opt_t_ratio)
-    ax[1,1].set_ylabel('temp ratio')
-    ax[2,1].plot(nrg_list,opt_success)
-    for zone in zones:  # plot vertical red zones on all subplots (except the last plot)
-        if type(zone) is tuple: #it's a range
-            (minz,maxz) = zone
-            [ax2.axvspan(nrg_list[minz], nrg_list[maxz], alpha=0.5, color='red') for ax2 in ax.flatten()[:-1]]
-        elif (zone == x-1):
-            [ax2.axvspan(nrg_list[zone-1], nrg_list[zone], alpha=0.5, color='red') for ax2 in ax.flatten()[:-1]]
-        else: # it's just one point
-            [ax2.axvspan(nrg_list[zone-1], nrg_list[zone+1], alpha=0.5, color='red') for ax2 in ax.flatten()[:-1]]
-    # https://stackoverflow.com/questions/2154249/identify-groups-of-continuous-numbers-in-a-list
-    
-    ax[2,1].set_ylabel('opt_success')
-    ax[2,1].set_xlabel('energy (kJ)')
-    plt.show()
-
 
     #p.run_driver()
 
@@ -226,6 +179,8 @@ if __name__ == "__main__":
     #  # save to CSV
     df=pd.DataFrame({
                     'mass':opt_mass,
+                    'temp':opt_temp,
+                    'side':opt_side,
                     'energy':nrg_list,
                     'spacing':opt_spacing,
                     'ratio':opt_ratio,
@@ -235,3 +190,5 @@ if __name__ == "__main__":
                     'success': opt_success
                     })
     df.to_csv('opt_out.csv',index=False)
+
+    opt_plots(['opt_out.csv'],x)

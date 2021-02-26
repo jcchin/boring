@@ -13,10 +13,10 @@ import pickle
 #t_data = np.load('../util/xlsx2np/outputs/test3.npy')
 # t_data2 = np.load('cell2_16_32kj_exra.npy')
 # t_data3 = np.load('cell3_16_32kj_exra.npy')
-# t_data2 = np.load('cell2_h10_t20.npy')
-# t_data3 = np.load('cell3_h10_t20.npy')
-t_data2 = np.load('cell2_2_24.npy')
-t_data3 = np.load('cell3_2_24.npy')
+t_data2 = np.load('cell2_2_24.npy')  # Al
+t_data3 = np.load('cell3_2_24.npy')  # Al
+# t_data2 = np.load('cell2_pcm.npy')
+# t_data3 = np.load('cell3_pcm.npy')
 t_data2[t_data2 == 0] = 2400.  # replace broken cases with a (doubly) high value (for ratio calc =2 for invalid cases)
 t_data3[t_data3 == 0] = 1200.  # replace broken cases with a high value
 # bp = pickle.load( open( "cell2.pickle", "rb" ) )
