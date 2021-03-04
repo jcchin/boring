@@ -83,7 +83,7 @@ import pickle
 
 ### Settings ###
 
-num_param = 3 #Required because there is no way to programatically differentiate 
+num_param = 2 #Required because there is no way to programatically differentiate 
 # between parameters and timeseries portions
 
 # If batch processing, export each to its own output file or merge all into one file?
@@ -95,7 +95,7 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 
 def getFiles():
     
-    files = glob.glob(os.path.join(cwd,'inputs','cell2_ho*.xlsx'))
+    files = glob.glob(os.path.join(cwd,'inputs','cell2_hn*.xlsx'))
     
     
     #Check there are >0 files, and that they are all xlsx

@@ -17,31 +17,41 @@ from boring.util.opt_plots import opt_plots
 class MetaOptimize(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('config', types=str, default='')
+
 
     def setup(self):
         nn = self.options['num_nodes']
+        config = self.options['config']
 
         # self.add_subsystem('xform', om.ExecComp('extra=exp(xtra)', units='mm'), promotes=['*'])
 
-        self.add_subsystem(name='size',
-                           subsys = MetaPackSizeComp(num_nodes=nn),
-                           promotes_inputs=['cell_rad', 'extra', 'ratio', 'length','al_density','n'],
-                           promotes_outputs=['side','solid_area', 'cell_cutout_area', 'air_cutout_area', 'area', 'volume', 'mass'])
+        if (config != 'honeycomb'):
+            self.add_subsystem(name='size',
+                               subsys = MetaPackSizeComp(num_nodes=nn),
+                               promotes_inputs=['cell_rad', 'extra', 'ratio', 'length','al_density','n'],
+                               promotes_outputs=['side','solid_area', 'cell_cutout_area', 'air_cutout_area', 'area', 'volume', 'mass'])
+            inpts = ['energy','extra', 'ratio']
+            outpts = ['temp2_data','temp3_data']
+        else:
+            inpts = ['energy','extra']
+            outpts = ['temp2_data','temp3_data','mass']
 
         self.add_subsystem(name='temp',
-                           subsys=MetaTempGroup(num_nodes=nn),
-                           promotes_inputs=['energy','extra', 'ratio'],#,'resistance'],
-                           promotes_outputs=['temp2_data','temp3_data'])
+                           subsys=MetaTempGroup(num_nodes=nn,config=config),
+                           promotes_inputs=inpts,
+                           promotes_outputs=outpts)
 
         self.add_subsystem(name='temp_ratio',
                                 subsys=om.ExecComp('temp_ratio = temp2_data/temp3_data', units='degK'),
                                 promotes_inputs=['temp2_data','temp3_data'],
                                 promotes_outputs=['temp_ratio'])
 
-        self.add_subsystem(name='obj',
-                                subsys=om.ExecComp('obj = mass + side/80'),
-                                promotes_inputs=['mass','side'],
-                                promotes_outputs=['obj'])
+        if (config != 'honeycomb'):
+            self.add_subsystem(name='obj',
+                                    subsys=om.ExecComp('obj = mass + side/80'),
+                                    promotes_inputs=['mass','side'],
+                                    promotes_outputs=['obj'])
 
 if __name__ == "__main__":
     p = om.Problem()
@@ -50,7 +60,7 @@ if __name__ == "__main__":
 
 
     p.model.add_subsystem(name='meta_optimize',
-                          subsys=MetaOptimize(num_nodes=nn),
+                          subsys=MetaOptimize(num_nodes=nn,config='honeycomb'),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
     
@@ -74,9 +84,10 @@ if __name__ == "__main__":
     p.model.add_design_var('extra', lower=1.0, upper=2.02, ref=2e-3)
     # p.model.add_design_var('xtra', lower=0, upper=0.69, ref=1e-1)
 
-    p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref=1) 
+    #p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref=1) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
-    p.model.add_objective('obj', ref=1e-2)
+    # p.model.add_objective('obj', ref=1e-2)
+    p.model.add_objective('mass', ref=1e-2)
     # p.model.add_objective('side', ref=1)
     p.model.add_constraint('temp2_data', upper=340, ref=1e2)
     p.model.add_constraint('temp_ratio', upper=1.1)
@@ -87,17 +98,17 @@ if __name__ == "__main__":
     p.model.linear_solver = om.DirectSolver()
 
     p.setup(force_alloc_complex=True)
-    p.set_val('cell_rad', 9, units='mm')
+    #p.set_val('cell_rad', 9, units='mm')
     #p.set_val('resistance', 0.003)
     # p.set_val('extra', 1.4)
-    p.set_val('ratio', 0.4)
+    #p.set_val('ratio', 0.4)
     p.set_val('energy',16., units='kJ')
-    p.set_val('length', 65.0, units='mm')
-    p.set_val('al_density', 2.7e-6, units='kg/mm**3')
-    p.set_val('n',4)
+    #p.set_val('length', 65.0, units='mm')
+    #p.set_val('al_density', 2.7e-6, units='kg/mm**3')
+    #p.set_val('n',4)
 
-    #x = 30
-    #nrg_list = np.linspace(16.,32.,x)
+    # x = 30
+    # nrg_list = np.linspace(16.,32.,x)
 
     nrg_list = np.array([24,])
     x = len(nrg_list)
@@ -120,7 +131,7 @@ if __name__ == "__main__":
         print('current energy: ',nrg_list[i], " (running between 16 - 32)" )
 
         p.set_val('extra', 1.3)  # 1.3
-        p.set_val('ratio', 0.75)  # .75
+        #p.set_val('ratio', 0.75)  # .75
 
         p.run_driver()
         p.run_model()
@@ -129,11 +140,11 @@ if __name__ == "__main__":
         opt_success[i]=p.driver.pyopt_solution.optInform['value']
         print(p.driver.pyopt_solution.optInform)  # print out the convergence success (SNOPT only)
         opt_mass[i]=p.get_val('mass')
-        opt_ratio[i]=p.get_val('ratio')
+        #opt_ratio[i]=p.get_val('ratio')
         opt_spacing[i]=p.get_val('extra')
         opt_t_ratio[i]=p.get_val('temp_ratio')
         # opt_res[i]=p.get_val('resistance')
-        opt_side[i]=p.get_val('side')
+        #opt_side[i]=p.get_val('side')
         opt_temp[i]=p.get_val('temp2_data')
         # density[i] = 128/(.048*16*12/kJ + mass*(12/kJ))
 
@@ -159,21 +170,21 @@ if __name__ == "__main__":
     # Wh/kg_pack = 128/(.048*16*12/kJ + mass*(12/kJ))
     # Wh/kg_cell = 225*((kJ*2/3)/12)
 
-    print('\n \n')
-    print('-------------------------------------------------------')
-    print('Temperature (deg C). . . . . . . . .', p.get_val('temp2_data', units='degK'))  
-    print('Mass (kg). . . . . . . . . . . . . .', p.get_val('mass', units='kg'))  
-    print('Total X-Sectional Area (mm**2). . . ', p.get_val('solid_area', units='mm**2'))
-    print('Area, with holes (mm**2). . . . . . ', p.get_val('area', units='mm**2'))
-    print('Material Volume (mm**3). . . . . . .', p.get_val('volume', units='mm**3'))
+    # print('\n \n')
+    # print('-------------------------------------------------------')
+    # print('Temperature (deg C). . . . . . . . .', p.get_val('temp2_data', units='degK'))  
+    # print('Mass (kg). . . . . . . . . . . . . .', p.get_val('mass', units='kg'))  
+    # print('Total X-Sectional Area (mm**2). . . ', p.get_val('solid_area', units='mm**2'))
+    # print('Area, with holes (mm**2). . . . . . ', p.get_val('area', units='mm**2'))
+    # print('Material Volume (mm**3). . . . . . .', p.get_val('volume', units='mm**3'))
     print('energy . . . . . . . . . . . . . . .', p.get_val('energy'))
     print('extra. . . . . . . . . . . . . . . .', p.get_val('extra'))
-    print('ratio. . . . . . . . . . . . . . . .', p.get_val('ratio'))
-    print('sanity check. . . . . . . . . . . . ', p.get_val('energy')/p.get_val('extra'))
-    # print('resistance . . . . . . . . . . . . .', p.get_val('resistance'))
-    print('temp ratio . . . . . . . . . . . . .', p.get_val('temp_ratio'))
-    print('-------------------------------------------------------')
-    print('\n \n')
+    # print('ratio. . . . . . . . . . . . . . . .', p.get_val('ratio'))
+    # print('sanity check. . . . . . . . . . . . ', p.get_val('energy')/p.get_val('extra'))
+    # # print('resistance . . . . . . . . . . . . .', p.get_val('resistance'))
+    # print('temp ratio . . . . . . . . . . . . .', p.get_val('temp_ratio'))
+    # print('-------------------------------------------------------')
+    # print('\n \n')
 
 
     #  # save to CSV
