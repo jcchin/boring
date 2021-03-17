@@ -18,18 +18,20 @@ import time
 
 import os, sys, shutil
 
+start_time = time.time()
+
 # Define domain and mesh
 cell_d = 1.8; # diameter of the cell
 extra = 1.5;  # extra space along the diagonal
 ratio = 2.;  # cell diameter/cutout diameter
-n_cells = 3;  # number of cells
+n_cells = 7;  # number of cells
 diagonal = (n_cells*cell_d)+((n_cells)*(cell_d/ratio))*extra;  # diagonal distance from corner to corner
 side = diagonal/(2**0.5);  # square side length
 
 XMIN, XMAX = 0, side; 
 YMIN, YMAX = 0, side; 
 G = [XMIN, XMAX, YMIN, YMAX];
-mresolution = 30; # number of cells
+mresolution = 40; # number of cells
 
 # Define 2D geometry
 
@@ -56,9 +58,9 @@ dx = Measure('dx', domain=mesh, subdomain_data=markers)
 boundaries = MeshFunction('size_t', mesh, 1, mesh.domains())
 
 
-plot(markers,"Subdomains")
+# plot(markers,"Subdomains")
 
-plt.show()
+# plt.show()
 
 
 def plot_compact(u, t, stepcounter, QQ, pl, ax): # Compact plot utility function
@@ -88,9 +90,9 @@ class Conductivity(UserExpression):
         self.markers = markers
     def eval_cell(self, values, x, cell):
         if self.markers[cell.index] == 0:
-            values[0] = 11.4 # copper
+            values[0] = 201./(900*2700) # aluminum
         else:
-            values[0] = 1      # aluminum
+            values[0] = 1./(800*2800)      # battery
 
 
   
@@ -132,7 +134,7 @@ ue = Constant(325.0)
 ue.t = k/10.;
 u0 = u1;
 
-Q = Constant(71000)
+Q = Constant(12000.*(1/((pi*(9^2)*65)/1000000000))/10.)
 L_N = Q*v*dx(2)
 
 bc_D = DirichletBC(V, ue, boundaries, 2)
@@ -155,7 +157,11 @@ while t < T:
     
     # Plot all quantities (see implementation above)
     #plt.clf()
-    pl, ax=plot_compact(u, t, stepcounter, V, pl, ax)
+    
+
+    #pl, ax=plot_compact(u, t, stepcounter, V, pl, ax)
+    
+
     # ani = FuncAnimation(plt.figure(), plot_compact, blit=True)
     # plt.show()
     # Shift to next timestep
@@ -164,11 +170,11 @@ while t < T:
     stepcounter += 1 
 
 
-W = VectorFunctionSpace(mesh, 'P', degree)
-flux_u = project(-k_coeff*grad(u),W)
-plot(flux_u, title='Flux Field')
-plt.show()
-print(flux_u.vector().max())
+# W = VectorFunctionSpace(mesh, 'P', degree)
+# flux_u = project(-k_coeff*grad(u),W)
+# plot(flux_u, title='Flux Field')
+# plt.show()
+# print(flux_u.vector().max())
 
 # Evaluate Temperature of neighboring batteries
 vol = assemble(Constant('1.0')*dx(1)) # Compute the area/volume of 1 battery cell
@@ -182,58 +188,60 @@ print("Average T_4[K] = ", T_4)
 print("Average T_5[K] = ", T_5)
 print("Maximum T[K] = ", u.vector().max())
 print("Minimum T[K] = ", u.vector().min())
-c = plot(u,cmap='jet');
-plt.colorbar(c);
-plt.title("Solution at t=" +str(T));
-plt.show()
+# c = plot(u,cmap='jet');
+# plt.colorbar(c);
+# plt.title("Solution at t=" +str(T));
+# plt.show()
 
-# Scaled variables
-L = 1; W = 1
-mu = 1
-rho = 1
-delta = W/L
-gamma = 0.4*delta**2
-beta = 1.25
-lambda_ = beta
-G_force = 20
-g = gamma
+# # Scaled variables
+# L = 1; W = 1
+# mu = 1
+# rho = 1
+# delta = W/L
+# gamma = 0.4*delta**2
+# beta = 1.25
+# lambda_ = beta
+# G_force = 20
+# g = gamma
 
-# Define function space
-V = VectorFunctionSpace(mesh, 'P', 1);
+# # Define function space
+# V = VectorFunctionSpace(mesh, 'P', 1);
 
-# Define boundary conditions
-tol = 1E-14
+# # Define boundary conditions
+# tol = 1E-14
 
-def clamped_boundary(x, on_boundary):
-    return on_boundary and near(x[1], 0, tol)
+# def clamped_boundary(x, on_boundary):
+#     return on_boundary and near(x[1], 0, tol)
 
-bc = DirichletBC(V, Constant((0,0)), clamped_boundary)
+# bc = DirichletBC(V, Constant((0,0)), clamped_boundary)
 
-# Define strain and stress
-def epsilon(u):
-    return 0.5*(nabla_grad(u) + nabla_grad(u).T)
+# # Define strain and stress
+# def epsilon(u):
+#     return 0.5*(nabla_grad(u) + nabla_grad(u).T)
 
-def sigma(u):
-    return lambda_*nabla_grad(u)*Identity(d) + 2*mu*epsilon(u)
+# def sigma(u):
+#     return lambda_*nabla_grad(u)*Identity(d) + 2*mu*epsilon(u)
 
-# Define variational problem
-u = TrialFunction(V)
-d = u.geometric_dimension()  # space dimension
-v = TestFunction(V)
-f = Constant((G_force*g, -G_force*g))   # Body force per unit volume
-T = Constant((0, 0))                    # Traction forces (tension/compression)
-a = inner(sigma(u), epsilon(v))*dx
-L = dot(f, v)*dx + dot(T, v)*ds
+# # Define variational problem
+# u = TrialFunction(V)
+# d = u.geometric_dimension()  # space dimension
+# v = TestFunction(V)
+# f = Constant((G_force*g, -G_force*g))   # Body force per unit volume
+# T = Constant((0, 0))                    # Traction forces (tension/compression)
+# a = inner(sigma(u), epsilon(v))*dx
+# L = dot(f, v)*dx + dot(T, v)*ds
 
-# Compute solution
-u = Function(V)
-solve(a == L, u, bc)
+# # Compute solution
+# u = Function(V)
+# solve(a == L, u, bc)
 
-# Plot stress
-s = sigma(u) - (1./3)*tr(sigma(u))*Identity(d)  # deviatoric stress
-von_Mises = sqrt(3./2*inner(s, s))
-V = FunctionSpace(mesh, 'P', 1)
-von_Mises = project(von_Mises, V)
-c = plot(von_Mises,cmap='jet');
-plt.colorbar(c);
-plt.show()
+# # Plot stress
+# s = sigma(u) - (1./3)*tr(sigma(u))*Identity(d)  # deviatoric stress
+# von_Mises = sqrt(3./2*inner(s, s))
+# V = FunctionSpace(mesh, 'P', 1)
+# von_Mises = project(von_Mises, V)
+# c = plot(von_Mises,cmap='jet');
+# plt.colorbar(c);
+# plt.show()
+
+print("--- %s seconds ---" % (time.time() - start_time))
