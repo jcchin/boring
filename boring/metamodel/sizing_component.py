@@ -148,9 +148,15 @@ if __name__ == '__main__':
     p=Problem()
     p.model.add_subsystem('sys1', MetaPackSizeComp(num_nodes=nn), promotes=['*'])
 
-    
-
-
     p.setup(force_alloc_complex=True)
     p.run_model()
     p.check_partials(method='cs', compact_print=True)
+
+    print(p.get_val('sys1.hole_r'))
+    print(p.get_val('sys1.side'))
+    print(p.get_val('sys1.solid_area'))
+    print(p.get_val('sys1.cell_cutout_area'))
+    print(p.get_val('sys1.air_cutout_area'))
+    print(p.get_val('sys1.area'))
+    print(p.get_val('sys1.volume'))
+    print(p.get_val('sys1.mass'))
