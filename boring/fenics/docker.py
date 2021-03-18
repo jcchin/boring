@@ -8,15 +8,16 @@ sfile = File("output/Structural.pvd")
 
 # Define domain and mesh
 cell_d = 0.018; # diameter of the cell
-extra = 0.015;  # extra space along the diagonal
-ratio = 2.;  # cell diameter/cutout diameter
+extra = 1.1516;  # extra space along the diagonal
+ratio = 0.7381;  # cell diameter/cutout diameter
 n_cells = 3;  # number of cells     VARY THIS AS WELL 
 
 
 def make_mesh():
 
-    diagonal = (n_cells*cell_d)+((n_cells)*(cell_d/ratio))+extra;  # diagonal distance from corner to corner
-    side = diagonal/(2**0.5);  # square side length
+    side = cell_d*extra*n_cells;  # square side length
+    hole_r = ratio*0.5*cell_d*((2**0.5*extra)-1)
+    offset = cell_d*extra
 
     XMIN, XMAX = 0, side; 
     YMIN, YMAX = 0, side; 
@@ -24,15 +25,14 @@ def make_mesh():
     mresolution = 50; # number of cells     Vary mesh density and capture CPU time - ACTION ITEM NOW
 
     # Define 2D geometry
-    offset = side/n_cells
-    holes = [Circle(Point(offset*i,offset*j), cell_d/(2*ratio)) for j in range(n_cells+1) for i in range(n_cells+1)] # nested list comprehension creates a size (n+1)*(n+1) array
+    holes = [Circle(Point(offset*i,offset*j), hole_r) for j in range(n_cells+1) for i in range(n_cells+1)] # nested list comprehension creates a size (n+1)*(n+1) array
 
     domain = Rectangle(Point(G[0], G[2]), Point(G[1], G[3]))
     for hole in holes:
       domain = domain - hole
 
-    offset2 = side/n_cells
-    batts = [Circle(Point(side/(2*n_cells)+offset2*i,side/(2*n_cells)+offset2*j), cell_d/2) for j in range(n_cells) for i in range(n_cells)]
+    off2 = cell_d/2+ cell_d*(extra-1)/2
+    batts = [Circle(Point(off2+offset*i,off2+offset*j), cell_d/2) for j in range(n_cells) for i in range(n_cells)]
 
     for (i, batt) in enumerate(batts):
       domain.set_subdomain(1+i, batt) # add cells to domain as a sub-domain
