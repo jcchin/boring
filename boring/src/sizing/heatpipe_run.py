@@ -65,7 +65,7 @@ if __name__ == "__main__":
     p = om.Problem(model=om.Group())
     nn = 1
 
-    num_cells_tot = 15
+    num_cells_tot = 2
 
     p.model.add_subsystem(name='hp',
                           subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='flat'),
@@ -87,8 +87,8 @@ if __name__ == "__main__":
     p.run_model()
 
     # om.view_connections(p)
-    p.model.list_inputs(values=True, prom_name=True)
-    p.model.list_outputs(values=True, prom_name=True)
+    # p.model.list_inputs(values=True, prom_name=True)
+    # p.model.list_outputs(values=True, prom_name=True)
     print('Finished Successfully')
 
     print('\n', '\n')

@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     for geom in geoms:
 
-        phase = get_hp_phase(num_cells=cells, db=(1, 100), num_segments=5, solve_segments=False, geom=geom)
+        phase = get_hp_phase(num_cells=cells, db=(10, 10), num_segments=5, solve_segments=False, geom=geom)
 
         # phase = traj.add_phase('phase', phase)
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
         p.setup()
 
         p['phase.t_initial'] = 0.0
-        p['phase.t_duration'] = 100.
+        p['phase.t_duration'] = 10.
 
         for cell in np.arange(cells):
             p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
