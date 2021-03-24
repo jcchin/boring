@@ -33,7 +33,12 @@ class HeatPipeSizeGroup(om.Group):
         if geom == 'ROUND' or geom == 'round':
             self.set_input_defaults('D_v', 0.5 * np.ones(nn), units='m')
             self.set_input_defaults('D_od', 2 * np.ones(nn), units='m')
-        self.set_input_defaults('t_w', 0.01 * np.ones(nn), units='m')
+
+        if geom == 'FLAT' or geom == 'flat':
+            self.set_input_defaults('W', .02 * np.ones(nn), units='m')
+
+        self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
+        self.set_input_defaults('t_wk', 0.00069 * np.ones(nn), units='m')
         self.set_input_defaults('L_adiabatic', 0.01 * np.ones(nn), units='m')
 
 

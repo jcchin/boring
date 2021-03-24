@@ -23,7 +23,8 @@ class TestAxialResistance(unittest.TestCase):
         self.prob['axial_thermal.epsilon'] = 0.46
         self.prob['axial_thermal.k_w'] = 11.4
         self.prob['axial_thermal.k_l'] = 0.6237649484850682
-        self.prob['axial_thermal.L_eff'] = 0.03
+        self.prob['axial_thermal.L_flux'] = 0.02
+        self.prob['axial_thermal.L_adiabatic'] = 0.03
         self.prob['axial_thermal.A_w'] = 8.63937979737193e-06
         self.prob['axial_thermal.A_wk'] = 9.342782392510687e-06 
 

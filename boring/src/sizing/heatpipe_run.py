@@ -16,7 +16,7 @@ import numpy as np
 from boring.src.sizing.thermal_network import Radial_Stack, thermal_link, TempRateComp
 from boring.src.sizing.mass.mass import heatPipeMass
 
-from boring.util.load_inputs import load_inputs
+# from boring.util.load_inputs import load_inputs
 
 
 class HeatPipeGroup(om.Group):
@@ -38,8 +38,12 @@ class HeatPipeGroup(om.Group):
 
         for i in np.arange(n):
 
-            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
-                                                    promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+            if geom == 'ROUND' or geom == 'round':
+                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
+                                                        promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+            if geom == 'FLAT' or geom == 'flat':
+                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
+                                                        promotes_inputs=['W', 't_wk', 't_w', 'k_w', 'L_adiabatic', 'alpha'])
 
             self.add_subsystem(name='T_rate_cell_{}'.format(i),
                                subsys=TempRateComp(num_nodes=nn))
@@ -59,7 +63,22 @@ class HeatPipeGroup(om.Group):
 
         self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(n-1))
 
-        load_inputs('boring.input.assumptions2', self, nn)
+        self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
+        self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
+        self.set_input_defaults('L_flux', 0.02 * np.ones(nn), units='m')
+        self.set_input_defaults('L_adiabatic', 0.03 * np.ones(nn), units='m')
+        self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
+        self.set_input_defaults('t_wk', 0.00069 * np.ones(nn), units='m')
+
+        if geom == 'ROUND' or geom == 'round':
+            self.set_input_defaults('D_od', 0.006 * np.ones(nn), units='m')
+            self.set_input_defaults('D_v', 0.00362 * np.ones(nn), units='m')
+
+        elif geom == 'FLAT' or geom == 'flat':
+            self.set_input_defaults('H', 0.02 * np.ones(nn), units='m')
+            self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
+
+        # load_inputs('boring.input.assumptions2', self, nn)
 
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
@@ -68,13 +87,11 @@ if __name__ == "__main__":
     num_cells_tot = 2
 
     p.model.add_subsystem(name='hp',
-                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='flat'),
+                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='round'),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
 
     p.setup(force_alloc_complex=True)
-
-    p['L_eff'] = (0.02 + 0.1) / 2. + 0.03
 
     T_in = 20 * np.ones(num_cells_tot)
     T_in[1] = 100

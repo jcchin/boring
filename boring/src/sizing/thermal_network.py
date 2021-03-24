@@ -198,7 +198,7 @@ class Bridge(om.Group):
         # Compute Resistances
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'L_flux', 'L_adiabatic', 'A_w', 'A_wk'],
+                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'A_w', 'A_wk'],
                            promotes_outputs=['k_wk']) 
 
         if geom == 'ROUND' or geom == 'round': 
@@ -237,15 +237,15 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='ROUND'):
 
     if geom == 'ROUND' or geom == 'round': 
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['D_v','L_eff','k_w','epsilon'])#,
+                            promotes_inputs=['D_v', 'L_flux', 'L_adiabatic', 'k_w','epsilon'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
 
     elif geom == 'FLAT' or geom =='flat':
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['W', 'H', 't_w', 't_wk', 'L_eff','k_w','epsilon'])#,
+                            promotes_inputs=['W', 'H', 't_w', 't_wk',  'L_flux', 'L_adiabatic', 'k_w','epsilon'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
     
-    model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
+    # model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
     # Link Geometry
     model.connect('{}.size.A_w'.format(l_name),'{}.A_w'.format(b_name)) # this can come from either component
     model.connect('{}.size.A_wk'.format(l_name),'{}.A_wk'.format(b_name)) # this can come from either component
