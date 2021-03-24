@@ -1,6 +1,7 @@
 from dolfin import *
 from mshr import *
 import matplotlib.pyplot as plt
+import numpy as np
 import time 
 
 tfile = File("output/Thermal.pvd")
@@ -145,10 +146,6 @@ vol = assemble(Constant('1.0')*dx(1))
 # Time-stepping loop
 start_time = time.time()
 
-terms = [rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx -dt*q*v*dx(1)]
-for i in range(9):
-    terms.extend([dt*R*u('+')*v('+')*dS(i+1) - dt*R*u1*v('+')*dS(i+1)])
-
 while t < T: 
     # Time scheme
     um = theta*u + (1.0-theta)*u0 
@@ -156,11 +153,16 @@ while t < T:
     #r = (u - u0)/k*v*dx + k_coeff*inner(grad(um), grad(v))*dx - q*v*dx(1) - R*um('+')*v('+')*dS(1) + R*u1*v('+')*dS(1)   # With Neumann BCs -f*v('+')*dS(1)
     if t > 2:
         q = Constant("0")
-    a = sum(terms)
-    a = rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx - dt*q*v*dx(1) + dt*R*u('+')*v('+')*dS(1) - dt*R*u1*v('+')*dS(1)
-    + dt*R*u('+')*v('+')*dS(2) - dt*R*u1*v('+')*dS(2) + dt*R*u('+')*v('+')*dS(3) - dt*R*u1*v('+')*dS(3) + dt*R*u('+')*v('+')*dS(4) - dt*R*u1*v('+')*dS(4)
-    + dt*R*u('+')*v('+')*dS(5) - dt*R*u1*v('+')*dS(5) + dt*R*u('+')*v('+')*dS(6) - dt*R*u1*v('+')*dS(6) + dt*R*u('+')*v('+')*dS(7) - dt*R*u1*v('+')*dS(7)
-    + dt*R*u('+')*v('+')*dS(8) - dt*R*u1*v('+')*dS(8) + dt*R*u('+')*v('+')*dS(9) - dt*R*u1*v('+')*dS(9)
+    # a = sum(terms)
+    # a = rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx - dt*q*v*dx(1) + dt*R*u('+')*v('+')*dS(1) - dt*R*u1*v('+')*dS(1)
+    # + dt*R*u('+')*v('+')*dS(2) - dt*R*u1*v('+')*dS(2) + dt*R*u('+')*v('+')*dS(3) - dt*R*u1*v('+')*dS(3) + dt*R*u('+')*v('+')*dS(4) - dt*R*u1*v('+')*dS(4)
+    # + dt*R*u('+')*v('+')*dS(5) - dt*R*u1*v('+')*dS(5) + dt*R*u('+')*v('+')*dS(6) - dt*R*u1*v('+')*dS(6) + dt*R*u('+')*v('+')*dS(7) - dt*R*u1*v('+')*dS(7)
+    # + dt*R*u('+')*v('+')*dS(8) - dt*R*u1*v('+')*dS(8) + dt*R*u('+')*v('+')*dS(9) - dt*R*u1*v('+')*dS(9)
+    terms = rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx -dt*q*v*dx(1)
+    lhs = []
+    for i in range(n_cells**2):
+      lhs.append(dt*R*u('+')*v('+')*dS(i+1) - dt*R*u1*v('+')*dS(i+1))
+    a = terms + sum(lhs)
     # Solve the Heat equation (one timestep)
     solve(a==0, u)      # Add bcs to this if using Dirichlet BCs
     # Shift to next timestep
@@ -169,6 +171,20 @@ while t < T:
     stepcounter += 1 
     # Output solution to the VTK file
     tfile << u, t
+
+def maxsub(f, subdomains, subd_id):
+    '''Minimum of f over subdomains cells marked with subd_id'''
+    
+    V = f.function_space()
+    dm = V.dofmap()
+
+    subd_dofs = np.unique(np.hstack(
+        [dm.cell_dofs(c.index()) for c in SubsetIterator(subdomains, subd_id)]))
+    
+    return np.max(f.vector().get_local()[subd_dofs])
+
+print("Max Final T2 = ", maxsub(u,markers,2))           # Compute area-max T over cell 2
+
 
 ####################################################################### Structural Solver ########################################################
 # Scaled variables

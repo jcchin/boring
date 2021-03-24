@@ -13,13 +13,13 @@ import pickle
 #t_data = np.load('../util/xlsx2np/outputs/test3.npy')
 # t_data2 = np.load('cell2_16_32kj_exra.npy')
 # t_data3 = np.load('cell3_16_32kj_exra.npy')
-# t_data2 = np.load('cell2_2_24.npy')  # Al
-# t_data3 = np.load('cell3_2_24.npy')  # Al
-t_data2 = np.load('cell2_hny.npy')  # Al
-t_data3 = np.load('cell3_hny.npy')  # Al
+t_data2 = np.load('cell2_2_24.npy')  # Al grid
+t_data3 = np.load('cell3_2_24.npy')  # Al grid
+# t_data2 = np.load('cell2_hny.npy')  # Al honeycomb
+# t_data3 = np.load('cell3_hny.npy')  # Al honeycomb
 m_data = np.squeeze(np.load('mass.npy'))
-print(m_data.shape)
-print(t_data2)
+# print(m_data.shape)
+# print(t_data2)
 # t_data2 = np.load('cell2_pcm.npy')
 # t_data3 = np.load('cell3_pcm.npy')
 t_data2[t_data2 == 0] = 2400.  # replace broken cases with a (doubly) high value (for ratio calc =2 for invalid cases)

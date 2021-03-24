@@ -19,8 +19,8 @@ class MetaPackSizeComp(om.ExplicitComponent):
         nn = self.options['num_nodes']
 
         self.add_input('cell_rad', 9, units='mm', desc='radius of an 18650 cell')
-        self.add_input('extra',  1, units='mm', desc='extra spacing along the diagonal')
-        self.add_input('ratio', 1., desc='cell radius to cutout radius')
+        self.add_input('extra',  1.1516, desc='extra spacing along the diagonal')
+        self.add_input('ratio', 0.7381, desc='cell radius to cutout radius')
         self.add_input('length', 65, units='mm', desc='length of the case')
         self.add_input('al_density', 2.7e-6, units='kg/mm**3', desc='density of aluminum')
         self.add_input('n', 4,  desc='cell array deminsion')

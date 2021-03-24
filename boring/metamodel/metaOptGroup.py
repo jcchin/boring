@@ -14,6 +14,8 @@ from boring.metamodel.sizing_component import MetaPackSizeComp
 from boring.metamodel.training_data import MetaTempGroup
 from boring.util.opt_plots import opt_plots
 
+from boring.fenics.fenics_baseline import FenicsBaseline
+
 class MetaOptimize(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
@@ -26,24 +28,30 @@ class MetaOptimize(om.Group):
 
         # self.add_subsystem('xform', om.ExecComp('extra=exp(xtra)', units='mm'), promotes=['*'])
 
-        if (config != 'honeycomb'):
+        if (config == 'honeycomb'):
+            inpts = ['energy','extra']
+            outpts = ['temp2_data','temp3_data','mass']
+        else:
             self.add_subsystem(name='size',
                                subsys = MetaPackSizeComp(num_nodes=nn),
                                promotes_inputs=['cell_rad', 'extra', 'ratio', 'length','al_density','n'],
                                promotes_outputs=['side','solid_area', 'cell_cutout_area', 'air_cutout_area', 'area', 'volume', 'mass'])
             inpts = ['energy','extra', 'ratio']
             outpts = ['temp2_data','temp3_data']
-        else:
-            inpts = ['energy','extra']
-            outpts = ['temp2_data','temp3_data','mass']
 
-        self.add_subsystem(name='temp',
-                           subsys=MetaTempGroup(num_nodes=nn,config=config),
+
+        # self.add_subsystem(name='temp',
+        #                    subsys=MetaTempGroup(num_nodes=nn,config=config),
+        #                    promotes_inputs=inpts,
+        #                    promotes_outputs=outpts)
+        self.add_subsystem(name='baseline_temp',
+                           subsys=FenicsBaseline(num_nodes=nn),
                            promotes_inputs=inpts,
                            promotes_outputs=outpts)
 
+
         self.add_subsystem(name='temp_ratio',
-                                subsys=om.ExecComp('temp_ratio = temp2_data/temp3_data', units='degK'),
+                                subsys=om.ExecComp('temp_ratio = temp2_data/temp3_data'),
                                 promotes_inputs=['temp2_data','temp3_data'],
                                 promotes_outputs=['temp_ratio'])
 
@@ -60,7 +68,7 @@ if __name__ == "__main__":
 
 
     p.model.add_subsystem(name='meta_optimize',
-                          subsys=MetaOptimize(num_nodes=nn,config='honeycomb'),
+                          subsys=MetaOptimize(num_nodes=nn), #,config='honeycomb'
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
     
@@ -82,9 +90,8 @@ if __name__ == "__main__":
 
 
     p.model.add_design_var('extra', lower=1.0, upper=2.02, ref=2e-3)
-    # p.model.add_design_var('xtra', lower=0, upper=0.69, ref=1e-1)
 
-    #p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref=1) 
+    p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref=1) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
     # p.model.add_objective('obj', ref=1e-2)
     p.model.add_objective('mass', ref=1e-2)
@@ -101,7 +108,7 @@ if __name__ == "__main__":
     #p.set_val('cell_rad', 9, units='mm')
     #p.set_val('resistance', 0.003)
     # p.set_val('extra', 1.4)
-    #p.set_val('ratio', 0.4)
+    # p.set_val('ratio', 0.4)
     p.set_val('energy',16., units='kJ')
     #p.set_val('length', 65.0, units='mm')
     #p.set_val('al_density', 2.7e-6, units='kg/mm**3')
@@ -131,7 +138,7 @@ if __name__ == "__main__":
         print('current energy: ',nrg_list[i], " (running between 16 - 32)" )
 
         p.set_val('extra', 1.3)  # 1.3
-        #p.set_val('ratio', 0.75)  # .75
+        p.set_val('ratio', 0.4)  # .75
 
         p.run_driver()
         p.run_model()
@@ -179,7 +186,7 @@ if __name__ == "__main__":
     # print('Material Volume (mm**3). . . . . . .', p.get_val('volume', units='mm**3'))
     print('energy . . . . . . . . . . . . . . .', p.get_val('energy'))
     print('extra. . . . . . . . . . . . . . . .', p.get_val('extra'))
-    # print('ratio. . . . . . . . . . . . . . . .', p.get_val('ratio'))
+    print('ratio. . . . . . . . . . . . . . . .', p.get_val('ratio'))
     # print('sanity check. . . . . . . . . . . . ', p.get_val('energy')/p.get_val('extra'))
     # # print('resistance . . . . . . . . . . . . .', p.get_val('resistance'))
     # print('temp ratio . . . . . . . . . . . . .', p.get_val('temp_ratio'))
@@ -202,4 +209,4 @@ if __name__ == "__main__":
                     })
     df.to_csv('opt_out.csv',index=False)
 
-    opt_plots(['opt_out.csv'],x)
+    # opt_plots(['opt_out.csv'],x)

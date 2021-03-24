@@ -59,7 +59,7 @@ def opt_plots(filename, x):
                     yield group[0], group[-1]
 
         zones = list(find_ranges(indices))
-        print(zones)
+        #print(zones)
 
 
         ax[0,2].plot(nrg_list[z],opt_temp[z])
