@@ -20,18 +20,19 @@ class TestAxialResistance(unittest.TestCase):
         p1.run_model()
 
     def test_axial_outputs(self):
-        self.prob['axial_thermal.epsilon'] = 1
-        self.prob['axial_thermal.k_w'] = 2
-        self.prob['axial_thermal.k_l'] = 3
-        self.prob['axial_thermal.L_eff'] = 4
-        self.prob['axial_thermal.A_w'] = 5
-        self.prob['axial_thermal.A_wk'] = 6
+        self.prob['axial_thermal.epsilon'] = 0.46
+        self.prob['axial_thermal.k_w'] = 11.4
+        self.prob['axial_thermal.k_l'] = 0.6237649484850682
+        self.prob['axial_thermal.L_flux'] = 0.02
+        self.prob['axial_thermal.L_adiabatic'] = 0.03
+        self.prob['axial_thermal.A_w'] = 8.63937979737193e-06
+        self.prob['axial_thermal.A_wk'] = 9.342782392510687e-06 
 
         self.prob.run_model()
 
-        assert_near_equal(self.prob.get_val('axial_thermal.k_wk'), 3., tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('axial_thermal.R_aw'), 0.4, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('axial_thermal.R_awk'), 0.22222222, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('axial_thermal.k_wk'), 6.442931876303132, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('axial_thermal.R_aw'), 304.6027618983643, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('axial_thermal.R_awk'), 498.38100523379876, tolerance=1.0E-5)
 
     def test_partials(self):  # derivative check
 

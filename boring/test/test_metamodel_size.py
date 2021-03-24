@@ -19,7 +19,7 @@ class TestSize(unittest.TestCase):
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
-    def test_tot_size(self):  # calculation regression test
+    def _test_tot_size(self):  # calculation regression test
 
         self.prob['size.cell_rad'] = 9
         self.prob['size.extra'] = 1

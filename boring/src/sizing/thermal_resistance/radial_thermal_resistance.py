@@ -24,18 +24,15 @@ class RadialThermalResistance(om.ExplicitComponent):
         self.add_input('A_inter', val=1.0 * np.ones(nn), units='m**2',
                        desc='area of wick/vapor interface of the condenser/evaporator')
 
-        if geom == 'ROUND' or 'round':
+        if geom == 'ROUND' or geom == 'round':
             self.add_input('D_v', val=1.0 * np.ones(nn), units='m', desc='diameter of vapor region')
             self.add_input('D_od', val=1.0 * np.ones(nn), units='m', desc='outer diameter')
             self.add_input('r_i', val=1.0 * np.ones(nn), units='m', desc='inner radius')
             self.add_input('L_flux', val=1.0 * np.ones(nn), units='m', desc='length of condensor/evaporator')
 
-        elif geom == 'FLAT' or 'flat':
-            self.add_input('t_w', val=0.0005*np.ones(), units='m', desc='wall thickness')
-            self.add_input('t_wk', val=0.00069*np.ones(), units='m', desc='wick thickness')
-
-        else:
-            pass
+        elif geom == 'FLAT' or geom == 'flat':
+            self.add_input('t_w', val=0.0005*np.ones(nn), units='m', desc='wall thickness')
+            self.add_input('t_wk', val=0.00069*np.ones(nn), units='m', desc='wick thickness')
 
         self.add_output('h_inter', val=1.0 * np.ones(nn), units='W/(m**2/K)',
                         desc='HTC of wick/vapor interface of the condenser/evaporator')
@@ -53,11 +50,11 @@ class RadialThermalResistance(om.ExplicitComponent):
         self.declare_partials('h_inter', ['alpha', 'h_fg', 'T_hp', 'v_fg', 'R_g', 'P_v'], rows=ar, cols=ar)
         self.declare_partials('R_inter', ['alpha', 'h_fg', 'T_hp', 'v_fg', 'R_g', 'P_v', 'A_inter'], rows=ar, cols=ar)
 
-        if geom == 'ROUND' or 'round':
+        if geom == 'ROUND' or geom == 'round':
             self.declare_partials('R_w', ['D_od', 'r_i', 'k_w', 'L_flux'], rows=ar, cols=ar)
             self.declare_partials('R_wk', ['D_v', 'r_i', 'k_wk', 'L_flux'], rows=ar, cols=ar)
 
-        elif geom == 'FLAT' or 'flat':  
+        elif geom == 'FLAT' or geom == 'flat':  
             self.declare_partials('R_w', ['t_w', 'k_w', 'A_inter'], rows=ar, cols=ar)
             self.declare_partials('R_wk', ['t_wk', 'k_wk', 'A_inter'], rows=ar, cols=ar)
 
@@ -80,7 +77,7 @@ class RadialThermalResistance(om.ExplicitComponent):
             1 / (2 * np.pi * R_g * T_hp)) * (1 - P_v * v_fg / (2 * h_fg))
         outputs['R_inter'] = 1 / (h_inter * A_inter)
 
-        if geom == 'ROUND' or 'round':
+        if geom == 'ROUND' or geom == 'round':
             D_od = inputs['D_od']
             r_i = inputs['r_i']
             L_flux = inputs['L_flux']
@@ -88,15 +85,12 @@ class RadialThermalResistance(om.ExplicitComponent):
             outputs['R_w'] = np.log((D_od / 2) / (r_i)) / (2 * np.pi * k_w * L_flux)
             outputs['R_wk'] = np.log((r_i) / (D_v / 2)) / (2 * np.pi * k_wk * L_flux)
 
-        elif geom == 'FLAT' or 'flat':
+        elif geom == 'FLAT' or geom == 'flat':
             t_w = inputs['t_w']
             t_wk = inputs['t_wk']
 
             outputs['R_w'] = inputs['t_w']/(k_w*A_inter)
             outputs['R_wk'] = inputs['t_wk']/(k_wk*A_inter)
-
-        else:
-            pass
 
     def compute_partials(self, inputs, partials):
         geom = self.options['geom']
@@ -140,7 +134,7 @@ class RadialThermalResistance(om.ExplicitComponent):
         partials['R_inter', 'P_v'] = -dh_dPv / (h_inter ** 2 * A_inter)
         partials['R_inter', 'A_inter'] = -1 / (h_inter * A_inter ** 2)
 
-        if geom == 'ROUND' or 'round':
+        if geom == 'ROUND' or geom == 'round':
             D_od = inputs['D_od']
             r_i = inputs['r_i']
             L_flux = inputs['L_flux']
@@ -156,7 +150,7 @@ class RadialThermalResistance(om.ExplicitComponent):
             partials['R_wk', 'k_wk'] = -1 * np.log((r_i) / (D_v / 2)) / (2 * np.pi * k_wk ** 2 * L_flux)
             partials['R_wk', 'L_flux'] = -1 * np.log((r_i) / (D_v / 2)) / (2 * np.pi * k_wk * L_flux ** 2)
 
-        elif geom == 'FLAT' or 'flat':
+        elif geom == 'FLAT' or geom == 'flat':
             t_w = inputs['t_w']
             t_wk = inputs['t_wk']
 
@@ -167,9 +161,6 @@ class RadialThermalResistance(om.ExplicitComponent):
             partials['R_wk', 't_wk'] = 1/(k_wk*A_inter)
             partials['R_wk', 'k_wk'] = - t_wk / (k_wk**2 * A_inter)
             partials['R_wk', 'A_inter'] = - t_wk / (k_wk * A_inter**2)
-
-        else: 
-            pass
 
 
 
