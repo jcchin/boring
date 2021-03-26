@@ -14,10 +14,12 @@ import openmdao.api as om
 import matplotlib.pyplot as plt;
 from matplotlib.animation import FuncAnimation
 
-from IPython.display import clear_output, display; import time; import dolfin.common.plotting as fenicsplot 
+#from IPython.display import clear_output, display; import time; import dolfin.common.plotting as fenicsplot 
 import time
-
+import numpy as np
 import os, sys, shutil
+
+# Classes to define different material properties
 
 class Conductivity(UserExpression):
     def __init__(self, markers, **kwargs):
@@ -25,9 +27,29 @@ class Conductivity(UserExpression):
         self.markers = markers
     def eval_cell(self, values, x, cell):
         if self.markers[cell.index] == 0:
-            values[0] = 11.4 # copper
+            values[0] = 204      # aluminum
         else:
-            values[0] = 1      # aluminum
+            values[0] = 1.3      # batteries
+
+class Density(UserExpression):
+    def __init__(self, markers, **kwargs):
+        super(Density, self).__init__(**kwargs)
+        self.markers = markers
+    def eval_cell(self, values, x, cell):
+        if self.markers[cell.index] == 0:
+            values[0] = 2700      # aluminum
+        else:
+            values[0] = 1460      # batteries
+
+class SpecificHeat(UserExpression):
+    def __init__(self, markers, **kwargs):
+        super(SpecificHeat, self).__init__(**kwargs)
+        self.markers = markers
+    def eval_cell(self, values, x, cell):
+        if self.markers[cell.index] == 0:
+            values[0] = 883      # aluminum
+        else:
+            values[0] = 880      # batteries
 
 
 class FenicsBaseline(om.ExplicitComponent):
@@ -38,55 +60,68 @@ class FenicsBaseline(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('cell_d', 18, units='mm', desc='diameter of an 18650 cell')
-        self.add_input('extra',  1, units='mm', desc='extra spacing along the diagonal')
-        self.add_input('ratio', 1., desc='cell radius to cutout radius')
-        self.add_input('al_density', 2.7e-6, units='kg/mm**3', desc='density of aluminum')
-        self.add_input('n_cells', 4,  desc='cell array deminsion')
+        #self.add_input('cell_d', 0.018, units='m', desc='diameter of an 18650 cell')
+        self.add_input('extra',  1.1516, desc='extra spacing along the diagonal')
+        self.add_input('ratio', 0.7381, desc='cell radius to cutout radius')
+        self.add_input('energy', 12, units='kJ', desc='energy in heat load')
+        #self.add_input('al_density', 2700, units='kg/m**3', desc='density of aluminum')
+        #self.add_input('n_cells', 4,  desc='cell array deminsion')
 
-        self.add_output('temp1', 100, units='degC', desc='neighboring cell temp')
+        #self.add_output('temp1', 100, units='degC', desc='runaway cell temp')
+        self.add_output('temp2_data', 100, desc='neighboring cell temp')
+        self.add_output('temp3_data', 100, desc='diagonal neighboring cell temp')
+
 
     def setup_partials(self):
-        self.declare_partials('*','*', method='fd')
+        self.declare_partials('*','extra', method='fd', step=0.001)
+        #self.declare_partials('*','ratio', method='fd', step=0.01)
+
 
     def compute(self,i,o):
         # Define domain and mesh
-        cell_d = i['cell_d']
+        cell_d = 0.018#i['cell_d']
         extra = i['extra']  # extra space along the diagonal
         ratio = i['ratio']  # cell diameter/cutout diameter
-        n_cells = int(i['n_cells'])  # number of cells
-        diagonal = (n_cells*cell_d)+((n_cells)*(cell_d/ratio))*extra;  # diagonal distance from corner to corner
-        side = diagonal/(2**0.5);  # square side length
+        energy = float(i['energy'])
+        n_cells = 4#int(i['n_cells'])  # number of cells
+        
+        side = cell_d*extra*n_cells;  # square side length
+        hole_r = ratio*0.5*cell_d*((2**0.5*extra)-1)
+        offset = cell_d*extra
 
-        G = [0, side, 0, side];
-        mresolution = 30; # number of cells
+        XMIN, XMAX = 0, side; 
+        YMIN, YMAX = 0, side; 
+        G = [XMIN, XMAX, YMIN, YMAX];
+        mresolution = 30; # number of cells     Vary mesh density and capture CPU time - ACTION ITEM NOW
 
         # Define 2D geometry
-
-        offset = side/n_cells
-        holes = [Circle(Point(offset*i,offset*j), cell_d/(2*ratio)) for j in range(n_cells+1) for i in range(n_cells+1)] # nested list comprehension creates a size (n+1)*(n+1) array
+        holes = [Circle(Point(offset*i,offset*j), hole_r) for j in range(n_cells+1) for i in range(n_cells+1)] # nested list comprehension creates a size (n+1)*(n+1) array
 
         domain = Rectangle(Point(G[0], G[2]), Point(G[1], G[3]))
         for hole in holes:
           domain = domain - hole
 
-        offset2 = side/n_cells
-        batts = [Circle(Point(side/(2*n_cells)+offset2*i,side/(2*n_cells)+offset2*j), cell_d/2) for j in range(n_cells) for i in range(n_cells)]
+        off2 = cell_d/2+ cell_d*(extra-1)/2
+        batts = [Circle(Point(off2+offset*i,off2+offset*j), cell_d/2) for j in range(n_cells) for i in range(n_cells)]
 
         for (i, batt) in enumerate(batts):
           domain.set_subdomain(1+i, batt) # add cells to domain as a sub-domain
-        mesh = generate_mesh(domain, mresolution)
+        mesh1 = generate_mesh(domain, mresolution)
 
-        markers = MeshFunction('size_t', mesh, 2, mesh.domains())  # size_t = non-negative integers
-        dx = Measure('dx', domain=mesh, subdomain_data=markers)
-        boundaries = MeshFunction('size_t', mesh, 1, mesh.domains())
+        # Mark the sub-domains
+        markers = MeshFunction('size_t', mesh1, 2, mesh1.domains())  # size_t = non-negative integers
+        dx = Measure('dx', domain=mesh1, subdomain_data=markers)
+        # Extract facets to apply boundary conditions for internal boundaries
+        boundaries = MeshFunction('size_t', mesh1, mesh1.topology().dim()-1)
   
-        #k_coeff = 0.5
-        k_coeff = Conductivity(markers, degree=1)
+        # Materials
+        k = Conductivity(markers, degree=1)  
+        rho = Density(markers, degree=1)  
+        cp = SpecificHeat(markers, degree=1)     
 
         # Define finite element function space
         degree = 1;
-        V = FunctionSpace(mesh, "CG", degree);
+        V = FunctionSpace(mesh1, "CG", degree);
 
         # Finite element functions
         v = TestFunction(V); 
@@ -94,74 +129,100 @@ class FenicsBaseline(om.ExplicitComponent):
 
         # Time parameters
         theta = 1.0 # Implicit Euler
-        k = 0.05; # Time step
+        dt = 0.5; # Time step
         t, T = 0., 5.; # Start and end time
 
-        # Exact solution
-        kappa = 1e-1
-        rho = 1.0;
 
-        # Boundray Conditions (Ezra)
+        # Boundray Conditions           
         tol = 1E-14
-        for f in facets(mesh):
+        for f in facets(mesh1):
             domains = []
             for c in cells(f):
                 domains.append(markers[c])
-
             domains = list(set(domains))
             # Domains with [0,i] refer to each boundary within the "copper" plate
             # Domains 1-9 refer to the domains of the batteries
-            if domains == [1]:
-                boundaries[f] = 2
+            boundaries[f] = int(domains[0])
+
 
         u1= Constant(298.0)
         ue = Constant(325.0)
-        ue.t = k/10.;
         u0 = u1;
 
-        Q = Constant(71000)
-        L_N = Q*v*dx(2)
-
-        bc_D = DirichletBC(V, ue, boundaries, 2)
+        q = Constant((energy*1000/2)*62500) # Neumann Heat Flux
+        R = Constant("333")       # Inverse Contact resistance - [W/(m^2*K)]
 
         # Inititalize time stepping
-        pl, ax = None, None; 
         stepcounter = 0; 
-        timer0 = time.time()
+
+        # Define new measures associated with the interior boundaries
+        dS = Measure('dS', domain=mesh1, subdomain_data=boundaries)
+        # Time-stepping loop
+        start_time = time.time()
+
+        T2_max = 0
+        T3_max = 0
+
+        def maxsub(f, subdomains, subd_id):
+            '''Minimum of f over subdomains cells marked with subd_id'''
+            
+            V = f.function_space()
+            dm = V.dofmap()
+
+            subd_dofs = np.unique(np.hstack(
+                [dm.cell_dofs(c.index()) for c in SubsetIterator(subdomains, subd_id)]))
+            
+            return np.max(f.vector().get_local()[subd_dofs])
 
         # Time-stepping loop
         while t < T: 
             # Time scheme
             um = theta*u + (1.0-theta)*u0 
-            # Weak form of the heat equation in residual form
-            r = (u - u0)/k*v*dx + k_coeff*inner(grad(um), grad(v))*dx 
+            # Heat for first 2 seconds only
+            if t > 2:
+                q = Constant("0")
+
+            terms = rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx -dt*q*v*dx(1)
+            lhs = []
+            for i in range(n_cells**2):
+              lhs.append(dt*R*u('+')*v('+')*dS(i+1) - dt*R*u1*v('+')*dS(i+1))
+            a = terms + sum(lhs)
+            # a = rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx - dt*q*v*dx(1) + dt*R*u('+')*v('+')*dS(1) - dt*R*u1*v('+')*dS(1)
+            # + dt*R*u('+')*v('+')*dS(2) - dt*R*u1*v('+')*dS(2) + dt*R*u('+')*v('+')*dS(3) - dt*R*u1*v('+')*dS(3) + dt*R*u('+')*v('+')*dS(4) - dt*R*u1*v('+')*dS(4)
+            # + dt*R*u('+')*v('+')*dS(5) - dt*R*u1*v('+')*dS(5) + dt*R*u('+')*v('+')*dS(6) - dt*R*u1*v('+')*dS(6) + dt*R*u('+')*v('+')*dS(7) - dt*R*u1*v('+')*dS(7)
+            # + dt*R*u('+')*v('+')*dS(8) - dt*R*u1*v('+')*dS(8) + dt*R*u('+')*v('+')*dS(9) - dt*R*u1*v('+')*dS(9)
             # Solve the Heat equation (one timestep)
-            solve(r==0, u, bc_D)  
+            solve(a==0, u)  
             # Shift to next timestep
-            t += k; u0 = project(u, V); 
-            ue.t = t;
-            stepcounter += 1 
+            t += dt; u0 = project(u, V); 
+            stepcounter += 1
 
+            T2_max = max(T2_max,maxsub(u,markers,2))
+            Td_max = max(T3_max,maxsub(u,markers,n_cells+2))
 
-        W = VectorFunctionSpace(mesh, 'P', degree)
-        flux_u = project(-k_coeff*grad(u),W)
-
-        print(flux_u.vector().max())
 
         # Evaluate Temperature of neighboring batteries
+        # cells are numbered from the bottom, left to right, then up a row
         vol = assemble(Constant('1.0')*dx(1)) # Compute the area/volume of 1 battery cell
         T_1 = assemble(u*dx(1))/vol           # Compute area-average T over cell 1
-        T_2 = assemble(u*dx(2))/vol           # Compute area-average T over cell 2
-        T_4 = assemble(u*dx(4))/vol           # Compute area-average T over cell 4
-        T_5 = assemble(u*dx(5))/vol           # Compute area-average T over cell 5
-        print("Average T_1[K] = ", T_1)
-        print("Average T_2[K] = ", T_2)
-        print("Average T_4[K] = ", T_4)
-        print("Average T_5[K] = ", T_5)
-        print("Maximum T[K] = ", u.vector().max())
-        print("Minimum T[K] = ", u.vector().min())
+        T_2 = maxsub(u,markers,2)           # Compute area-max T over cell 2
+        
+        print("********")
+        print("Extra: ", extra)
+        print("Ratio: ", ratio)
+        print("Energy: ", energy)
 
-        o['temp1'] = u.vector().max()
+        print("Average Final T_1[K] = ", T_1)
+        print("Max Overall T_2[K] = ", T2_max)
+        print("Max Final T_2[K] = ", T_2)
+        print("Max Overall Td [K] = ", Td_max)
+        print("Temp Ratio = ", T2_max/Td_max)
+        print("Maximum Final T[K] = ", u.vector().max())
+        print("Minimum Final T[K] = ", u.vector().min())
+
+        #o['temp1'] = u.vector().max()
+        o['temp2_data'] = T2_max
+        o['temp3_data'] = Td_max
 
 if __name__ == '__main__':
     from openmdao.api import Problem
@@ -174,4 +235,6 @@ if __name__ == '__main__':
     prob.setup(force_alloc_complex=True)
     prob.run_model()
 
-    print(prob.get_val('temp1'))
+    #print(prob.get_val('temp1'))
+    print(prob.get_val('temp2_data'))
+    print(prob.get_val('temp3_data'))

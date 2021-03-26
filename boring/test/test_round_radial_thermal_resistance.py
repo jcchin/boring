@@ -9,16 +9,16 @@ from boring.util.spec_test import assert_match_spec
 from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
 
 
-class TestRadialResistance(unittest.TestCase):
+class TestRoundRadialResistance(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('cond_thermal', subsys=RadialThermalResistance(num_nodes=40), promotes=['*'])
+        p1.model.add_subsystem('cond_thermal', subsys=RadialThermalResistance(num_nodes=40, geom='round'), promotes=['*'])
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
-    def test_cond_outputs(self):
+    def test_round_cond_outputs(self):
         use_poly = True
 
         if not use_poly:  # use thermo package
