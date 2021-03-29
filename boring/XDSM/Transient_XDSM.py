@@ -28,7 +28,7 @@ x.connect('dymos','PCM','T_{pcm}', stack=True)
 x.connect('dymos','battery','T_{cell}', stack=True)
 
 # Battery
-x.add_input('battery', ['L_{cell}', 'W_{cell}', 'H_{cell}','rho/cp_{cell}','q_{in,cell}'])
+x.add_input('battery', ['rho/cp_{cell}','q_{in,cell}'])
 x.connect('battery', 'PCM', ['q_{in,pcm}'], stack=True)
 x.connect('battery','dymos','dT_{cells}/dt', stack=True)
 # x.add_output('battery', ['n_{series}','n_{parallel}'], side='right')
