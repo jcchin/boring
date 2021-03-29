@@ -51,7 +51,7 @@ class FHP(om.ExplicitComponent):
         self.add_output('p_flux', units='W', desc='single FHP flux capability')
         self.add_output('p_mass', units='kg', desc='mass of a single pipe')
         self.add_output('n_pipes', desc='number of pipes')
-        self.add_output('fhp_mass', desc='total heat pipe mass')
+        self.add_output('fhp_mass', units='kg', desc='total heat pipe mass')
         self.add_output('t_hp', desc='heat pipe thickness')
 
     def compute(self, i, o):
@@ -96,3 +96,30 @@ class OHP(om.ExplicitComponent):
 
     def setup_partials(self):
         self.declare_partials('*', '*', method='cs')
+
+
+
+if __name__ == "__main__":
+    p = om.Problem(model=om.Group())
+    nn = 1
+
+    num_cells_tot = 2
+
+    p.model.add_subsystem(name='flat',
+                          subsys=FHP(num_nodes=nn),
+                          promotes_inputs=['*'],
+                          promotes_outputs=['*'])
+
+    p.setup(force_alloc_complex=True)
+
+    p.run_model()
+
+    # om.view_connections(p)
+    # p.model.list_inputs(values=True, prom_name=True)
+    # p.model.list_outputs(values=True, prom_name=True)
+    print('Finished Successfully')
+
+    print('\n', '\n')
+    print('--------------Outputs---------------')
+    print('flat hp mass ......', p.get_val('fhp_mass'))
+    print('\n', '\n')
