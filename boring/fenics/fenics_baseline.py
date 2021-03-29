@@ -14,6 +14,9 @@ import openmdao.api as om
 import matplotlib.pyplot as plt;
 from matplotlib.animation import FuncAnimation
 
+from boring.fenics.make_mesh import make_mesh
+from boring.fenics.make_mesh import read_mesh
+
 #from IPython.display import clear_output, display; import time; import dolfin.common.plotting as fenicsplot 
 import time
 import numpy as np
@@ -55,14 +58,15 @@ class SpecificHeat(UserExpression):
 class FenicsBaseline(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('cluster', types=bool, default=False)
 
 
     def setup(self):
         nn = self.options['num_nodes']
 
         #self.add_input('cell_d', 0.018, units='m', desc='diameter of an 18650 cell')
-        self.add_input('extra',  1.1516, desc='extra spacing along the diagonal')
-        self.add_input('ratio', 0.7381, desc='cell radius to cutout radius')
+        self.add_input('extra',  1.2, desc='extra spacing along the diagonal')
+        self.add_input('ratio', 0.75, desc='cell radius to cutout radius')
         self.add_input('energy', 12, units='kJ', desc='energy in heat load')
         #self.add_input('al_density', 2700, units='kg/m**3', desc='density of aluminum')
         #self.add_input('n_cells', 4,  desc='cell array deminsion')
@@ -78,6 +82,8 @@ class FenicsBaseline(om.ExplicitComponent):
 
 
     def compute(self,i,o):
+        cluster = self.options['cluster']
+        set_log_level(30)
         # Define domain and mesh
         cell_d = 0.018#i['cell_d']
         extra = i['extra']  # extra space along the diagonal
@@ -85,35 +91,13 @@ class FenicsBaseline(om.ExplicitComponent):
         energy = float(i['energy'])
         n_cells = 4#int(i['n_cells'])  # number of cells
         
-        side = cell_d*extra*n_cells;  # square side length
-        hole_r = ratio*0.5*cell_d*((2**0.5*extra)-1)
-        offset = cell_d*extra
+        if cluster: #running on the cluster, so read in meshes (can't be made in parallel)
+            mesh1, markers, boundaries = read_mesh(extra,ratio)
+        else:
+            mesh1, markers, boundaries = make_mesh(extra,ratio)
 
-        XMIN, XMAX = 0, side; 
-        YMIN, YMAX = 0, side; 
-        G = [XMIN, XMAX, YMIN, YMAX];
-        mresolution = 30; # number of cells     Vary mesh density and capture CPU time - ACTION ITEM NOW
-
-        # Define 2D geometry
-        holes = [Circle(Point(offset*i,offset*j), hole_r) for j in range(n_cells+1) for i in range(n_cells+1)] # nested list comprehension creates a size (n+1)*(n+1) array
-
-        domain = Rectangle(Point(G[0], G[2]), Point(G[1], G[3]))
-        for hole in holes:
-          domain = domain - hole
-
-        off2 = cell_d/2+ cell_d*(extra-1)/2
-        batts = [Circle(Point(off2+offset*i,off2+offset*j), cell_d/2) for j in range(n_cells) for i in range(n_cells)]
-
-        for (i, batt) in enumerate(batts):
-          domain.set_subdomain(1+i, batt) # add cells to domain as a sub-domain
-        mesh1 = generate_mesh(domain, mresolution)
-
-        # Mark the sub-domains
-        markers = MeshFunction('size_t', mesh1, 2, mesh1.domains())  # size_t = non-negative integers
         dx = Measure('dx', domain=mesh1, subdomain_data=markers)
-        # Extract facets to apply boundary conditions for internal boundaries
-        boundaries = MeshFunction('size_t', mesh1, mesh1.topology().dim()-1)
-  
+
         # Materials
         k = Conductivity(markers, degree=1)  
         rho = Density(markers, degree=1)  
@@ -196,9 +180,9 @@ class FenicsBaseline(om.ExplicitComponent):
             # Shift to next timestep
             t += dt; u0 = project(u, V); 
             stepcounter += 1
-
-            T2_max = max(T2_max,maxsub(u,markers,2))
-            Td_max = max(T3_max,maxsub(u,markers,n_cells+2))
+            #print(maxsub(u,markers,2))
+            #T2_max = max(T2_max,maxsub(u,markers,2))
+            #Td_max = max(T3_max,maxsub(u,markers,n_cells+2))
 
 
         # Evaluate Temperature of neighboring batteries
@@ -215,14 +199,14 @@ class FenicsBaseline(om.ExplicitComponent):
         print("Average Final T_1[K] = ", T_1)
         print("Max Overall T_2[K] = ", T2_max)
         print("Max Final T_2[K] = ", T_2)
-        print("Max Overall Td [K] = ", Td_max)
-        print("Temp Ratio = ", T2_max/Td_max)
+        # print("Max Overall Td [K] = ", Td_max)
+        # print("Temp Ratio = ", T2_max/Td_max)
         print("Maximum Final T[K] = ", u.vector().max())
         print("Minimum Final T[K] = ", u.vector().min())
 
         #o['temp1'] = u.vector().max()
-        o['temp2_data'] = T2_max
-        o['temp3_data'] = Td_max
+        o['temp2_data'] = T_2#T2_max
+        o['temp3_data'] = T_1#Td_max
 
 if __name__ == '__main__':
     from openmdao.api import Problem
@@ -230,7 +214,7 @@ if __name__ == '__main__':
     nn = 1
     prob = Problem()
 
-    prob.model.add_subsystem('baseline_temp', FenicsBaseline(num_nodes=nn), promotes=['*'])
+    prob.model.add_subsystem('baseline_temp', FenicsBaseline(num_nodes=nn, cluster=True), promotes=['*'])
 
     prob.setup(force_alloc_complex=True)
     prob.run_model()
