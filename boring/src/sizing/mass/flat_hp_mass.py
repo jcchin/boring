@@ -15,7 +15,7 @@ class flatHPMass(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
         self.add_input('length_hp', 0.200, units='m', desc='length of the hp')
-        self.add_input('cross_lenth_hp', 0.020, units='m', desc='length of the perpendicular side')
+        self.add_input('cross_length_hp', 0.020, units='m', desc='length of the perpendicular side')
         self.add_input('width_hp', 0.030, units='m', desc='width of the hp, battery contact surface')
         self.add_input('height_hp', 0.020, units='m', desc='height of the hp')
         self.add_input('wick_t', 0.003, units='m', desc='thickness of the wick')
@@ -39,7 +39,7 @@ class flatHPMass(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         length_hp =     inputs['length_hp']
-        cross_lenth_hp= inputs['cross_lenth_hp']
+        cross_length_hp= inputs['cross_length_hp']
         width_hp =      inputs['width_hp']
         height_hp =     inputs['height_hp']
         wick_t =        inputs['wick_t']
@@ -53,13 +53,13 @@ class flatHPMass(om.ExplicitComponent):
         outputs['volume_wall'] = ( (width_hp*height_hp) - ((width_hp-2*wall_t)*(height_hp-2*wall_t)) ) * (length_hp)
         outputs['volume_wick'] = ((((width_hp-2*wall_t)*(height_hp-2*wall_t)) - \
                                  ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)))*(1-wick_porosity)) * (length_hp)
-        outputs['volume_fluid'] = ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp) * (1-fluid_fill)
+        outputs['volume_fluid'] = ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp) * (fluid_fill)
         outputs['mass_flat_hp'] = wall_density*outputs['volume_wall'] + wick_density*outputs['volume_wick']+ fluid_density*outputs['volume_fluid']
 
 
     def compute_partials(self, inputs, J):
         length_hp =     inputs['length_hp']
-        cross_lenth_hp= inputs['cross_lenth_hp']
+        cross_length_hp= inputs['cross_length_hp']
         width_hp =      inputs['width_hp']
         height_hp =     inputs['height_hp']
         wick_t =        inputs['wick_t']
@@ -72,7 +72,7 @@ class flatHPMass(om.ExplicitComponent):
 
         volume_wall = ( (width_hp*height_hp) - ((width_hp-2*wall_t)*(height_hp-2*wall_t)) ) * (length_hp)
         volume_wick = ((((width_hp-2*wall_t)*(height_hp-2*wall_t)) - ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)))*(1-wick_porosity)) * (length_hp)
-        volume_fluid = ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp) * (1-fluid_fill)
+        volume_fluid = ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp) * (fluid_fill)
         mass_flat_hp = wall_density*volume_wall + wick_density*volume_wick+ fluid_density*volume_fluid
 
         alpha = (width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)*length_hp
@@ -94,12 +94,12 @@ class flatHPMass(om.ExplicitComponent):
         d_volume_wick__d_wick_porosity = -(((width_hp-2*wall_t)*(height_hp-2*wall_t)) - ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t))) * (length_hp)
         d_volume_wick__d_length_hp = ((((width_hp-2*wall_t)*(height_hp-2*wall_t)) - ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)))*(1-wick_porosity))
 
-        d_volume_fluid__d_width_hp = d_alpha__d_width_hp * (1-fluid_fill)
-        d_volume_fluid__d_wall_t = d_alpha__d_wall_t * (1-fluid_fill)
-        d_volume_fluid__d_wick_t = d_alpha__d_wick_t * (1-fluid_fill)
-        d_volume_fluid__d_height_hp = d_alpha__d_height_hp * (1-fluid_fill)
-        d_volume_fluid__d_length_hp = d_alpha__d_length_hp * (1-fluid_fill)
-        d_volume_fluid__d_fluid_fill = -((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp)
+        d_volume_fluid__d_width_hp = d_alpha__d_width_hp * (fluid_fill)
+        d_volume_fluid__d_wall_t = d_alpha__d_wall_t * (fluid_fill)
+        d_volume_fluid__d_wick_t = d_alpha__d_wick_t * (fluid_fill)
+        d_volume_fluid__d_height_hp = d_alpha__d_height_hp * (fluid_fill)
+        d_volume_fluid__d_length_hp = d_alpha__d_length_hp * (fluid_fill)
+        d_volume_fluid__d_fluid_fill = ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp)
 
         d_mass__d_wall_density = volume_wall
         d_mass__d_wick_density = volume_wick
