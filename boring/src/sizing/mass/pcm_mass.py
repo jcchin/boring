@@ -17,7 +17,7 @@ class pcmMass(om.ExplicitComponent):
         self.add_input('A_pad', 0.020, units='mm**2', desc='pcm pad area')
         self.add_input('porosity', 0.5, desc='porosity of the foam, 1 = completely void, 0 = solid')
 
-        self.add_output('mass_pcm', .005, units='m**3', desc='PCM bulk mass')
+        self.add_output('mass_pcm', .005, units='kg', desc='PCM bulk mass')
 
     def setup_partials(self):
         self.declare_partials('mass_pcm', ['rho_pcm', 'rho_foam', 't_pad', 'A_pad','porosity'])
