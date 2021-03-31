@@ -19,7 +19,7 @@ d.add(elm.Dot().label('3',loc='left').color('red'))
 d.add(elm.Resistor().down().label('Re,inter').color('blue'))
 d.add(elm.Dot().label('4',loc='left').color('red'))
 d.add(elm.Resistor().right().label('Rv').color('blue'))
-d.add(elm.Dot().label('5',loc='right').color('red'))
+d.add(elm.Dot().label('5',loc='bottom').color('red'))
 d.add(elm.Resistor().up().label('Rc,inter',loc='bottom').color('blue'))
 d.add(elm.Dot().label('6',loc='right').color('red'))
 d.add(elm.Resistor().up().label('Rc,wk',loc='bottom').color('orange'))
@@ -28,8 +28,29 @@ Rcw = d.add(elm.Resistor().up().label('Rc,w',loc='bottom'))
 d.add(elm.Dot().label('8',loc='right').color('red'))
 Rcex = d.add(elm.Resistor().up().label('Rc,ex',loc='bottom'))
 d.add(elm.Dot().label('condensor').color('red'))
+
 d.add(elm.Resistor().endpoints(Reex.end,Rcex.start).label('Ra,w'))
 d.add(elm.Resistor().endpoints(Rew.end,Rcw.start).label('Ra,wk').color('orange'))
+
+#move back down
+# d.add(elm.Resistor().down())
+# d.add(elm.Resistor().down())
+d.add(elm.Resistor().down().color('orange'))
+d.add(elm.Resistor().down().color('blue'))
+
+d.add(elm.Resistor().right().label('Rv').color('blue'))
+d.add(elm.Dot().label('9',loc='right').color('red'))
+d.add(elm.Resistor().up().label('Rc,inter',loc='bottom').color('blue'))
+d.add(elm.Dot().label('10',loc='right').color('red'))
+d.add(elm.Resistor().up().label('Rc,wk',loc='bottom').color('orange'))
+d.add(elm.Dot().label('11',loc='right').color('red'))
+Rcw2 = d.add(elm.Resistor().up().label('Rc,w',loc='bottom'))
+d.add(elm.Dot().label('12',loc='right').color('red'))
+Rcex2 = d.add(elm.Resistor().up().label('Rc,ex',loc='bottom'))
+d.add(elm.Dot().label('condensor').color('red'))
+
+d.add(elm.Resistor().endpoints(Rcex.start,Rcex2.start).label('Ra,w'))
+d.add(elm.Resistor().endpoints(Rcw.start,Rcw2.start).label('Ra,wk').color('orange'))
 
 
 d.draw()
