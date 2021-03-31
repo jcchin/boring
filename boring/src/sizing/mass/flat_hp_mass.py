@@ -6,6 +6,7 @@ REFERENCES
 
 """
 import openmdao.api as om
+import numpy as np
 
 class flatHPMass(om.ExplicitComponent):
 
@@ -14,28 +15,32 @@ class flatHPMass(om.ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-        self.add_input('length_hp', 0.200, units='m', desc='length of the hp')
-        self.add_input('cross_length_hp', 0.020, units='m', desc='length of the perpendicular side')
-        self.add_input('width_hp', 0.030, units='m', desc='width of the hp, battery contact surface')
-        self.add_input('height_hp', 0.020, units='m', desc='height of the hp')
-        self.add_input('wick_t', 0.003, units='m', desc='thickness of the wick')
-        self.add_input('wall_t', 0.003, units='m', desc='wall thickness')
-        self.add_input('wall_density', 2710, units='kg/m**3', desc='density of the Aluminium wall material')
-        self.add_input('wick_density', 8940., units='kg/m**3', desc='density of Cu102 (see ref 1)')
-        self.add_input('wick_porosity', 0.52, desc="porosity of the wick (0.32, 0.52, 0.59: see ref 1)")
-        self.add_input('fluid_density', 997., units='kg/m**3', desc='density of the working fluid')
-        self.add_input('fluid_fill', 0.5, desc='fill factor of the fluid')
+
+        self.add_input('length_hp', 0.200 * np.ones(nn), units='m', desc='length of the hp')
+        self.add_input('cross_length_hp', 0.020 * np.ones(nn), units='m', desc='length of the perpendicular side')
+        self.add_input('width_hp', 0.030 * np.ones(nn), units='m', desc='width of the hp, battery contact surface')
+        self.add_input('height_hp', 0.020 * np.ones(nn), units='m', desc='height of the hp')
+        self.add_input('wick_t', 0.003 * np.ones(nn), units='m', desc='thickness of the wick')
+        self.add_input('wall_t', 0.003 * np.ones(nn), units='m', desc='wall thickness')
+        self.add_input('wall_density', 2710 * np.ones(nn), units='kg/m**3', desc='density of the Aluminium wall material')
+        self.add_input('wick_density', 8940. * np.ones(nn), units='kg/m**3', desc='density of Cu102 (see ref 1)')
+        self.add_input('wick_porosity', 0.52 * np.ones(nn), desc="porosity of the wick (0.32, 0.52, 0.59: see ref 1), 0=solid wick")
+        self.add_input('fluid_density', 997. * np.ones(nn), units='kg/m**3', desc='density of the working fluid')
+        self.add_input('fluid_fill', 0.5 * np.ones(nn), desc='fill factor of the fluid')
         
-        self.add_output('volume_wall', .005, units='m**3', desc='volume of the wall')
-        self.add_output('volume_wick', .005, units='m**3', desc='volume of the wick')
-        self.add_output('volume_fluid', .005, units='m**3', desc='volume of the fluid')
-        self.add_output('mass_flat_hp', .05, units='kg', desc='mass of the flat hp')
+        self.add_output('volume_wall', .005 * np.ones(nn), units='m**3', desc='volume of the wall')
+        self.add_output('volume_wick', .005 * np.ones(nn), units='m**3', desc='volume of the wick')
+        self.add_output('volume_fluid', .005 * np.ones(nn), units='m**3', desc='volume of the fluid')
+        self.add_output('mass_flat_hp', .05 * np.ones(nn), units='kg', desc='mass of the flat hp')
 
     def setup_partials(self):
-        self.declare_partials('volume_wall', ['width_hp', 'height_hp', 'wall_t', 'length_hp'])
-        self.declare_partials('volume_wick', ['width_hp', 'wall_t', 'height_hp', 'wick_t', 'wick_porosity', 'length_hp'])
-        self.declare_partials('volume_fluid', ['width_hp', 'wall_t', 'wick_t', 'height_hp', 'length_hp', 'fluid_fill'])
-        self.declare_partials('mass_flat_hp', ['wall_density', 'wick_density', 'fluid_density', 'width_hp', 'height_hp', 'wall_t', 'length_hp', 'wick_porosity', 'fluid_fill', 'wick_t'])
+        nn=self.options['num_nodes']
+        ar = np.arange(nn) 
+
+        self.declare_partials('volume_wall', ['width_hp', 'height_hp', 'wall_t', 'length_hp'], rows=ar, cols=ar)
+        self.declare_partials('volume_wick', ['width_hp', 'wall_t', 'height_hp', 'wick_t', 'wick_porosity', 'length_hp'], rows=ar, cols=ar)
+        self.declare_partials('volume_fluid', ['width_hp', 'wall_t', 'wick_t', 'height_hp', 'length_hp', 'fluid_fill'], rows=ar, cols=ar)
+        self.declare_partials('mass_flat_hp', ['wall_density', 'wick_density', 'fluid_density', 'width_hp', 'height_hp', 'wall_t', 'length_hp', 'wick_porosity', 'fluid_fill', 'wick_t'], rows=ar, cols=ar)
 
     def compute(self, inputs, outputs):
         length_hp =     inputs['length_hp']
