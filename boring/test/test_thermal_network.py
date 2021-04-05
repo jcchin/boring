@@ -6,7 +6,7 @@ import numpy as np
 from openmdao.api import Problem, Group, IndepVarComp, n2, view_connections
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
-from lcapy import R, LSection, Series
+#from lcapy import R, LSection, Series
 
 from boring.util.spec_test import assert_match_spec
 from boring.util.load_inputs import load_inputs

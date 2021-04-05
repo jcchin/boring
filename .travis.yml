@@ -7,7 +7,7 @@ os:
 
 env:
   matrix:
-  - PY=3.6
+  - PY=3.8
 
 language:
   - generic
@@ -51,7 +51,7 @@ install:
   python -m pip install testflo --user;
   python -m pip install ssh --user;
   python -m pip install pdflatex --user;
-  python -m pip install lcapy --user;
+  python -m pip install pyspice --user;
 
   echo " >> Installing pyOptSparse";
   echo "  > Cloning pyOptSparse from mdolab";
