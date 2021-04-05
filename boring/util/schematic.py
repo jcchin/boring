@@ -60,18 +60,21 @@ from PySpice.Unit import *
 
 circuit = Circuit('HeatPipe')
 
-circuit.V('input', 1, circuit.gnd, 10@u_V)
-circuit.R('Reex', 1, 2, 2@u_kΩ)
-circuit.R('Rew', 2, 3, 2@u_kΩ)
-circuit.R('Rewk', 3, 4, 2@u_kΩ)
-circuit.R('Rintere', 4, 5, 2@u_kΩ)
-circuit.R('Raw', 2, 9, 1@u_kΩ)
-circuit.R('Rawk', 3, 8, 1@u_kΩ)
-circuit.R('Rv', 5, 6, 1@u_kΩ)
-circuit.R('Rinterc', 6, 7, 2@u_kΩ)
-circuit.R('Rcwk', 7, 8, 2@u_kΩ)
-circuit.R('Rcw', 8, 9, 1@u_kΩ)
-circuit.R('Rcex', 9, circuit.gnd, 1@u_kΩ)
+
+
+
+circuit.V('input', 1, circuit.gnd, 80@u_V)
+circuit.R('Reex', 1, 2, 0.0000001@u_kΩ)
+circuit.R('Rew', 2, 3, 0.2545383947014702@u_kΩ)
+circuit.R('Rewk', 3, 4, 0.7943030881649811@u_kΩ)
+circuit.R('Rintere', 4, 5, 0.00034794562965549745@u_kΩ)
+circuit.R('Raw', 2, 9, 456.90414284754644@u_kΩ)
+circuit.R('Rawk', 3, 8, 744.3007160198263@u_kΩ)
+circuit.R('Rv', 5, 6, 8.852701208752846e-06@u_kΩ)
+circuit.R('Rinterc', 6, 7, 0.00017397281482774872@u_kΩ)
+circuit.R('Rcwk', 7, 8, 0.39715154408249054@u_kΩ)
+circuit.R('Rcw', 8, 9, 0.1272691973507351@u_kΩ)
+circuit.R('Rcex', 9, circuit.gnd, 0.0000001@u_kΩ)
 
 
 for resistance in (circuit.RReex, circuit.RRcex):
@@ -82,5 +85,8 @@ analysis = simulator.operating_point()
 
 for node in analysis.nodes.values():
     print('Node {}: {:5.2f} V'.format(str(node), float(node))) # Fixme: format value + unit
+
+
+print(float(analysis.nodes['3']))
 
 # print(circuit)

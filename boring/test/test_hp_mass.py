@@ -7,7 +7,7 @@ from openmdao.api import Problem, Group
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.mass.mass import heatPipeMass
+from boring.src.sizing.mass.round_hp_mass import heatPipeMass
 
 
 class TestHeatPipeMass(unittest.TestCase):

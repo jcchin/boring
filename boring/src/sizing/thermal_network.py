@@ -96,7 +96,7 @@ class Radial_Stack(om.Group):
         self.options.declare('n_in', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('n_out', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('pcm_bool', types=bool, default=False)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'])
+        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'],default='round')
 
     def setup(self):
         n_in = self.options['n_in']
@@ -363,12 +363,10 @@ class Circuit(om.Group):
         self.connect('Rwc.q','n8.q_in:1')
         self.connect('Rex_c.q','n8.q_out:0')
 
-
-
-        # self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
-        # self.nonlinear_solver.options['iprint'] = 2
-        # self.nonlinear_solver.options['maxiter'] = 20
-        # self.linear_solver = om.DirectSolver()
+        self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
+        self.nonlinear_solver.options['iprint'] = 2
+        self.nonlinear_solver.options['maxiter'] = 20
+        self.linear_solver = om.DirectSolver()
         # self.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
         # self.nonlinear_solver.linesearch.options['maxiter'] = 10
         # self.nonlinear_solver.linesearch.options['iprint'] = 2
