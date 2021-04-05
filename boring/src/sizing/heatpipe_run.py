@@ -14,7 +14,7 @@ import openmdao.api as om
 import numpy as np
 
 from boring.src.sizing.thermal_network import Radial_Stack, thermal_link, TempRateComp
-from boring.src.sizing.mass.mass import heatPipeMass
+from boring.src.sizing.mass.round_hp_mass import heatPipeMass
 
 # from boring.util.load_inputs import load_inputs
 
