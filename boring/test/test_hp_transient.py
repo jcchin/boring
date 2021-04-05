@@ -25,7 +25,7 @@ class TestHPtransient(unittest.TestCase):
         traj=dm.Trajectory()
         p = om.Problem(model=traj)
         p.driver = om.ScipyOptimizeDriver()
-        p.driver = om.pyOptSparseDriver(optimizer='SNOPT')
+        p.driver = om.pyOptSparseDriver(optimizer='SLSQP')
 
         p.driver.declare_coloring()
 
