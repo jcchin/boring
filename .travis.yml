@@ -69,6 +69,8 @@ install:
     python -m pip install pdflatex --user;
     python -m pip install pyspice --user;
 
+    pyspice-post-installation --check-install;
+
     echo "Clone the build_pyoptsparse script";
     echo $PWD;
     git clone https://github.com/OpenMDAO/build_pyoptsparse;
