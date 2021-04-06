@@ -7,7 +7,7 @@ os:
 
 env:
   matrix:
-  - PY=3.8
+  - PY=3.8 NUMPY=1.18 SCIPY=1.4 PYOPTSPARSE=v2.1.5 SNOPT=7.7 PETSc=3.12
 
 language:
   - generic
@@ -54,16 +54,38 @@ install:
   python -m pip install ssh --user;
   python -m pip install pdflatex --user;
 
-  echo " >> Installing pyOptSparse";
-  echo "  > Cloning pyOptSparse from mdolab";
-  git clone https://github.com/mdolab/pyoptsparse.git;
-  cd pyoptsparse;
-  git checkout tags/v1.2;
+  if [ "$PYOPTSPARSE" ]; then
+    echo " >> Installing pyOptSparse";
+    git clone -q https://github.com/OpenMDAO/build_pyoptsparse;
 
-  echo "  > Install pyOptSparse";
-  pip install -r requirements.txt;
-  pip install .;
-  cd ..;
+    cd build_pyoptsparse;
+    chmod 755 ./build_pyoptsparse.sh;
+
+    if [ "$PETSc" ]; then
+      PAROPT=-a;
+    fi
+
+    if [ "$SNOPT" == "7.7" ] && [ "$SNOPT_LOCATION_77" ]; then
+      echo "  > Secure copying SNOPT 7.7 over SSH";
+      mkdir SNOPT;
+      scp -qr "$SNOPT_LOCATION_77" SNOPT;
+      ./build_pyoptsparse.sh $PAROPT -b "$PYOPTSPARSE" -s SNOPT/src;
+
+    elif [ "$SNOPT" == "7.2" ] && [ "$SNOPT_LOCATION_72" ]; then
+      echo "  > Secure copying SNOPT 7.2 over SSH";
+      mkdir SNOPT;
+      scp -qr "$SNOPT_LOCATION_72" SNOPT;
+      ./build_pyoptsparse.sh $PAROPT -b "$PYOPTSPARSE" -s SNOPT/source;
+
+    else
+      if [ "$SNOPT" ]; then
+        echo "SNOPT version $SNOPT was requested but source is not available";
+      fi
+      ./build_pyoptsparse.sh $PAROPT -b "$PYOPTSPARSE";
+    fi
+
+    cd ..;
+  fi
 
 # Install Dymos
 - python -m pip install git+https://github.com/OpenMDAO/dymos.git --user;
