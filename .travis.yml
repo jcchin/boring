@@ -63,38 +63,37 @@ install:
     python -m pip install ssh --user;
     python -m pip install pdflatex --user;
 
-    if [ "$PYOPTSPARSE" ]; then
-    echo " >> Installing pyOptSparse";
-    git clone -q https://github.com/OpenMDAO/build_pyoptsparse;
+    echo "Clone the build_pyoptsparse script";
+    echo $PWD;
+    git clone https://github.com/OpenMDAO/build_pyoptsparse;
 
+    if [ "$SNOPT_LOCATION" ]; then
+      echo "Install SNOPT";
+      cd build_pyoptsparse/pyoptsparse/pyoptsparse/pySNOPT;
+      scp -r "$SNOPT_LOCATION";
+      cd ../../../../;
+      echo $PWD;
+    fi
+
+    echo "Build pyoptsparse";
     cd build_pyoptsparse;
     chmod 755 ./build_pyoptsparse.sh;
+    ./build_pyoptsparse.sh v2.1.5 SNOPT=7.7;
+    cd ..;
+    echo $PWD
+
+    git clone https://github.com/OpenMDAO/MBI.git;
+    cd MBI;
+    python setup.py build install;
+    cd ..;
+    echo $PWD
 
     if [ "$PETSc" ]; then
-      PAROPT=-a;
+      echo " >> Installing parallel processing dependencies";
+      conda install --yes petsc4py=$PETSc;
     fi
 
-    if [ "$SNOPT" == "7.7" ] && [ "$SNOPT_LOCATION_77" ]; then
-      echo "  > Secure copying SNOPT 7.7 over SSH";
-      mkdir SNOPT;
-      scp -qr "$SNOPT_LOCATION_77" SNOPT;
-      ./build_pyoptsparse.sh $PAROPT -b "$PYOPTSPARSE" -s SNOPT/src;
-
-    elif [ "$SNOPT" == "7.2" ] && [ "$SNOPT_LOCATION_72" ]; then
-      echo "  > Secure copying SNOPT 7.2 over SSH";
-      mkdir SNOPT;
-      scp -qr "$SNOPT_LOCATION_72" SNOPT;
-      ./build_pyoptsparse.sh $PAROPT -b "$PYOPTSPARSE" -s SNOPT/source;
-
-    else
-      if [ "$SNOPT" ]; then
-        echo "SNOPT version $SNOPT was requested but source is not available";
-      fi
-      ./build_pyoptsparse.sh $PAROPT -b "$PYOPTSPARSE";
-    fi
-
-    cd ..;
-    fi
+  fi
 
 # Install Dymos
 - python -m pip install git+https://github.com/OpenMDAO/dymos.git --user;
