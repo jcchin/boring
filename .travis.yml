@@ -57,6 +57,7 @@ install:
 
     conda install --yes cython sphinx mock swig pip numpy=$NUMPY scipy=$SCIPY mpi4py matplotlib;
     sudo apt-get install gfortran;
+    sudo apt-get install texlive-latex-extra
 
     python -m pip install --upgrade pip;
 
