@@ -59,9 +59,14 @@ install:
     sudo apt-get install gfortran;
 
     python -m pip install --upgrade pip;
+
+    echo " >> Installing optional packages for test coverage";
+    python -m pip install psutil objgraph git+https://github.com/mdolab/pyXDSM;
+
     python -m pip install testflo --user;
     python -m pip install ssh --user;
     python -m pip install pdflatex --user;
+    python -m pip install pyspice --user;
 
     echo "Clone the build_pyoptsparse script";
     echo $PWD;
