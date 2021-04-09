@@ -47,7 +47,7 @@ class PCM_Cp(om.ExplicitComponent):
         partials['cp_pcm', 'T_hi'] = cp_dT_deriv_func(T)
 
 
-def cp_basic(T, T1=60 + 273, T2=65 + 273, Cp_low=1.5, Cp_high=50):  # kJ/kgK
+def cp_basic(T, T1=60 + 273, T2=65 + 273, Cp_low=1.5, Cp_high=50.):  # kJ/kgK
     if T1 < T < T2:
         Cp = Cp_high
     else:

@@ -41,11 +41,11 @@ class PCM_props(om.ExplicitComponent):
         self.add_input('lh_pcm', 271. * np.ones(nn), units='kJ/kg', desc='latent heat of the pcm')
         self.add_input('cp_pcm', 1.54 * np.ones(nn), units='kJ/(kg*K)', desc='specific heat of the pcm')
         # outputs
-        self.add_output('k_bulk', val=1.0 * np.ones(nn), units='W/m*K', desc='PCM pad thermal conductivity')
-        self.add_output('lh_bulk', val=1.0 * np.ones(nn), units='kJ/kg', desc='bulk latent heat')
-        self.add_output('cp_bulk', val=1.0 * np.ones(nn), units='kJ/(kg*K)', desc='bulk specific heat')
-        self.add_output('R_PCM', val=1.0 * np.ones(nn), units='K/W', desc='PCM pad thermal resistance')
-        self.add_input('lh_PCM', val=1.0 * np.ones(nn), desc='latent heat of the PCM pad')
+        self.add_output('k_bulk', val= np.ones(nn), units='W/m*K', desc='PCM pad thermal conductivity')
+        self.add_output('lh_bulk', val= np.ones(nn), units='kJ/kg', desc='bulk latent heat')
+        self.add_output('cp_bulk', val= np.ones(nn), units='kJ/(kg*K)', desc='bulk specific heat')
+        self.add_output('R_PCM', val= np.ones(nn), units='K/W', desc='PCM pad thermal resistance')
+        self.add_input('lh_PCM', val= np.ones(nn), desc='latent heat of the PCM pad')
 
     def setup_partials(self):
         # self.declare_partials('*', '*', method='cs')

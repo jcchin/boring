@@ -12,76 +12,114 @@ import openmdao.api as om
 class HeatPipeSizeGroup(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
 
     def setup(self):
         nn = self.options['num_nodes']
+        geom = self.options['geom']
 
         self.add_subsystem(name='size',
-                           subsys=SizeComp(num_nodes=nn),
+                           subsys=SizeComp(num_nodes=nn, geom=geom),
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])
 
         self.add_subsystem(name='core',
-                           subsys=CoreGeometries(num_nodes=nn),
+                           subsys=CoreGeometries(num_nodes=nn, geom=geom),
                            promotes_inputs=['*'],
                            promotes_outputs=['*'])
 
         self.set_input_defaults('L_flux', 6 * np.ones(nn), units='m')
-        self.set_input_defaults('D_v', 0.5 * np.ones(nn), units='m')
-        self.set_input_defaults('D_od', 2 * np.ones(nn), units='m')
-        self.set_input_defaults('t_w', 0.01 * np.ones(nn), units='m')
+
+        if geom == 'ROUND' or geom == 'round':
+            self.set_input_defaults('D_v', 0.5 * np.ones(nn), units='m')
+            self.set_input_defaults('D_od', 2 * np.ones(nn), units='m')
+
+        if geom == 'FLAT' or geom == 'flat':
+            self.set_input_defaults('W', .02 * np.ones(nn), units='m')
+
+        self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
+        self.set_input_defaults('t_wk', 0.00069 * np.ones(nn), units='m')
         self.set_input_defaults('L_adiabatic', 0.01 * np.ones(nn), units='m')
 
 
 class SizeComp(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
 
     def setup(self):
         nn = self.options['num_nodes']
+        geom = self.options['geom']
 
         self.add_input('L_flux', 0.02 * np.ones(nn), units='m', desc='length of the battery')
         self.add_input('L_adiabatic', 0.03 * np.ones(nn), units='m', desc='adiabatic length')
         self.add_input('t_w', 0.0005 * np.ones(nn), units='m', desc='wall thickness')
         self.add_input('t_wk', 0.00069 * np.ones(nn), units='m', desc='wick thickness')
-        self.add_input('D_od', 0.006 * np.ones(nn), units='m', desc='Vapor Outer Diameter')
-        self.add_input('D_v', 0.00362 * np.ones(nn), units='m', desc='Vapor Diameter')
 
-        self.add_output('r_i', val=1.0 * np.ones(nn), units='m', desc='inner radius')  # Radial
+        if geom == 'ROUND' or geom == 'round':
+            self.add_input('D_od', 0.006 * np.ones(nn), units='m', desc='Vapor Outer Diameter')
+            self.add_input('D_v', 0.00362 * np.ones(nn), units='m', desc='Vapor Diameter')
+
+            self.add_output('r_i', val=1.0 * np.ones(nn), units='m', desc='inner radius')  # Radial
+
+        if geom == 'FLAT' or geom == 'flat':
+            self.add_input('W', 0.02 * np.ones(nn), units='m', desc='Width of heat pipe into the page')  
+
         self.add_output('A_flux', val=1.0 * np.ones(nn), units='m**2', desc='Area of battery in contact with HP')
         # self.add_output('L_eff', 1, units='m', desc='Effective Length')                     # Bridge
 
     def setup_partials(self):
         nn = self.options['num_nodes']
         ar = np.arange(nn)
+        geom = self.options['geom']
 
-        self.declare_partials('r_i', 'D_od', rows=ar, cols=ar)
-        self.declare_partials('r_i', 't_w', rows=ar, cols=ar)
+        if geom == 'ROUND' or geom == 'round':
+            self.declare_partials('r_i', 'D_od', rows=ar, cols=ar)
+            self.declare_partials('r_i', 't_w', rows=ar, cols=ar)
 
-        self.declare_partials('A_flux', 'D_od', rows=ar, cols=ar)
+            self.declare_partials('A_flux', 'D_od', rows=ar, cols=ar)
+
+        if geom == 'FLAT' or geom == 'flat':
+            self.declare_partials('A_flux', 'W')
+
         self.declare_partials('A_flux', 'L_flux', rows=ar, cols=ar)
 
-        # self.declare_partials('L_eff', 'L_flux')
-        # self.declare_partials('L_eff', 'L_adiabatic')
-
     def compute(self, inputs, outputs):
+        geom = self.options['geom']
         L_flux = inputs['L_flux']
         L_adiabatic = inputs['L_adiabatic']
         t_w = inputs['t_w']
         t_wk = inputs['t_wk']
-        D_od = inputs['D_od']
-        D_v = inputs['D_v']
 
-        outputs['r_i'] = (D_od / 2 - t_w)
-        outputs['A_flux'] = np.pi * D_od * L_flux  # wrong formula for area
+        if geom == 'ROUND' or geom == 'round':
+            D_od = inputs['D_od']
+            D_v = inputs['D_v']
+
+            outputs['r_i'] = (D_od / 2 - t_w)
+            outputs['A_flux'] = np.pi * D_od * L_flux  # wrong formula for area !!!
+
+        if geom == 'FLAT' or geom == 'flat':
+            W = inputs['W']
+
+            outputs['A_flux'] = W * L_flux
         # outputs['L_eff'] =  (L_flux+L_flux)/2+L_adiabatic # How to handle this for >2 battery cases?
 
     def compute_partials(self, inputs, partials):
-        partials['r_i', 'D_od'] = 1 / 2
-        partials['r_i', 't_w'] = -1
 
-        partials['A_flux', 'D_od'] = np.pi * inputs['L_flux']
-        partials['A_flux', 'L_flux'] = np.pi * inputs['D_od']
+        geom = self.options['geom']
+
+        if geom == 'ROUND' or geom == 'round':
+            partials['r_i', 'D_od'] = 1 / 2
+            partials['r_i', 't_w'] = -1
+
+            partials['A_flux', 'D_od'] = np.pi * inputs['L_flux']
+            partials['A_flux', 'L_flux'] = np.pi * inputs['D_od']
+
+        if geom == 'FLAT' or geom =='flat':
+
+            partials['A_flux', 'W'] = inputs['L_flux']
+            partials['A_flux', 'L_flux'] = inputs['W']
+
 
         # partials['L_eff','L_flux'] = 1
         # partials['L_eff','L_adiabatic'] = 1
@@ -91,13 +129,21 @@ class CoreGeometries(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
 
     def setup(self):
         nn = self.options['num_nodes']
+        geom = self.options['geom']
 
-        self.add_input('D_od', 2 * np.ones(nn), units='m', desc='')
+        if geom == 'ROUND' or geom == 'round':
+            self.add_input('D_od', 2 * np.ones(nn), units='m', desc='')
+            self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='')
+
+        elif geom == 'FLAT' or geom == 'flat':
+            self.add_input('t_wk', np.ones(nn), units='m', desc='wick thickness')
+            self.add_input('W', np.ones(nn), units='m', desc='width of heat pipe into the page')
+
         self.add_input('t_w', 0.01 * np.ones(nn), units='m', desc='')
-        self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='')
         self.add_input('L_flux', 5 * np.ones(nn), units='m', desc='')
 
         self.add_output('A_w', 1 * np.ones(nn), units='m**2', desc='')  # Bridge
@@ -106,58 +152,96 @@ class CoreGeometries(om.ExplicitComponent):
 
     def setup_partials(self):
         nn = self.options['num_nodes']
+        geom = self.options['geom']
         ar = np.arange(nn)
 
-        self.declare_partials('A_w', ['D_od', 't_w'], rows=ar, cols=ar)
-        self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'], rows=ar, cols=ar)
-        self.declare_partials('A_inter', ['D_v', 'L_flux'], rows=ar, cols=ar)
+        if geom == 'ROUND' or geom == 'round':
+            self.declare_partials('A_w', ['D_od', 't_w'], rows=ar, cols=ar)
+            self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'], rows=ar, cols=ar)
+            self.declare_partials('A_inter', ['D_v', 'L_flux'], rows=ar, cols=ar)
+
+        elif geom == 'FLAT' or geom == 'flat':
+            self.declare_partials('A_w', ['W', 't_w'], rows=ar, cols=ar)
+            self.declare_partials('A_wk', ['W', 't_wk'], rows=ar, cols=ar)
+            self.declare_partials('A_inter', ['W', 'L_flux'], rows=ar, cols=ar)
 
     def compute(self, inputs, outputs):
-        D_od = inputs['D_od']
-        t_w = inputs['t_w']
-        D_v = inputs['D_v']
+        geom = self.options['geom']
+
         L_flux = inputs['L_flux']
+        t_w = inputs['t_w']
 
-        outputs['A_w'] = np.pi * ((D_od / 2) ** 2 - (D_od / 2 - t_w) ** 2)
-        outputs['A_wk'] = np.pi * ((D_od / 2 - t_w) ** 2 - (D_v / 2) ** 2)
-        outputs['A_inter'] = np.pi * D_v * L_flux
+        if geom == 'ROUND' or geom == 'round':
+            D_od = inputs['D_od']
+            D_v = inputs['D_v']
 
+            outputs['A_w'] = np.pi * ((D_od / 2) ** 2 - (D_od / 2 - t_w) ** 2)
+            outputs['A_wk'] = np.pi * ((D_od / 2 - t_w) ** 2 - (D_v / 2) ** 2)
+            outputs['A_inter'] = np.pi * D_v * L_flux
+
+        elif geom == 'FLAT' or geom == 'flat':
+            W = inputs['W']
+            t_wk = inputs['t_wk']
+
+            outputs['A_w'] = t_w*W
+            outputs['A_wk'] = t_wk*W
+            outputs['A_inter'] = W*L_flux
+ 
     def compute_partials(self, inputs, J):
-        D_od = inputs['D_od']
+
+        geom = self.options['geom']
+
         t_w = inputs['t_w']
-        D_v = inputs['D_v']
         L_flux = inputs['L_flux']
 
-        J['A_w', 'D_od'] = np.pi * ((0.5 * D_od) - (0.5 * D_od - t_w))
-        J['A_w', 't_w'] = np.pi * 2 * (D_od / 2 - t_w)
+        if geom == 'ROUND' or geom == 'round':
+            D_od = inputs['D_od']
+            D_v = inputs['D_v']
 
-        J['A_wk', 'D_od'] = np.pi * (D_od / 2 - t_w)
-        J['A_wk', 't_w'] = -np.pi * 2 * (D_od / 2 - t_w)
-        J['A_wk', 'D_v'] = -np.pi * D_v / 2
+            J['A_w', 'D_od'] = np.pi * ((0.5 * D_od) - (0.5 * D_od - t_w))
+            J['A_w', 't_w'] = np.pi * 2 * (D_od / 2 - t_w)
 
-        J['A_inter', 'D_v'] = np.pi * L_flux
-        J['A_inter', 'L_flux'] = np.pi * D_v
+            J['A_wk', 'D_od'] = np.pi * (D_od / 2 - t_w)
+            J['A_wk', 't_w'] = -np.pi * 2 * (D_od / 2 - t_w)
+            J['A_wk', 'D_v'] = -np.pi * D_v / 2
 
-# # # ------------ Derivative Checks --------------- #
-# if __name__ == "__main__":
-#     from openmdao.api import Problem
+            J['A_inter', 'D_v'] = np.pi * L_flux
+            J['A_inter', 'L_flux'] = np.pi * D_v
 
-#     nn = 1
-#     prob = Problem()
+        elif geom == 'FLAT' or geom == 'flat':
+            W = inputs['W']
+            t_wk = inputs['t_wk']
 
-#     prob.model.add_subsystem('comp1', SizeGroup(num_nodes=nn), promotes=['*'])
+            J['A_w', 't_w'] = W
+            J['A_w', 'W'] = t_w
 
-#     prob.setup(force_alloc_complex=True)
-#     prob.run_model()
-#     prob.check_partials(method='cs', compact_print=True)
+            J['A_wk', 't_wk'] = W
+            J['A_wk', 'W'] = t_wk
+
+            J['A_inter', 'W'] = L_flux
+            J['A_inter', 'L_flux'] = W 
 
 
-#     print('A_w = ', prob.get_val('comp1.A_w'))
-#     print('A_wk = ', prob.get_val('comp1.A_wk'))
-#     print('A_inter = ', prob.get_val('comp1.A_inter'))
-#     print('A_intere = ', prob.get_val('comp1.A_intere'))
+# # ------------ Derivative Checks --------------- #
+if __name__ == "__main__":
+    from openmdao.api import Problem
 
-#     print('r_i', prob.get_val('comp1.r_i'))
-#     print('A_flux', prob.get_val('comp1.A_flux'))
-#     print('A_evap', prob.get_val('comp1.A_evap'))
-#     print('L_eff', prob.get_val('comp1.L_eff'))
+    nn = 1
+    prob = Problem()
+
+    prob.model.add_subsystem('comp1', SizeGroup(num_nodes=nn), promotes=['*'])
+
+    prob.setup(force_alloc_complex=True)
+    prob.run_model()
+    prob.check_partials(method='cs', compact_print=True)
+
+
+    print('A_w = ', prob.get_val('comp1.A_w'))
+    print('A_wk = ', prob.get_val('comp1.A_wk'))
+    print('A_inter = ', prob.get_val('comp1.A_inter'))
+    print('A_intere = ', prob.get_val('comp1.A_intere'))
+
+    print('r_i', prob.get_val('comp1.r_i'))
+    print('A_flux', prob.get_val('comp1.A_flux'))
+    print('A_evap', prob.get_val('comp1.A_evap'))
+    print('L_eff', prob.get_val('comp1.L_eff'))

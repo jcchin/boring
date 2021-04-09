@@ -7,25 +7,26 @@ from openmdao.api import Problem, Group, IndepVarComp
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.pack_design import SizingGroup
+from boring.src.sizing.mass.pcm_mass import pcmMass
 
 
 class TestPCM(unittest.TestCase):
 
     def setUp(self):
+        nn=1
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('pcm', subsys=SizingGroup(num_nodes=1))
+        p1.model.add_subsystem('comp1', pcmMass(num_nodes=nn), promotes_inputs=['*'], promotes_outputs=['*'])
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
-    def test_num_cells(self):
-        assert_near_equal(self.prob.get_val('pcm.n_cells'), 2941.17647059, tolerance=1.0E-5)
+    def test_mass(self):
+        assert_near_equal(self.prob.get_val('mass_pcm'), 2.18181818e-05, tolerance=1.0E-5)
 
-    # def test_partials(self):
+    def test_partials(self):
 
-    #     data = self.prob.check_partials(out_stream=None, method='cs')
-    #     assert_check_partials(data, atol=1e-10, rtol=1e-10)
+        data = self.prob.check_partials(out_stream=None, method='cs')
+        assert_check_partials(data, atol=1e-10, rtol=1e-10)
 
     def skip_test_io_spec(self):
         p1 = self.prob = Problem(model=Group())

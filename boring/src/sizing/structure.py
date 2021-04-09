@@ -33,17 +33,11 @@ class tempODE(om.ExplicitComponent):
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
 
-        # Setup partials
+    def setup_partials(self):
         arange = np.arange(self.options['num_nodes'])
         c = np.zeros(self.options['num_nodes'])
-        self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
-        self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
-        #self.declare_partials(of='*', wrt='*', method='cs') # use this if you don't provide derivatives
+        self.declare_partials('Tdot', ['K','A','d','m','Cp','Th','T'], rows=arange, cols=arange)
+        # self.declare_partials(of='*', wrt='*', method='cs') # use this if you don't provide derivatives
 
     def compute(self, i, o):
 

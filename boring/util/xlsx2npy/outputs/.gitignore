@@ -1,0 +1,3 @@
+*.pickle
+*.npy
+/test2.py
