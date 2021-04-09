@@ -17,14 +17,14 @@ class AxialThermalResistance(om.ExplicitComponent):
         self.add_input('epsilon', 0.46*np.ones(nn), desc='wick porosity')
         self.add_input('k_w', 11.4*np.ones(nn), units='W/(m*K)', desc='copper conductivity')
         self.add_input('k_l', 3*np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
-        self.add_input('L_flux', 4*np.ones(nn), units='m', desc='flux lengh') # Effective, not Adiabatic!
+        self.add_input('L_flux', 4*np.ones(nn), units='m', desc='flux length') # Effective, not Adiabatic!
         self.add_input('L_adiabatic', 4*np.ones(nn), units='m', desc='Effective Length') # Effective, not Adiabatic!
         self.add_input('A_w', 5*np.ones(nn), units='m**2', desc='Wall Area')
         self.add_input('A_wk', 6*np.ones(nn), units='m**2', desc='Wick Area')
 
-        self.add_output('k_wk', val=1.0*np.ones(nn), units='W/(m*K)', desc='Wick Conductivity')
-        self.add_output('R_aw', val=1.0*np.ones(nn), units='K/W', desc='Wall Axial Resistance')
-        self.add_output('R_awk', val=1.0*np.ones(nn), units='K/W', desc='Wick Axial Resistance')
+        self.add_output('k_wk', val=np.ones(nn), units='W/(m*K)', desc='Wick Conductivity')
+        self.add_output('R_aw', val=np.ones(nn), units='K/W', desc='Wall Axial Resistance')
+        self.add_output('R_awk', val=np.ones(nn), units='K/W', desc='Wick Axial Resistance')
 
     def setup_partials(self):
         nn=self.options['num_nodes']

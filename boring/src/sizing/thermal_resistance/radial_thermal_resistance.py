@@ -13,32 +13,32 @@ class RadialThermalResistance(om.ExplicitComponent):
         nn = self.options['num_nodes']
         geom = self.options['geom']
 
-        self.add_input('alpha', val=1.0 * np.ones(nn), desc='thermal accommodation coefficient typically 0.01 to 1')
-        self.add_input('h_fg', val=1.0 * np.ones(nn), units='J/kg', desc='latent heat')
-        self.add_input('T_hp', val=1.0 * np.ones(nn), units='K', desc='Temp of heat pipe')
-        self.add_input('v_fg', val=1.0 * np.ones(nn), units='m**3/kg', desc='specific volume')
-        self.add_input('R_g', val=1.0 * np.ones(nn), units='J/kg/K', desc='gas constant of the vapor')
-        self.add_input('P_v', val=1.0 * np.ones(nn), units='Pa', desc='pressure')
-        self.add_input('k_w', val=1.0 * np.ones(nn), units='W/(m*K)', desc='thermal conductivity of the wall')
-        self.add_input('k_wk', val=1.0 * np.ones(nn), units='W/(m*K)', desc='thermal condusctivity of the wick')
-        self.add_input('A_inter', val=1.0 * np.ones(nn), units='m**2',
+        self.add_input('alpha', val=np.ones(nn), desc='thermal accommodation coefficient typically 0.01 to 1')
+        self.add_input('h_fg', val=np.ones(nn), units='J/kg', desc='latent heat')
+        self.add_input('T_hp', val=np.ones(nn), units='K', desc='Temp of heat pipe')
+        self.add_input('v_fg', val=np.ones(nn), units='m**3/kg', desc='specific volume')
+        self.add_input('R_g', val=np.ones(nn), units='J/kg/K', desc='gas constant of the vapor')
+        self.add_input('P_v', val=np.ones(nn), units='Pa', desc='pressure')
+        self.add_input('k_w', val=np.ones(nn), units='W/(m*K)', desc='thermal conductivity of the wall')
+        self.add_input('k_wk', val=np.ones(nn), units='W/(m*K)', desc='thermal condusctivity of the wick')
+        self.add_input('A_inter', val=np.ones(nn), units='m**2',
                        desc='area of wick/vapor interface of the condenser/evaporator')
 
         if geom == 'ROUND' or geom == 'round':
-            self.add_input('D_v', val=1.0 * np.ones(nn), units='m', desc='diameter of vapor region')
-            self.add_input('D_od', val=1.0 * np.ones(nn), units='m', desc='outer diameter')
-            self.add_input('r_i', val=1.0 * np.ones(nn), units='m', desc='inner radius')
-            self.add_input('L_flux', val=1.0 * np.ones(nn), units='m', desc='length of condensor/evaporator')
+            self.add_input('D_v', val=np.ones(nn), units='m', desc='diameter of vapor region')
+            self.add_input('D_od', val=np.ones(nn), units='m', desc='outer diameter')
+            self.add_input('r_i', val=np.ones(nn), units='m', desc='inner radius')
+            self.add_input('L_flux', val=np.ones(nn), units='m', desc='length of condensor/evaporator')
 
         elif geom == 'FLAT' or geom == 'flat':
             self.add_input('t_w', val=0.0005*np.ones(nn), units='m', desc='wall thickness')
             self.add_input('t_wk', val=0.00069*np.ones(nn), units='m', desc='wick thickness')
 
-        self.add_output('h_inter', val=1.0 * np.ones(nn), units='W/(m**2/K)',
+        self.add_output('h_inter', val=np.ones(nn), units='W/(m**2/K)',
                         desc='HTC of wick/vapor interface of the condenser/evaporator')
-        self.add_output('R_w', val=1.0 * np.ones(nn), units='K/W', desc='thermal resistance')
-        self.add_output('R_wk', val=1.0 * np.ones(nn), units='K/W', desc='thermal resistance')
-        self.add_output('R_inter', val=1.0 * np.ones(nn), units='K/W',
+        self.add_output('R_w', val=np.ones(nn), units='K/W', desc='thermal resistance')
+        self.add_output('R_wk', val=np.ones(nn), units='K/W', desc='thermal resistance')
+        self.add_output('R_inter', val=np.ones(nn), units='K/W',
                         desc='thermal resistance of wick/vapor interface of the condenser/evaporator')
 
     def setup_partials(self):
