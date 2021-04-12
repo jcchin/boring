@@ -37,9 +37,12 @@ class insulationMass(om.ExplicitComponent):
 
         self.add_output('ins_volume', 50, units='mm**3', desc='volume of the insulation')
         self.add_output('ins_backing_area', 250, units='mm**2', desc='area of the insulation on the back of the batts')
+        self.add_output('A', 50, units='mm**2', desc='side area of the battery')
         self.add_output('ins_side_sep_area', 250, units='mm**2', desc='area of the ins between the batts')
         self.add_output('ins_end_sep_area', 250, units='mm**2', desc='area of the ins at the vertical ends of the batts')
         self.add_output('ins_mass', 0.5, units='kg', desc='total mass of the insulation')
+
+        self.declare_partials('*', '*', method='cs')
     
     def compute(self, inputs, outputs):
         num_cells = inputs['num_cells']
@@ -53,13 +56,12 @@ class insulationMass(om.ExplicitComponent):
         batt_end_sep = inputs['batt_end_sep']
 
         outputs['ins_backing_area'] = (num_cells*batt_l*L_flux) + (batt_side_sep*(num_cells+1)) + (batt_end_sep*(num_stacks+1))
-        outputs['ins_side_sep_area'] = batt_l*batt_h*num_stacks*(num_cells+1)
+        outputs['A'] = batt_l*batt_h
+        outputs['ins_side_sep_area'] = outputs['A']*num_stacks*(num_cells+1)
         outputs['ins_end_sep_area'] = batt_h * ((num_cells*L_flux) + (batt_side_sep*(num_cells+1))) * (num_stacks+1)
         outputs['ins_volume'] = (outputs['ins_backing_area'] + outputs['ins_side_sep_area'] + outputs['ins_end_sep_area']) * ins_thickness
         outputs['ins_mass'] = outputs['ins_volume'] * ins_density
 
-def setup_partials(inputs, outputs, J):
-    self.declare_partials('*', '*', method='cs')
 
 
 
