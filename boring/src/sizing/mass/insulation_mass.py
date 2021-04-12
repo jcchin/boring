@@ -26,9 +26,9 @@ class insulationMass(om.ExplicitComponent):
         nn = self.options['num_nodes']
 
         self.add_input('num_cells', 4, desc='number of cells in system')
-        self.add_input('num_rows', 1, desc='number of cells in system')
+        self.add_input('num_stacks', 1, desc='number of parallel stacks in system')
         self.add_input('batt_l', 106.0, units='mm', desc='length of the battery')
-        self.add_input('batt_w', 50.0, units='mm', desc='width of the battery')
+        self.add_input('L_flux', 50.0, units='mm', desc='width of the battery')
         self.add_input('batt_h', 6.4, units='mm', desc='height (thickness) of the battery')
         self.add_input('ins_density', 1.6e-7, units='kg/mm**3', desc='density of the insulation material')
         self.add_input('ins_thickness', 2, units='mm', desc='height (thickness) of the insulation, equal to d')
@@ -39,22 +39,22 @@ class insulationMass(om.ExplicitComponent):
         self.add_output('ins_backing_area', 250, units='mm**2', desc='area of the insulation on the back of the batts')
         self.add_output('ins_side_sep_area', 250, units='mm**2', desc='area of the ins between the batts')
         self.add_output('ins_end_sep_area', 250, units='mm**2', desc='area of the ins at the vertical ends of the batts')
-        self.add_output('ins_mass', .5, units='kg', desc='total mass of the insulation')
+        self.add_output('ins_mass', 0.5, units='kg', desc='total mass of the insulation')
     
     def compute(self, inputs, outputs):
         num_cells = inputs['num_cells']
-        num_rows = inputs['num_rows']
+        num_stacks = inputs['num_stacks']
         batt_l = inputs['batt_l']
-        batt_w = inputs['batt_w']
+        L_flux = inputs['L_flux']
         batt_h = inputs['batt_h']
         ins_density = inputs['ins_density']
         ins_thickness = inputs['ins_thickness']
         batt_side_sep = inputs['batt_side_sep']
         batt_end_sep = inputs['batt_end_sep']
 
-        outputs['ins_backing_area'] = (num_cells*batt_l*batt_w) + (batt_side_sep*(num_cells+1)) + (batt_end_sep*(num_rows+1))
-        outputs['ins_side_sep_area'] = batt_l*batt_h*num_rows*(num_cells+1)
-        outputs['ins_end_sep_area'] = batt_h * ((num_cells*batt_w) + (batt_side_sep*(num_cells+1))) * (num_rows+1)
+        outputs['ins_backing_area'] = (num_cells*batt_l*L_flux) + (batt_side_sep*(num_cells+1)) + (batt_end_sep*(num_stacks+1))
+        outputs['ins_side_sep_area'] = batt_l*batt_h*num_stacks*(num_cells+1)
+        outputs['ins_end_sep_area'] = batt_h * ((num_cells*L_flux) + (batt_side_sep*(num_cells+1))) * (num_stacks+1)
         outputs['ins_volume'] = (outputs['ins_backing_area'] + outputs['ins_side_sep_area'] + outputs['ins_end_sep_area']) * ins_thickness
         outputs['ins_mass'] = outputs['ins_volume'] * ins_density
 

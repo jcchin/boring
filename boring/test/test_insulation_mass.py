@@ -20,9 +20,9 @@ class TestInsulationMass(unittest.TestCase):
 
     def test_ins_mass(self):
         self.prob['ins_mass.num_cells'] = 4
-        self.prob['ins_mass.num_rows'] = 1
+        self.prob['ins_mass.num_stacks'] = 1
         self.prob['ins_mass.batt_l'] = 106.0
-        self.prob['ins_mass.batt_w'] = 50.0
+        self.prob['ins_mass.L_flux'] = 50.0
         self.prob['ins_mass.batt_h'] = 6.4
         self.prob['ins_mass.ins_density'] = 1.6e-7
         self.prob['ins_mass.ins_thickness'] = 2
