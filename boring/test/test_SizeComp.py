@@ -29,7 +29,7 @@ class TestSizeComp(unittest.TestCase):
 
         self.prob.run_model()
 
-        assert_near_equal(self.prob.get_val('size_comp.A_flux'), 0.0016, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('size_comp.A_flux'), 0.0004, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('size_comp.L_eff'), 0.08, tolerance=1.0E-5)
 
 

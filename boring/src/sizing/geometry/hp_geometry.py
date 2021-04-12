@@ -109,7 +109,7 @@ class SizeComp(om.ExplicitComponent):
             W = inputs['W']
 
             outputs['L_eff'] =  (L_flux*num_cells) + (L_adiabatic*(num_cells+1)) # How to handle this for >2 battery cases?
-            outputs['A_flux'] = W * outputs['L_eff']
+            outputs['A_flux'] = W * L_flux
 
     # def compute_partials(self, inputs, partials):
 
@@ -143,12 +143,13 @@ class CoreGeometries(om.ExplicitComponent):
         geom = self.options['geom']
 
         if geom == 'ROUND' or geom == 'round':
-            self.add_input('D_od', 2 * np.ones(nn), units='m', desc='')
-            self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='')
+            self.add_input('D_od', 2 * np.ones(nn), units='m', desc='Outer diameter of heatpipe')
+            self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='Diameter of vapor channel')
 
         elif geom == 'FLAT' or geom == 'flat':
             self.add_input('t_wk', 0.056*np.ones(nn), units='m', desc='wick thickness')
             self.add_input('W', 0.056*np.ones(nn), units='m', desc='width of heat pipe into the page')
+            self.add_input('H', 0.056*np.ones(nn), units='m', desc='Height of heat pipe into the page')
 
         self.add_input('t_w', 0.056 * np.ones(nn), units='m', desc='wall thickness')
         self.add_input('L_flux', .056 * np.ones(nn), units='m', desc='length of the battery')
@@ -237,20 +238,20 @@ if __name__ == "__main__":
     geom='FLAT'
     prob = Problem()
 
-    # prob.model.add_subsystem('comp1', SizeComp(num_nodes=nn, geom=geom), promotes=['*'])
-    prob.model.add_subsystem('comp2', CoreGeometries(num_nodes=nn, geom=geom), promotes=['*'])
+    prob.model.add_subsystem('comp1', SizeComp(num_nodes=nn, geom=geom), promotes=['*'])
+    # prob.model.add_subsystem('comp2', CoreGeometries(num_nodes=nn, geom=geom), promotes=['*'])
 
     prob.setup(force_alloc_complex=True)
     prob.run_model()
     # prob.check_partials(method='cs', compact_print=True)
 
 
-    # print('A_flux = ', prob.get_val('comp1.A_flux'))
-    # print('L_eff = ', prob.get_val('comp1.L_eff'))
+    print('A_flux = ', prob.get_val('comp1.A_flux'))
+    print('L_eff = ', prob.get_val('comp1.L_eff'))
 
-    print('A_w = ', prob.get_val('comp2.A_w'))
-    print('A_wk = ', prob.get_val('comp2.A_wk'))
-    print('A_inter = ', prob.get_val('comp2.A_inter'))
+    # print('A_w = ', prob.get_val('comp2.A_w'))
+    # print('A_wk = ', prob.get_val('comp2.A_wk'))
+    # print('A_inter = ', prob.get_val('comp2.A_inter'))
 
 
     # print('r_i', prob.get_val('comp1.r_i'))
