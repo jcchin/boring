@@ -147,11 +147,11 @@ class CoreGeometries(om.ExplicitComponent):
             self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='')
 
         elif geom == 'FLAT' or geom == 'flat':
-            self.add_input('t_wk', np.ones(nn), units='m', desc='wick thickness')
-            self.add_input('W', np.ones(nn), units='m', desc='width of heat pipe into the page')
+            self.add_input('t_wk', 0.056*np.ones(nn), units='m', desc='wick thickness')
+            self.add_input('W', 0.056*np.ones(nn), units='m', desc='width of heat pipe into the page')
 
-        self.add_input('t_w', 0.01 * np.ones(nn), units='m', desc='')
-        self.add_input('L_flux', 5 * np.ones(nn), units='m', desc='')
+        self.add_input('t_w', 0.056 * np.ones(nn), units='m', desc='wall thickness')
+        self.add_input('L_flux', .056 * np.ones(nn), units='m', desc='length of the battery')
 
         self.add_output('A_w', 1 * np.ones(nn), units='m**2', desc='')  # Bridge
         self.add_output('A_wk', 1 * np.ones(nn), units='m**2', desc='')  # Bridge
@@ -237,17 +237,21 @@ if __name__ == "__main__":
     geom='FLAT'
     prob = Problem()
 
-    prob.model.add_subsystem('comp1', SizeComp(num_nodes=nn, geom=geom), promotes=['*'])
+    # prob.model.add_subsystem('comp1', SizeComp(num_nodes=nn, geom=geom), promotes=['*'])
+    prob.model.add_subsystem('comp2', CoreGeometries(num_nodes=nn, geom=geom), promotes=['*'])
 
     prob.setup(force_alloc_complex=True)
     prob.run_model()
     # prob.check_partials(method='cs', compact_print=True)
 
 
-    print('A_flux = ', prob.get_val('comp1.A_flux'))
-    print('L_eff = ', prob.get_val('comp1.L_eff'))
-    # print('A_inter = ', prob.get_val('comp1.A_inter'))
-    # print('A_intere = ', prob.get_val('comp1.A_intere'))
+    # print('A_flux = ', prob.get_val('comp1.A_flux'))
+    # print('L_eff = ', prob.get_val('comp1.L_eff'))
+
+    print('A_w = ', prob.get_val('comp2.A_w'))
+    print('A_wk = ', prob.get_val('comp2.A_wk'))
+    print('A_inter = ', prob.get_val('comp2.A_inter'))
+
 
     # print('r_i', prob.get_val('comp1.r_i'))
     # print('A_flux', prob.get_val('comp1.A_flux'))
