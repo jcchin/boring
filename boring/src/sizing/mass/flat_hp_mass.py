@@ -17,7 +17,6 @@ class flatHPMass(om.ExplicitComponent):
         nn = self.options['num_nodes']
 
         self.add_input('length_hp', 0.200 * np.ones(nn), units='m', desc='length of the hp')
-        self.add_input('cross_length_hp', 0.020 * np.ones(nn), units='m', desc='length of the perpendicular side')
         self.add_input('width_hp', 0.030 * np.ones(nn), units='m', desc='width of the hp, battery contact surface')
         self.add_input('height_hp', 0.020 * np.ones(nn), units='m', desc='height of the hp')
         self.add_input('wick_t', 0.003 * np.ones(nn), units='m', desc='thickness of the wick')
@@ -44,7 +43,6 @@ class flatHPMass(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         length_hp =     inputs['length_hp']
-        cross_length_hp= inputs['cross_length_hp']
         width_hp =      inputs['width_hp']
         height_hp =     inputs['height_hp']
         wick_t =        inputs['wick_t']

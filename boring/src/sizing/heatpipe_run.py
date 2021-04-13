@@ -8,7 +8,7 @@ Calculate steady-state heat pipe performance by converging the following subsyst
 (repeat until convergence)
 
 
-Author: Dustin Hall, Jeff Chin
+Author: Dustin Hall, Jeff Chin, Sydney Schnulo
 """
 import openmdao.api as om
 import numpy as np

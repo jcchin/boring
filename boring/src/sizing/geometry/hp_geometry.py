@@ -96,7 +96,7 @@ class SizeComp(om.ExplicitComponent):
             D_v = inputs['D_v']
 
             outputs['r_i'] = (D_od / 2 - t_w)
-            outputs['A_flux'] = np.pi * D_od * L_flux  # wrong formula for area !!!
+            outputs['A_flux'] = np.pi * D_od * L_flux  # circumference * length
 
         if geom.lower() == 'flat':
             W = inputs['W']
@@ -139,7 +139,7 @@ class CoreGeometries(om.ExplicitComponent):
             self.add_input('D_od', 2 * np.ones(nn), units='m', desc='')
             self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='')
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             self.add_input('t_wk', np.ones(nn), units='m', desc='wick thickness')
             self.add_input('W', np.ones(nn), units='m', desc='width of heat pipe into the page')
 
@@ -160,7 +160,7 @@ class CoreGeometries(om.ExplicitComponent):
             self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'], rows=ar, cols=ar)
             self.declare_partials('A_inter', ['D_v', 'L_flux'], rows=ar, cols=ar)
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             self.declare_partials('A_w', ['W', 't_w'], rows=ar, cols=ar)
             self.declare_partials('A_wk', ['W', 't_wk'], rows=ar, cols=ar)
             self.declare_partials('A_inter', ['W', 'L_flux'], rows=ar, cols=ar)
@@ -179,7 +179,7 @@ class CoreGeometries(om.ExplicitComponent):
             outputs['A_wk'] = np.pi * ((D_od / 2 - t_w) ** 2 - (D_v / 2) ** 2)
             outputs['A_inter'] = np.pi * D_v * L_flux
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             W = inputs['W']
             t_wk = inputs['t_wk']
 
@@ -208,7 +208,7 @@ class CoreGeometries(om.ExplicitComponent):
             J['A_inter', 'D_v'] = np.pi * L_flux
             J['A_inter', 'L_flux'] = np.pi * D_v
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             W = inputs['W']
             t_wk = inputs['t_wk']
 
