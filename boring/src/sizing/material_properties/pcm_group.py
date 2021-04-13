@@ -16,11 +16,11 @@ class TempRateComp(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('q', val=np.ones(nn), units='W')
-        self.add_input('mass', val=np.ones(nn), units='kg')
-        self.add_input('c_p', val=np.ones(nn), units='J/(kg*K)')
+        self.add_input('q', val=np.ones(nn), desc= 'heat flux', units='W')
+        self.add_input('mass', val=np.ones(nn), desc='cell mass', units='kg')
+        self.add_input('c_p', val=np.ones(nn), desc='cell specific heat', units='J/(kg*K)')
 
-        self.add_output('Tdot', val=np.ones(nn), units='K/s')
+        self.add_output('Tdot', val=np.ones(nn), desc='change in temperature per second', units='K/s')
 
     def setup_partials(self):
         nn = self.options['num_nodes']

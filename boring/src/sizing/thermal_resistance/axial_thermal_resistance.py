@@ -9,7 +9,7 @@ import numpy as np
 class AxialThermalResistance(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn=self.options['num_nodes']
@@ -47,10 +47,10 @@ class AxialThermalResistance(om.ExplicitComponent):
         k_w = inputs['k_w']
         A_wk = inputs['A_wk']
 
-        if geom == 'FLAT' or geom == 'flat':
+        if geom == 'flat' or geom == 'flat':
             L_eff = L_flux + L_adiabatic
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round' or geom == 'round':
             L_eff = L_adiabatic
 
         outputs['k_wk']=(1-epsilon)*k_w+epsilon*k_l
@@ -72,12 +72,12 @@ class AxialThermalResistance(om.ExplicitComponent):
 
         d_k_wk__d_epsilon = -k_w + k_l
 
-        if geom == 'FLAT' or geom == 'flat':
+        if geom == 'flat' or geom == 'flat':
             L_eff = L_flux + L_adiabatic
             J['R_awk', 'L_flux'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
             J['R_aw', 'L_flux'] = 1/(A_w*k_w) 
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round' or geom == 'round':
             L_eff = L_adiabatic
 
         J['k_wk', 'epsilon'] = -k_w + k_l

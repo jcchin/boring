@@ -24,7 +24,7 @@ class HeatPipeGroup(om.Group):
         self.options.declare('num_nodes', types=int)
         self.options.declare('num_cells', types=int, default=3)
         self.options.declare('pcm_bool', types=bool, default=False)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
 
     def setup(self):
@@ -38,10 +38,10 @@ class HeatPipeGroup(om.Group):
 
         for i in np.arange(n):
 
-            if geom == 'ROUND' or geom == 'round':
+            if geom.lower() == 'round':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
                                                         promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
-            if geom == 'FLAT' or geom == 'flat':
+            if geom.lower() == 'flat':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
                                                         promotes_inputs=['W', 't_wk', 't_w', 'k_w', 'L_adiabatic', 'alpha'])
 
@@ -70,11 +70,11 @@ class HeatPipeGroup(om.Group):
         self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
         self.set_input_defaults('t_wk', 0.00069 * np.ones(nn), units='m')
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom.lower() == 'round':
             self.set_input_defaults('D_od', 0.006 * np.ones(nn), units='m')
             self.set_input_defaults('D_v', 0.00362 * np.ones(nn), units='m')
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             self.set_input_defaults('H', 0.02 * np.ones(nn), units='m')
             self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
 

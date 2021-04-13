@@ -8,17 +8,17 @@ class VaporThermalResistance(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
 
     def setup(self):
         nn = self.options['num_nodes']
         geom = self.options['geom']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom.lower() == 'round':
             self.add_input('D_v', 0.1 * np.ones(nn), units='m', desc='diameter of vapor region')
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             self.add_input('H', 0.02 * np.ones(nn), units='m', desc='total thickness of heat pipe')
             self.add_input('W', 0.02 * np.ones(nn), units='m', desc='width of heat pipe into the page')
             self.add_input('t_w', 0.02 * np.ones(nn), units='m', desc='wall thickness')
@@ -45,11 +45,11 @@ class VaporThermalResistance(om.ExplicitComponent):
         ar = np.arange(nn)
         geom = self.options['geom']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom.lower() == 'round':
             self.declare_partials('r_h', 'D_v', rows=ar, cols=ar)
             self.declare_partials('R_v', 'D_v', rows=ar, cols=ar)
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             self.declare_partials('r_h', ['H', 't_w', 't_wk', 'W'], rows=ar, cols=ar) 
             self.declare_partials('R_v', ['H', 't_w', 't_wk', 'W'], rows=ar, cols=ar)   
 
@@ -70,11 +70,11 @@ class VaporThermalResistance(om.ExplicitComponent):
         L_adiabatic = inputs['L_adiabatic']
         L_flux = inputs['L_flux']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom.lower() == 'round':
             D_v = inputs['D_v']
             outputs['r_h'] = D_v / 2
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
             H = inputs['H']
             W = inputs['W']
             t_w = inputs['t_w']
@@ -102,7 +102,7 @@ class VaporThermalResistance(om.ExplicitComponent):
         L_flux = inputs['L_flux']
         L_eff = L_flux+L_adiabatic
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom.lower() == 'round':
 
             D_v = inputs['D_v']
 
@@ -112,7 +112,7 @@ class VaporThermalResistance(om.ExplicitComponent):
             partials['R_v', 'D_v'] = -4 * 8 * R_g * mu_v * T_hp ** 2 * L_eff / (
                         np.pi * h_fg ** 2 * P_v * rho_v * r_h ** 5) * 1 / 2
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom.lower() == 'flat':
 
             H = inputs['H']
             W = inputs['W']
