@@ -8,7 +8,7 @@ REFERENCES
 import openmdao.api as om
 import numpy as np
 
-class flatHPMass(om.ExplicitComponent):
+class flatHPmass(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     prob = om.Problem(model=om.Group())  
     nn=1  
 
-    prob.model.add_subsystem('comp1', flatHPMass(num_nodes=nn), promotes_inputs=['*'], promotes_outputs=['*'])
+    prob.model.add_subsystem('comp1', flatHPmass(num_nodes=nn), promotes_inputs=['*'], promotes_outputs=['*'])
 
     prob.setup(force_alloc_complex=True)
     prob.run_model()

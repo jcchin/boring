@@ -24,6 +24,12 @@ from boring.metamodel.sizing_component import MetaPackSizeComp
 from boring.metamodel.training_data import MetaTempGroup
 from boring.util.opt_plots import opt_plots
 
+from boring.src.sizing.mass.pcm_mass import pcmMass
+from boring.src.sizing.mass.insulation_mass import insulationMass
+from boring.src.sizing.mass.flat_hp_mass import flatHPmass
+from boring.src.sizing.mass.round_hp_mass import roundHPmass
+
+
 
 class Build_Pack(om.Group):
     def initialize(self):

@@ -2,7 +2,7 @@
 import numpy as np
 import openmdao.api as om
 
-class heatPipeMass(om.ExplicitComponent):
+class roundHPmass(om.ExplicitComponent):
     ''' Class to calculate only the mass of the heat pipe '''
 
     def initialize(self):
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     nn = 1
     prob = Problem()
 
-    prob.model.add_subsystem('hp_mass', heatPipeMass(num_nodes=nn), promotes=['*'])
+    prob.model.add_subsystem('hp_mass', roundHPmass(num_nodes=nn), promotes=['*'])
 
     prob.setup(force_alloc_complex=True)
     prob.run_model()

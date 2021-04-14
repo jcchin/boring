@@ -15,7 +15,7 @@ import numpy as np
 
 from boring.src.sizing.thermal_network import Radial_Stack, thermal_link
 from boring.src.sizing.material_properties.pcm_group import TempRateComp
-from boring.src.sizing.mass.round_hp_mass import heatPipeMass
+from boring.src.sizing.mass.round_hp_mass import roundHPmass
 
 # from boring.util.load_inputs import load_inputs
 
@@ -51,7 +51,7 @@ class HeatPipeGroup(om.Group):
             self.connect('cell_{}.Rex.q'.format(i), 'T_rate_cell_{}.q'.format(i))
 
         self.add_subsystem(name='hp_mass',
-                           subsys=heatPipeMass(num_nodes=nn),
+                           subsys=roundHPmass(num_nodes=nn),
                            promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
                            promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
