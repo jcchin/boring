@@ -12,7 +12,7 @@ from boring.src.sizing.thermal_resistance.radial_thermal_resistance import Radia
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
-from boring.src.sizing.material_properties.pcm_group import PCM_Group, TempRateComp
+from boring.src.sizing.material_properties.pcm_group import PCM_Group
 
 
 class Resistor(om.ExplicitComponent):

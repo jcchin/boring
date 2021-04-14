@@ -115,14 +115,14 @@ class SizeComp(om.ExplicitComponent):
 
         # geom = self.options['geom']
 
-        # if geom == 'ROUND' or geom == 'round':
+        # if geom == 'round':
         #     partials['r_i', 'D_od'] = 1 / 2
         #     partials['r_i', 't_w'] = -1
 
         #     partials['A_flux', 'D_od'] = np.pi * inputs['L_flux']
         #     partials['A_flux', 'L_flux'] = np.pi * inputs['D_od']
 
-        # if geom == 'FLAT' or geom =='flat':
+        # if geom =='flat':
 
         #     partials['A_flux', 'W'] = inputs['L_flux']
         #     partials['A_flux', 'L_flux'] = inputs['W']

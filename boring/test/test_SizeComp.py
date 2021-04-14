@@ -13,7 +13,7 @@ class TestSizeComp(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('size_comp', subsys=SizeComp(num_nodes=1, geom='FLAT'))
+        p1.model.add_subsystem('size_comp', subsys=SizeComp(num_nodes=1, geom='flat'))
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()

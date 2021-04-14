@@ -13,11 +13,11 @@ Author: Dustin Hall, Jeff Chin, Sydney Schnulo
 import openmdao.api as om
 import numpy as np
 
-from boring.src.sizing.thermal_network import Radial_Stack, thermal_link, TempRateComp
+from boring.src.sizing.thermal_network import Radial_Stack, thermal_link
+from boring.src.sizing.material_properties.pcm_group import TempRateComp
 from boring.src.sizing.mass.round_hp_mass import heatPipeMass
 
 # from boring.util.load_inputs import load_inputs
-
 
 class HeatPipeGroup(om.Group):
     def initialize(self):
@@ -79,6 +79,7 @@ class HeatPipeGroup(om.Group):
             self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
 
         # load_inputs('boring.input.assumptions2', self, nn)
+
 
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
