@@ -30,11 +30,11 @@ class HeatPipeSizeGroup(om.Group):
 
         self.set_input_defaults('L_flux', 6 * np.ones(nn), units='m')
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             self.set_input_defaults('D_v', 0.5 * np.ones(nn), units='m')
             self.set_input_defaults('D_od', 2 * np.ones(nn), units='m')
 
-        if geom.lower() == 'flat':
+        if geom == 'flat':
             self.set_input_defaults('W', .02 * np.ones(nn), units='m')
 
         self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
@@ -57,13 +57,13 @@ class SizeComp(om.ExplicitComponent):
         self.add_input('t_wk', 0.00069 * np.ones(nn), units='m', desc='wick thickness')
         self.add_input('num_cells', 1, desc='number of cells')
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             self.add_input('D_od', 0.006 * np.ones(nn), units='m', desc='Vapor Outer Diameter')
             self.add_input('D_v', 0.00362 * np.ones(nn), units='m', desc='Vapor Diameter')
 
             self.add_output('r_i', val=1.0 * np.ones(nn), units='m', desc='inner radius')  # Radial
 
-        if geom.lower() == 'flat':
+        if geom == 'flat':
             self.add_input('W', 0.02 * np.ones(nn), units='m', desc='Width of heat pipe into the page') 
              
 
@@ -77,13 +77,13 @@ class SizeComp(om.ExplicitComponent):
         ar = np.arange(nn)
         geom = self.options['geom']
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             # self.declare_partials('r_i', 'D_od', rows=ar, cols=ar)
             # self.declare_partials('r_i', 't_w', rows=ar, cols=ar)
             # self.declare_partials('A_flux', 'D_od', rows=ar, cols=ar)
             self.declare_partials('*', '*', method='cs')
 
-        if geom.lower() == 'flat':
+        if geom == 'flat':
             # self.declare_partials('A_flux', 'W')
             self.declare_partials('*', '*', method='cs')
 
@@ -97,7 +97,7 @@ class SizeComp(om.ExplicitComponent):
         t_wk = inputs['t_wk']
         num_cells = inputs['num_cells']
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             D_od = inputs['D_od']
             D_v = inputs['D_v']
             
@@ -105,7 +105,7 @@ class SizeComp(om.ExplicitComponent):
             outputs['r_i'] = (D_od / 2 - t_w)
             outputs['A_flux'] = np.pi * D_od * L_flux  # circumference * length
 
-        if geom.lower() == 'flat':
+        if geom == 'flat':
             W = inputs['W']
 
             outputs['L_eff'] =  (L_flux*num_cells) + (L_adiabatic*(num_cells+1)) # How to handle this for >2 battery cases?
@@ -142,11 +142,11 @@ class CoreGeometries(om.ExplicitComponent):
         nn = self.options['num_nodes']
         geom = self.options['geom']
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             self.add_input('D_od', 2 * np.ones(nn), units='m', desc='Outer diameter of heatpipe')
             self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='Diameter of vapor channel')
 
-        elif geom.lower() == 'flat':
+        elif geom == 'flat':
             self.add_input('t_wk', 0.056*np.ones(nn), units='m', desc='wick thickness')
             self.add_input('W', 0.056*np.ones(nn), units='m', desc='width of heat pipe into the page')
             self.add_input('H', 0.056*np.ones(nn), units='m', desc='Height of heat pipe into the page')
@@ -163,12 +163,12 @@ class CoreGeometries(om.ExplicitComponent):
         geom = self.options['geom']
         ar = np.arange(nn)
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             self.declare_partials('A_w', ['D_od', 't_w'], rows=ar, cols=ar)
             self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'], rows=ar, cols=ar)
             self.declare_partials('A_inter', ['D_v', 'L_flux'], rows=ar, cols=ar)
 
-        elif geom.lower() == 'flat':
+        elif geom == 'flat':
             self.declare_partials('A_w', ['W', 't_w'], rows=ar, cols=ar)
             self.declare_partials('A_wk', ['W', 't_wk'], rows=ar, cols=ar)
             self.declare_partials('A_inter', ['W', 'L_flux'], rows=ar, cols=ar)
@@ -179,7 +179,7 @@ class CoreGeometries(om.ExplicitComponent):
         L_flux = inputs['L_flux']
         t_w = inputs['t_w']
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             D_od = inputs['D_od']
             D_v = inputs['D_v']
 
@@ -187,7 +187,7 @@ class CoreGeometries(om.ExplicitComponent):
             outputs['A_wk'] = np.pi * ((D_od / 2 - t_w) ** 2 - (D_v / 2) ** 2)
             outputs['A_inter'] = np.pi * D_v * L_flux
 
-        elif geom.lower() == 'flat':
+        elif geom == 'flat':
             W = inputs['W']
             t_wk = inputs['t_wk']
 
@@ -202,7 +202,7 @@ class CoreGeometries(om.ExplicitComponent):
         t_w = inputs['t_w']
         L_flux = inputs['L_flux']
 
-        if geom.lower() == 'round':
+        if geom == 'round':
             D_od = inputs['D_od']
             D_v = inputs['D_v']
 
@@ -216,7 +216,7 @@ class CoreGeometries(om.ExplicitComponent):
             J['A_inter', 'D_v'] = np.pi * L_flux
             J['A_inter', 'L_flux'] = np.pi * D_v
 
-        elif geom.lower() == 'flat':
+        elif geom == 'flat':
             W = inputs['W']
             t_wk = inputs['t_wk']
 
