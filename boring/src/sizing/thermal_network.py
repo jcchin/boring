@@ -12,7 +12,7 @@ from boring.src.sizing.thermal_resistance.radial_thermal_resistance import Radia
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.geometry.hp_geometry import HeatPipeSizeGroup
-from boring.src.sizing.material_properties.pcm_group import PCM_Group, TempRateComp
+from boring.src.sizing.material_properties.pcm_group import PCM_Group
 
 
 class Resistor(om.ExplicitComponent):
@@ -96,7 +96,7 @@ class Radial_Stack(om.Group):
         self.options.declare('n_in', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('n_out', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('pcm_bool', types=bool, default=False)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'],default='round')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         n_in = self.options['n_in']
@@ -104,12 +104,12 @@ class Radial_Stack(om.Group):
         nn = self.options['num_nodes']
         geom = self.options['geom']
 
-        if geom == 'round' or geom == 'ROUND':
+        if geom == 'round':
             self.add_subsystem(name = 'size',
                               subsys = HeatPipeSizeGroup(num_nodes=nn, geom=geom),
                               promotes_inputs=['L_flux', 'L_adiabatic', 't_w', 't_wk', 'D_od', 'D_v'],
                               promotes_outputs=['r_i', 'A_flux', 'A_inter']) #'A_w', 'A_wk', 'L_eff' now come from the bridge/thermal link
-        elif geom == 'flat' or geom == 'FLAT':
+        elif geom == 'flat':
             self.add_subsystem(name = 'size',
                               subsys = HeatPipeSizeGroup(num_nodes=nn, geom=geom),
                               promotes_inputs=['L_flux', 'L_adiabatic', 't_w', 't_wk', 'W'],
@@ -122,13 +122,13 @@ class Radial_Stack(om.Group):
                            promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg','v_fg','k_l'])
 
         # Calculate Resistances
-        if geom == 'round' or geom == 'ROUND':
+        if geom == 'round':
             self.add_subsystem(name='radial',
                                subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
                                promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','A_inter','k_w','L_flux','r_i','D_v','h_fg','alpha'],
                                promotes_outputs=['R_w','R_wk','R_inter'])
 
-        elif geom == 'flat' or geom == 'FLAT':
+        elif geom == 'flat':
             self.add_subsystem(name='radial',
                                subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
                                promotes_inputs=['T_hp','v_fg','t_w','R_g','P_v','k_wk','A_inter','k_w','t_wk','h_fg','alpha'],
@@ -189,7 +189,7 @@ class Bridge(om.Group):
     """ Bridge between evaporator or condensors """
     def initialize(self):
         self.options.declare('num_nodes', types=int, default=1)  
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn = self.options['num_nodes']
@@ -201,13 +201,13 @@ class Bridge(om.Group):
                            promotes_inputs=['epsilon', 'k_w', 'k_l', 'A_w', 'A_wk'],
                            promotes_outputs=['k_wk']) 
 
-        if geom == 'ROUND' or geom == 'round': 
+        if geom == 'round': 
 
             self.add_subsystem(name='vapor',
                                subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
                                promotes_inputs=['D_v', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_flux', 'L_adiabatic',])
 
-        elif geom == 'FLAT' or geom =='flat':
+        elif geom == 'flat':
 
             self.add_subsystem(name='vapor',
                                subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
@@ -223,7 +223,7 @@ class Bridge(om.Group):
         self.connect('axial.R_aw','Rwa.R')
         self.connect('axial.R_awk', 'Rwka.R')
 
-def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='ROUND'):
+def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
     nn = num_nodes
 
     l_name = l_comp
@@ -235,12 +235,12 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='ROUND'):
     #                     promotes_inputs=['L_adiabatic',('L1','{}.L_flux'.format(l_name,r_name)],
     #                     promotes_outputs=['L_eff'])
 
-    if geom == 'ROUND' or geom == 'round': 
+    if geom == 'round': 
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
                             promotes_inputs=['D_v', 'L_flux', 'L_adiabatic', 'k_w','epsilon'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
 
-    elif geom == 'FLAT' or geom =='flat':
+    elif geom =='flat':
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
                             promotes_inputs=['W', 'H', 't_w', 't_wk',  'L_flux', 'L_adiabatic', 'k_w','epsilon'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks

@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 def get_hp_phase(transcription='gauss-radau', num_segments=5,
                  transcription_order=3, compressed=False,
                  solve_segments=False, num_cells=3, db=(1, 300),
-                 pcm=False, geom='ROUND'):
+                 pcm=False, geom='round'):
 
     phase = dm.Phase(ode_class=HeatPipeGroup,
                                     ode_init_kwargs= {'num_cells': num_cells,

@@ -12,7 +12,7 @@ import openmdao.api as om
 class HeatPipeSizeGroup(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn = self.options['num_nodes']
@@ -30,11 +30,11 @@ class HeatPipeSizeGroup(om.Group):
 
         self.set_input_defaults('L_flux', 6 * np.ones(nn), units='m')
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             self.set_input_defaults('D_v', 0.5 * np.ones(nn), units='m')
             self.set_input_defaults('D_od', 2 * np.ones(nn), units='m')
 
-        if geom == 'FLAT' or geom == 'flat':
+        if geom == 'flat':
             self.set_input_defaults('W', .02 * np.ones(nn), units='m')
 
         self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
@@ -45,7 +45,7 @@ class HeatPipeSizeGroup(om.Group):
 class SizeComp(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn = self.options['num_nodes']
@@ -57,13 +57,13 @@ class SizeComp(om.ExplicitComponent):
         self.add_input('t_wk', 0.00069 * np.ones(nn), units='m', desc='wick thickness')
         self.add_input('num_cells', 1, desc='number of cells')
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             self.add_input('D_od', 0.006 * np.ones(nn), units='m', desc='Vapor Outer Diameter')
             self.add_input('D_v', 0.00362 * np.ones(nn), units='m', desc='Vapor Diameter')
 
             self.add_output('r_i', val=1.0 * np.ones(nn), units='m', desc='inner radius')  # Radial
 
-        if geom == 'FLAT' or geom == 'flat':
+        if geom == 'flat':
             self.add_input('W', 0.02 * np.ones(nn), units='m', desc='Width of heat pipe into the page') 
              
 
@@ -77,13 +77,13 @@ class SizeComp(om.ExplicitComponent):
         ar = np.arange(nn)
         geom = self.options['geom']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             # self.declare_partials('r_i', 'D_od', rows=ar, cols=ar)
             # self.declare_partials('r_i', 't_w', rows=ar, cols=ar)
             # self.declare_partials('A_flux', 'D_od', rows=ar, cols=ar)
             self.declare_partials('*', '*', method='cs')
 
-        if geom == 'FLAT' or geom == 'flat':
+        if geom == 'flat':
             # self.declare_partials('A_flux', 'W')
             self.declare_partials('*', '*', method='cs')
 
@@ -97,15 +97,15 @@ class SizeComp(om.ExplicitComponent):
         t_wk = inputs['t_wk']
         num_cells = inputs['num_cells']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             D_od = inputs['D_od']
             D_v = inputs['D_v']
             
             outputs['L_eff'] = 0.5
             outputs['r_i'] = (D_od / 2 - t_w)
-            outputs['A_flux'] = np.pi * D_od * L_flux  # wrong formula for area !!!
+            outputs['A_flux'] = np.pi * D_od * L_flux  # circumference * length
 
-        if geom == 'FLAT' or geom == 'flat':
+        if geom == 'flat':
             W = inputs['W']
 
             outputs['L_eff'] =  (L_flux*num_cells) + (L_adiabatic*(num_cells+1)) # How to handle this for >2 battery cases?
@@ -115,14 +115,14 @@ class SizeComp(om.ExplicitComponent):
 
         # geom = self.options['geom']
 
-        # if geom == 'ROUND' or geom == 'round':
+        # if geom == 'round':
         #     partials['r_i', 'D_od'] = 1 / 2
         #     partials['r_i', 't_w'] = -1
 
         #     partials['A_flux', 'D_od'] = np.pi * inputs['L_flux']
         #     partials['A_flux', 'L_flux'] = np.pi * inputs['D_od']
 
-        # if geom == 'FLAT' or geom =='flat':
+        # if geom =='flat':
 
         #     partials['A_flux', 'W'] = inputs['L_flux']
         #     partials['A_flux', 'L_flux'] = inputs['W']
@@ -136,17 +136,17 @@ class CoreGeometries(om.ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn = self.options['num_nodes']
         geom = self.options['geom']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             self.add_input('D_od', 2 * np.ones(nn), units='m', desc='Outer diameter of heatpipe')
             self.add_input('D_v', 0.5 * np.ones(nn), units='m', desc='Diameter of vapor channel')
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom == 'flat':
             self.add_input('t_wk', 0.056*np.ones(nn), units='m', desc='wick thickness')
             self.add_input('W', 0.056*np.ones(nn), units='m', desc='width of heat pipe into the page')
             self.add_input('H', 0.056*np.ones(nn), units='m', desc='Height of heat pipe into the page')
@@ -163,12 +163,12 @@ class CoreGeometries(om.ExplicitComponent):
         geom = self.options['geom']
         ar = np.arange(nn)
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             self.declare_partials('A_w', ['D_od', 't_w'], rows=ar, cols=ar)
             self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'], rows=ar, cols=ar)
             self.declare_partials('A_inter', ['D_v', 'L_flux'], rows=ar, cols=ar)
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom == 'flat':
             self.declare_partials('A_w', ['W', 't_w'], rows=ar, cols=ar)
             self.declare_partials('A_wk', ['W', 't_wk'], rows=ar, cols=ar)
             self.declare_partials('A_inter', ['W', 'L_flux'], rows=ar, cols=ar)
@@ -179,7 +179,7 @@ class CoreGeometries(om.ExplicitComponent):
         L_flux = inputs['L_flux']
         t_w = inputs['t_w']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             D_od = inputs['D_od']
             D_v = inputs['D_v']
 
@@ -187,7 +187,7 @@ class CoreGeometries(om.ExplicitComponent):
             outputs['A_wk'] = np.pi * ((D_od / 2 - t_w) ** 2 - (D_v / 2) ** 2)
             outputs['A_inter'] = np.pi * D_v * L_flux
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom == 'flat':
             W = inputs['W']
             t_wk = inputs['t_wk']
 
@@ -202,7 +202,7 @@ class CoreGeometries(om.ExplicitComponent):
         t_w = inputs['t_w']
         L_flux = inputs['L_flux']
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             D_od = inputs['D_od']
             D_v = inputs['D_v']
 
@@ -216,7 +216,7 @@ class CoreGeometries(om.ExplicitComponent):
             J['A_inter', 'D_v'] = np.pi * L_flux
             J['A_inter', 'L_flux'] = np.pi * D_v
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom == 'flat':
             W = inputs['W']
             t_wk = inputs['t_wk']
 
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     from openmdao.api import Problem
 
     nn = 1
-    geom='FLAT'
+    geom='flat'
     prob = Problem()
 
     prob.model.add_subsystem('comp1', SizeComp(num_nodes=nn, geom=geom), promotes=['*'])

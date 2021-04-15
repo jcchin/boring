@@ -21,16 +21,21 @@ class TestPCMcp(unittest.TestCase):
         p1.run_model()
 
     def test_bulk_calc(self):
-        self.prob['cp.T_lo'] = 20.
-        self.prob['cp.T_hi'] = 100.
+        # go out of bounds
         self.prob['cp.T'] = 80.
         self.prob.run_model()
-        assert_near_equal(self.prob.get_val('cp.cp_pcm'), 50., tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('cp.cp_pcm'), 1.5, tolerance=1.0E-5)
 
-        # go out of bounds
-        self.prob['cp.T'] = 0.
+        # go in bounds
+        self.prob['cp.T'] = 336.
         self.prob.run_model()
-        assert_near_equal(self.prob.get_val('cp.cp_pcm'), 1.5, tolerance=1.0E-5)  # check the same exact output, make sure it changes
+        assert_near_equal(self.prob.get_val('cp.cp_pcm'), 50., tolerance=1.0E-5)  # check the same exact output, make sure it changes
+
+        # go in bounds
+        self.prob['cp.T'] = 333.
+        self.prob.run_model()
+        assert_near_equal(self.prob.get_val('cp.cp_pcm'), 25.75, tolerance=1.0E-5)  # check the same exact output, make sure it changes
+
 
     def test_partials(self):  # derivative check
 

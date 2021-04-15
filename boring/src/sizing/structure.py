@@ -23,12 +23,12 @@ class tempODE(om.ExplicitComponent):
 
         # Inputs
         self.add_input('K', val=0.03*np.ones(nn), desc='insulation conductivity', units='W/m*K')
-        self.add_input('A', val=.102*.0003*np.ones(nn), desc='area', units='m**2')
+        self.add_input('A', val=.102*.0003*np.ones(nn), desc='battery side area', units='m**2')
         self.add_input('d', val=0.03*np.ones(nn), desc='insulation thickness', units='m')
         self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg')
-        self.add_input('Cp', val=3.56*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K')
-        self.add_input('Th', val=773.*np.ones(nn), desc='hot side temp', units='K')
-        self.add_input('T', val=373.*np.ones(nn), desc='cold side temp', units='K')
+        self.add_input('Cp', val=3.56*np.ones(nn), desc='cell specific heat capacity', units='kJ/kg*K')
+        self.add_input('Th', val=773.*np.ones(nn), desc='hot battery side temp', units='K')
+        self.add_input('T', val=373.*np.ones(nn), desc='cold battery side temp', units='K')
 
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')

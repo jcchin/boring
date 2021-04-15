@@ -8,23 +8,23 @@ Calculate steady-state heat pipe performance by converging the following subsyst
 (repeat until convergence)
 
 
-Author: Dustin Hall, Jeff Chin
+Author: Dustin Hall, Jeff Chin, Sydney Schnulo
 """
 import openmdao.api as om
 import numpy as np
 
-from boring.src.sizing.thermal_network import Radial_Stack, thermal_link, TempRateComp
-from boring.src.sizing.mass.round_hp_mass import heatPipeMass
+from boring.src.sizing.thermal_network import Radial_Stack, thermal_link
+from boring.src.sizing.material_properties.pcm_group import TempRateComp
+from boring.src.sizing.mass.round_hp_mass import roundHPmass
 
 # from boring.util.load_inputs import load_inputs
-
 
 class HeatPipeGroup(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
         self.options.declare('num_cells', types=int, default=3)
         self.options.declare('pcm_bool', types=bool, default=False)
-        self.options.declare('geom', values=['ROUND', 'round', 'FLAT', 'flat'], default='ROUND')
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
 
     def setup(self):
@@ -38,10 +38,10 @@ class HeatPipeGroup(om.Group):
 
         for i in np.arange(n):
 
-            if geom == 'ROUND' or geom == 'round':
+            if geom == 'round':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
                                                         promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
-            if geom == 'FLAT' or geom == 'flat':
+            if geom == 'flat':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
                                                         promotes_inputs=['W', 't_wk', 't_w', 'k_w', 'L_adiabatic', 'alpha'])
 
@@ -51,7 +51,7 @@ class HeatPipeGroup(om.Group):
             self.connect('cell_{}.Rex.q'.format(i), 'T_rate_cell_{}.q'.format(i))
 
         self.add_subsystem(name='hp_mass',
-                           subsys=heatPipeMass(num_nodes=nn),
+                           subsys=roundHPmass(num_nodes=nn),
                            promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
                            promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
@@ -70,15 +70,16 @@ class HeatPipeGroup(om.Group):
         self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
         self.set_input_defaults('t_wk', 0.00069 * np.ones(nn), units='m')
 
-        if geom == 'ROUND' or geom == 'round':
+        if geom == 'round':
             self.set_input_defaults('D_od', 0.006 * np.ones(nn), units='m')
             self.set_input_defaults('D_v', 0.00362 * np.ones(nn), units='m')
 
-        elif geom == 'FLAT' or geom == 'flat':
+        elif geom == 'flat':
             self.set_input_defaults('H', 0.02 * np.ones(nn), units='m')
             self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
 
         # load_inputs('boring.input.assumptions2', self, nn)
+
 
 if __name__ == "__main__":
     p = om.Problem(model=om.Group())
