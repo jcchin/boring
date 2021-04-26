@@ -33,8 +33,8 @@ class VaporThermalResistance(om.ExplicitComponent):
         self.add_input('h_fg', 100 * np.ones(nn), units='J/kg', desc='latent heat')
         self.add_input('P_v', 1000 * np.ones(nn), units='Pa', desc='pressure')
         self.add_input('rho_v', 100 * np.ones(nn), units='kg/m**3', desc='density of vapor')
-        self.add_input('L_flux', val=1*np.ones(nn), units='m', desc='length of cells')
-        self.add_input('L_adiabatic', val=1*np.ones(nn), units='m', desc = 'length of adiabatic section')
+        self.add_input('LW:L_flux', val=np.ones(nn), units='mm', desc='length of cells')
+        self.add_input('LW:L_adiabatic', val=np.ones(nn), units='mm', desc = 'length of adiabatic section')
 
         self.add_output('r_h', val=1.0 * np.ones(nn), units='m', desc='hydraulic radius')
         self.add_output('R_v', val=1.0 * np.ones(nn), units='K/W', desc='thermal resistance of vapor region')
@@ -56,7 +56,7 @@ class VaporThermalResistance(om.ExplicitComponent):
         else:
             pass
 
-        self.declare_partials('R_v', ['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'L_adiabatic', 'L_flux'], rows=ar, cols=ar)
+        self.declare_partials('R_v', ['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_adiabatic', 'LW:L_flux'], rows=ar, cols=ar)
 
     def compute(self, inputs, outputs):
         geom = self.options['geom']
@@ -67,8 +67,8 @@ class VaporThermalResistance(om.ExplicitComponent):
         h_fg = inputs['h_fg']
         P_v = inputs['P_v']
         rho_v = inputs['rho_v']
-        L_adiabatic = inputs['L_adiabatic']
-        L_flux = inputs['L_flux']
+        L_adiabatic = inputs['LW:L_adiabatic']
+        L_flux = inputs['LW:L_flux']
 
         if geom == 'round':
             D_v = inputs['D_v']
@@ -98,8 +98,8 @@ class VaporThermalResistance(om.ExplicitComponent):
         h_fg = inputs['h_fg']
         P_v = inputs['P_v']
         rho_v = inputs['rho_v']
-        L_adiabatic = inputs['L_adiabatic']
-        L_flux = inputs['L_flux']
+        L_adiabatic = inputs['LW:L_adiabatic']
+        L_flux = inputs['LW:L_flux']
         L_eff = L_flux+L_adiabatic
 
         if geom == 'round':
@@ -141,8 +141,8 @@ class VaporThermalResistance(om.ExplicitComponent):
         partials['R_v', 'P_v'] = -8 * R_g * mu_v * T_hp ** 2 * L_eff / (np.pi * h_fg ** 2 * P_v ** 2 * rho_v * r_h ** 4)
         partials['R_v', 'rho_v'] = -8 * R_g * mu_v * T_hp ** 2 * L_eff / (
                     np.pi * h_fg ** 2 * P_v * rho_v ** 2 * r_h ** 4)
-        partials['R_v', 'L_adiabatic'] = 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v * r_h ** 4)
-        partials['R_v', 'L_flux'] = 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v * r_h ** 4)
+        partials['R_v', 'LW:L_adiabatic'] = 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v * r_h ** 4)
+        partials['R_v', 'LW:L_flux'] = 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v * r_h ** 4)
 
 
 

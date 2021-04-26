@@ -126,8 +126,8 @@ class TestFlatVaporResistance(unittest.TestCase):
         self.prob.set_val('R_g', R_g_array)
         self.prob.set_val('P_v', P_v_array)
         self.prob.set_val('rho_v', rho_v_array)
-        self.prob.set_val('L_flux', L_flux_array)
-        self.prob.set_val('L_adiabatic', L_adiabatic_array)
+        self.prob.set_val('LW:L_flux', L_flux_array)
+        self.prob.set_val('LW:L_adiabatic', L_adiabatic_array)
         self.prob.set_val('mu_v', mu_v_array)
         self.prob.run_model()
 

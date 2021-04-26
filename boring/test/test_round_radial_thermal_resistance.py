@@ -144,7 +144,7 @@ class TestRoundRadialResistance(unittest.TestCase):
             R_interc_array.append(R_interc)
 
         self.prob.set_val('alpha', alpha_array)
-        self.prob.set_val('L_flux', L_cond_array)
+        self.prob.set_val('LW:L_flux', L_cond_array)
         self.prob.set_val('h_fg', h_fg_array)
         self.prob.set_val('T_hp', T_hp_array)
         self.prob.set_val('v_fg', v_fg_array)
@@ -155,7 +155,7 @@ class TestRoundRadialResistance(unittest.TestCase):
         self.prob.set_val('k_w', k_w_array)
         self.prob.set_val('D_v', D_v_array)
         self.prob.set_val('k_wk', k_wk_array)
-        self.prob.set_val('A_inter', A_interc_array)
+        self.prob.set_val('LW:A_inter', A_interc_array)
         self.prob.run_model()
 
         assert_near_equal(self.prob.get_val('h_inter'), h_interc_array, tolerance=1.0E-5)

@@ -40,10 +40,10 @@ class HeatPipeGroup(om.Group):
 
             if geom == 'round':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
-                                                        promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+                                                        promotes_inputs=['D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'D_v', 'LW:L_adiabatic', 'alpha'])
             if geom == 'flat':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
-                                                        promotes_inputs=['W', 't_wk', 't_w', 'k_w', 'L_adiabatic', 'alpha'])
+                                                        promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:L_adiabatic', 'alpha'])
 
             self.add_subsystem(name='T_rate_cell_{}'.format(i),
                                subsys=TempRateComp(num_nodes=nn))
@@ -52,7 +52,7 @@ class HeatPipeGroup(om.Group):
 
         self.add_subsystem(name='hp_mass',
                            subsys=roundHPmass(num_nodes=nn),
-                           promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
+                           promotes_inputs=['XS:D_od','XS:D_v','L_heatpipe','XS:t_w','XS:t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
                            promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
         for j in range(n-1):
@@ -65,18 +65,18 @@ class HeatPipeGroup(om.Group):
 
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
-        self.set_input_defaults('L_flux', 0.02 * np.ones(nn), units='m')
-        self.set_input_defaults('L_adiabatic', 0.03 * np.ones(nn), units='m')
-        self.set_input_defaults('t_w', 0.0005 * np.ones(nn), units='m')
-        self.set_input_defaults('t_wk', 0.00069 * np.ones(nn), units='m')
+        self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
+        self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
+        self.set_input_defaults('XS:t_w', 0.5 * np.ones(nn), units='mm')
+        self.set_input_defaults('XS:t_wk', 0.69 * np.ones(nn), units='mm')
 
         if geom == 'round':
-            self.set_input_defaults('D_od', 0.006 * np.ones(nn), units='m')
-            self.set_input_defaults('D_v', 0.00362 * np.ones(nn), units='m')
+            self.set_input_defaults('D_od', 6. * np.ones(nn), units='mm')
+            self.set_input_defaults('D_v', 3.62 * np.ones(nn), units='mm')
 
         elif geom == 'flat':
-            self.set_input_defaults('H', 0.02 * np.ones(nn), units='m')
-            self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
+            self.set_input_defaults('H', 20. * np.ones(nn), units='mm')
+            self.set_input_defaults('W', 20. * np.ones(nn), units='mm')
 
         # load_inputs('boring.input.assumptions2', self, nn)
 

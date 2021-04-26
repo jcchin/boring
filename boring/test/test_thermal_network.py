@@ -101,15 +101,17 @@ class TestCircuit(unittest.TestCase):
 
         p2 = self.prob2 = Problem(model=Group())
         p2.model.add_subsystem('evap', Radial_Stack(num_nodes=nn, n_in=0, n_out=1),
-                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic',
-                                                'alpha'])  # promote shared values (geometry, mat props)
+                               promotes_inputs=['XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic', 'alpha'])  # promote shared values (geometry, mat props)
         p2.model.add_subsystem('cond', Radial_Stack(num_nodes=nn, n_in=1, n_out=0),
-                               promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+                               promotes_inputs=['XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic', 'alpha'])
 
         thermal_link(p2.model, 'evap', 'cond', num_nodes=nn)
         p2.model.connect('evap_bridge.k_wk', ['evap.k_wk', 'cond.k_wk'])
 
         p2.model.set_input_defaults('k_w', 11.4)
+        p2.model.set_input_defaults('evap.LW:L_flux', val=10.)
+        p2.model.set_input_defaults('cond.LW:L_flux', val=20.)
+        p2.model.set_input_defaults('LW:L_adiabatic', val=30.)
 
         p2.setup(force_alloc_complex=True)
 
@@ -133,21 +135,20 @@ class TestCircuit(unittest.TestCase):
         # self.prob2['cond.Rw.R'] = Rwc
         self.prob2['cond.Rex.R'] = Rexc
 
-        self.prob2['cond.L_flux'] = 0.02
-        self.prob2['evap.L_flux'] = 0.01
-        self.prob2['L_adiabatic'] = 0.03
+        self.prob2['cond.LW:L_flux'] = 20.
+        self.prob2['evap.LW:L_flux'] = 10.
+        self.prob2['LW:L_adiabatic'] = 30.
         # self.prob2['h_fg'] = 
         # self.prob2['T_hp'] =
         # self.prob2['v_fg'] =
         # self.prob2['R_g'] =
         # self.prob2['P_v'] =
         # self.prob2['k_l'] = 
-        self.prob2['t_wk'] = 0.00069
-        self.prob2['t_w'] = 0.0005
-        self.prob2['D_od'] = 0.006
+        self.prob2['XS:t_wk'] = 0.69
+        self.prob2['XS:t_w'] = 0.5
+        self.prob2['XS:D_v'] = 3.62
         self.prob2['k_w'] = 11.4
         self.prob2['epsilon'] = 0.46
-        self.prob2['D_v'] = 0.00362
         # self.prob2['L_eff'] = (self.prob2['cond.L_flux'] + self.prob2['evap.L_flux']) / 2. + self.prob2['L_adiabatic']
         # self.prob2['k_wk'] = (1-self.prob2['epsilon'])*self.prob2['k_w']+self.prob2['epsilon']*self.prob2['k_l'] # Bridge
         # self.prob2['A_cond'] = np.pi*self.prob2['D_od']*self.prob2['L_cond']
