@@ -118,8 +118,8 @@ class TestFlatVaporResistance(unittest.TestCase):
         self.prob.set_val('LW:L_flux', L_flux_array)
         self.prob.set_val('LW:L_adiabatic', L_adiabatic_array)
         self.prob.set_val('mu_v', mu_v_array)
-        self.prob.set_val('t_w', t_w_array)
-        self.prob.set_val('t_wk', t_wk_array)
+        self.prob.set_val('XS:t_w', t_w_array)
+        self.prob.set_val('XS:t_wk', t_wk_array)
         self.prob.run_model()
 
         assert_near_equal(self.prob.get_val('r_h'), r_h_array, tolerance=1.0E-5)

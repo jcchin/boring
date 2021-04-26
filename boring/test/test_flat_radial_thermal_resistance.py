@@ -128,8 +128,8 @@ class TestFlatRadialResistance(unittest.TestCase):
         self.prob.set_val('k_w', k_w_array)
         self.prob.set_val('k_wk', k_wk_array)
         self.prob.set_val('LW:A_inter', A_interc_array)
-        self.prob.set_val('t_w', t_w_array)
-        self.prob.set_val('t_wk', t_wk_array)
+        self.prob.set_val('XS:t_w', t_w_array)
+        self.prob.set_val('XS:t_wk', t_wk_array)
         self.prob.run_model()
 
         assert_near_equal(self.prob.get_val('h_inter'), h_interc_array, tolerance=1.0E-5)

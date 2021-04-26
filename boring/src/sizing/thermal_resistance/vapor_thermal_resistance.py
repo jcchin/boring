@@ -16,13 +16,13 @@ class VaporThermalResistance(om.ExplicitComponent):
         geom = self.options['geom']
 
         if geom == 'round':
-            self.add_input('D_v', 0.1 * np.ones(nn), units='m', desc='diameter of vapor region')
+            self.add_input('XS:D_v', 0.1 * np.ones(nn), units='m', desc='diameter of vapor region')
 
         elif geom == 'flat':
             self.add_input('H', 0.02 * np.ones(nn), units='m', desc='total thickness of heat pipe')
             self.add_input('W', 0.02 * np.ones(nn), units='m', desc='width of heat pipe into the page')
-            self.add_input('t_w', 0.02 * np.ones(nn), units='m', desc='wall thickness')
-            self.add_input('t_wk', 0.02 * np.ones(nn), units='m', desc='wick thickness')
+            self.add_input('XS:t_w', 0.02 * np.ones(nn), units='m', desc='wall thickness')
+            self.add_input('XS:t_wk', 0.02 * np.ones(nn), units='m', desc='wick thickness')
 
         else:
             pass
@@ -46,12 +46,12 @@ class VaporThermalResistance(om.ExplicitComponent):
         geom = self.options['geom']
 
         if geom == 'round':
-            self.declare_partials('r_h', 'D_v', rows=ar, cols=ar)
-            self.declare_partials('R_v', 'D_v', rows=ar, cols=ar)
+            self.declare_partials('r_h', 'XS:D_v', rows=ar, cols=ar)
+            self.declare_partials('R_v', 'XS:D_v', rows=ar, cols=ar)
 
         elif geom == 'flat':
-            self.declare_partials('r_h', ['H', 't_w', 't_wk', 'W'], rows=ar, cols=ar) 
-            self.declare_partials('R_v', ['H', 't_w', 't_wk', 'W'], rows=ar, cols=ar)   
+            self.declare_partials('r_h', ['H', 'XS:t_w', 'XS:t_wk', 'W'], rows=ar, cols=ar) 
+            self.declare_partials('R_v', ['H', 'XS:t_w', 'XS:t_wk', 'W'], rows=ar, cols=ar)   
 
         else:
             pass
@@ -71,14 +71,14 @@ class VaporThermalResistance(om.ExplicitComponent):
         L_flux = inputs['LW:L_flux']
 
         if geom == 'round':
-            D_v = inputs['D_v']
+            D_v = inputs['XS:D_v']
             outputs['r_h'] = D_v / 2
 
         elif geom == 'flat':
             H = inputs['H']
             W = inputs['W']
-            t_w = inputs['t_w']
-            t_wk = inputs['t_wk']
+            t_w = inputs['XS:t_w']
+            t_wk = inputs['XS:t_wk']
 
             outputs['r_h'] = ((H-2*t_w-2*t_wk)*W)/(2*W+2*(H-2*t_w-2*t_wk))
 
@@ -104,32 +104,32 @@ class VaporThermalResistance(om.ExplicitComponent):
 
         if geom == 'round':
 
-            D_v = inputs['D_v']
+            D_v = inputs['XS:D_v']
 
             r_h = D_v / 2
 
-            partials['r_h', 'D_v'] = 1 / 2
-            partials['R_v', 'D_v'] = -4 * 8 * R_g * mu_v * T_hp ** 2 * L_eff / (
+            partials['r_h', 'XS:D_v'] = 1 / 2
+            partials['R_v', 'XS:D_v'] = -4 * 8 * R_g * mu_v * T_hp ** 2 * L_eff / (
                         np.pi * h_fg ** 2 * P_v * rho_v * r_h ** 5) * 1 / 2
 
         elif geom == 'flat':
 
             H = inputs['H']
             W = inputs['W']
-            t_w = inputs['t_w']
-            t_wk = inputs['t_wk']
+            t_w = inputs['XS:t_w']
+            t_wk = inputs['XS:t_wk']
 
             r_h = ((H-2*t_w-2*t_wk)*W)/(2*W+2*(H-2*t_w-2*t_wk))
 
             dr_h_dH = partials['r_h', 'H'] = (W * (2*W+2*(H-2*t_w-2*t_wk)) - 2 * ((H-2*t_w-2*t_wk)*W)) / (2*W+2*(H-2*t_w-2*t_wk))**2
             dr_h_dW = partials['r_h', 'W'] = ((H-2*t_w-2*t_wk) * (2*W+2*(H-2*t_w-2*t_wk)) - 2 * ((H-2*t_w-2*t_wk)*W))/(2*W+2*(H-2*t_w-2*t_wk))**2
-            dr_h_dt_w = partials['r_h', 't_w'] = (-2*W * (2*W+2*(H-2*t_w-2*t_wk)) + 4*((H-2*t_w-2*t_wk)*W))/(2*W+2*(H-2*t_w-2*t_wk))**2
-            dr_h_dt_wk = partials['r_h', 't_wk'] = (-2*W * (2*W+2*(H-2*t_w-2*t_wk)) + 4*((H-2*t_w-2*t_wk)*W))/(2*W+2*(H-2*t_w-2*t_wk))**2
+            dr_h_dt_w = partials['r_h', 'XS:t_w'] = (-2*W * (2*W+2*(H-2*t_w-2*t_wk)) + 4*((H-2*t_w-2*t_wk)*W))/(2*W+2*(H-2*t_w-2*t_wk))**2
+            dr_h_dt_wk = partials['r_h', 'XS:t_wk'] = (-2*W * (2*W+2*(H-2*t_w-2*t_wk)) + 4*((H-2*t_w-2*t_wk)*W))/(2*W+2*(H-2*t_w-2*t_wk))**2
 
             partials['R_v', 'H'] = - 4 * 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v) * (L_eff / (r_h ** 5)) * dr_h_dH
             partials['R_v', 'W'] = - 4 * 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v) * (L_eff / (r_h ** 5)) * dr_h_dW
-            partials['R_v', 't_w'] = - 4 * 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v) * (L_eff / (r_h ** 5)) * dr_h_dt_w
-            partials['R_v', 't_wk'] = - 4 * 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v) * (L_eff / (r_h ** 5)) * dr_h_dt_wk
+            partials['R_v', 'XS:t_w'] = - 4 * 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v) * (L_eff / (r_h ** 5)) * dr_h_dt_w
+            partials['R_v', 'XS:t_wk'] = - 4 * 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v) * (L_eff / (r_h ** 5)) * dr_h_dt_wk
 
         else: 
             pass

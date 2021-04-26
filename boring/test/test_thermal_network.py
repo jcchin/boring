@@ -109,9 +109,10 @@ class TestCircuit(unittest.TestCase):
         p2.model.connect('evap_bridge.k_wk', ['evap.k_wk', 'cond.k_wk'])
 
         p2.model.set_input_defaults('k_w', 11.4)
-        p2.model.set_input_defaults('evap.LW:L_flux', val=10.)
-        p2.model.set_input_defaults('cond.LW:L_flux', val=20.)
-        p2.model.set_input_defaults('LW:L_adiabatic', val=30.)
+        p2.model.set_input_defaults('evap.LW:L_flux', val=10., units='mm')
+        p2.model.set_input_defaults('cond.LW:L_flux', val=20., units='mm')
+        p2.model.set_input_defaults('LW:L_adiabatic', val=30., units='mm')
+        p2.model.set_input_defaults('XS:D_v', val=3.62, units='mm')
 
         p2.setup(force_alloc_complex=True)
 
@@ -149,13 +150,13 @@ class TestCircuit(unittest.TestCase):
         self.prob2['XS:D_v'] = 3.62
         self.prob2['k_w'] = 11.4
         self.prob2['epsilon'] = 0.46
-        # self.prob2['L_eff'] = (self.prob2['cond.L_flux'] + self.prob2['evap.L_flux']) / 2. + self.prob2['L_adiabatic']
+        # self.prob2['L_eff'] = (self.prob2['cond.L_flux'] + self.prob2['evap.L_flux']) / 2. + self.prob2['LW:L_adiabatic']
         # self.prob2['k_wk'] = (1-self.prob2['epsilon'])*self.prob2['k_w']+self.prob2['epsilon']*self.prob2['k_l'] # Bridge
-        # self.prob2['A_cond'] = np.pi*self.prob2['D_od']*self.prob2['L_cond']
-        # self.prob2['A_evap'] =  np.pi*self.prob2['D_od']*self.prob2['L_evap']
-        # self.prob2['A_w'] = np.pi*((self.prob2['D_od']/2.)**2-(self.prob2['D_od']/2.-self.prob2['t_w'])**2)
-        # self.prob2['A_wk'] = np.pi*((self.prob2['D_od']/2.-self.prob2['t_w'])**2-(self.prob2['D_v']/2.)**2)
-        # self.prob2['A_inter'] = np.pi*self.prob2['D_v']*self.prob2['L_evap']
+        # self.prob2['A_cond'] = np.pi*self.prob2['XS:D_od']*self.prob2['L_cond']
+        # self.prob2['A_evap'] =  np.pi*self.prob2['XS:D_od']*self.prob2['L_evap']
+        # self.prob2['A_w'] = np.pi*((self.prob2['XS:D_od']/2.)**2-(self.prob2['XS:D_od']/2.-self.prob2['XS:t_w'])**2)
+        # self.prob2['A_wk'] = np.pi*((self.prob2['XS:D_od']/2.-self.prob2['XS:t_w'])**2-(self.prob2['XS:D_v']/2.)**2)
+        # self.prob2['A_inter'] = np.pi*self.prob2['XS:D_v']*self.prob2['L_evap']
 
         # self.prob2['evap_bridge.Rv.R'] = Rv
         # self.prob2['evap_bridge.Rwka.R'] = Rwka
@@ -164,16 +165,28 @@ class TestCircuit(unittest.TestCase):
         self.prob2['cond.Rex.T_in'] = 20
 
         p2.run_model()
-        # p2.model.list_inputs(values=True, prom_name=True)
-        # p2.model.list_outputs(values=True, prom_name=True)
+        p2.model.list_inputs(values=True, prom_name=True)
+        p2.model.list_outputs(values=True, prom_name=True)
         # n2(p2)
         # view_connections(p2)
 
         Rtot3 = (self.prob2.get_val('evap.n1.T') - self.prob2.get_val('cond.n1.T')) / np.abs(
             self.prob2.get_val('cond.Rex.q'))
 
-        ans = 16731692103737332239244353077427184638278095509511778941. / 10680954190791611228174081719413008273307025000000000000.
+        ans = 1.5791057
         assert_near_equal(Rtot3, ans, tolerance=5.0E-3)
+        assert_near_equal(self.prob2.get_val('evap.Rex.R'), 0.0000001, tolerance=5.0E-3)
+        assert_near_equal(self.prob2.get_val('cond.Rex.R'), 0.0000001, tolerance=5.0E-3)
+        assert_near_equal(self.prob2.get_val('evap.Rw.R'), 0.2545383947014702, tolerance=5.0E-3)
+        assert_near_equal(self.prob2.get_val('evap.Rwk.R'), 0.7943030881649811, tolerance=5.0E-3)
+        # assert_near_equal(self.prob2.get_val('evap_bridge.Rv.R'), 8.852701208752846e-06, tolerance=5.0E-3)
+        # assert_near_equal(self.prob2.get_val('evap.Rinter.R'), 0.00034794562965549745, tolerance=5.0E-3)
+        # assert_near_equal(self.prob2.get_val('cond.Rinter.R'), 0.00017397281482774872, tolerance=5.0E-3)
+        assert_near_equal(self.prob2.get_val('cond.Rwk.R'), 0.39715154408249054, tolerance=5.0E-3)
+        # assert_near_equal(self.prob2.get_val('evap_bridge.Rwka.R'), 744.3007160198263, tolerance=5.0E-3)
+        # assert_near_equal(self.prob2.get_val('evap_bridge.Rwa.R'), 456.90414284754644, tolerance=5.0E-3)
+        assert_near_equal(self.prob2.get_val('cond.Rw.R'), 0.1272691973507351, tolerance=5.0E-3)
+
 
     def _test_two_port(self):
         Rexe = 0.0000001

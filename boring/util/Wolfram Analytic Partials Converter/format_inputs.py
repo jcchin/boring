@@ -90,10 +90,10 @@ print(out)
 
 
 
-# self.declare_partials('A_w', ['D_od', 't_w'])
-#         self.declare_partials('A_wk', ['D_od', 't_w', 'D_v'])
-#         self.declare_partials('A_interc', ['D_v', 'L_cond'])
-#         self.declare_partials('A_intere', ['D_v', 'L_evap'])
+# self.declare_partials('A_w', ['XS:D_od', 'XS:t_w'])
+#         self.declare_partials('A_wk', ['XS:D_od', 'XS:t_w', 'XS:D_v'])
+#         self.declare_partials('A_interc', ['XS:D_v', 'L_cond'])
+#         self.declare_partials('A_intere', ['XS:D_v', 'L_evap'])
 
 
 # #Find the newest version of the response file based on the file name

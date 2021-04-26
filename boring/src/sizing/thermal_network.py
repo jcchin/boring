@@ -125,7 +125,7 @@ class Radial_Stack(om.Group):
         if geom == 'round':
             self.add_subsystem(name='radial',
                                subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['T_hp','v_fg','D_od','R_g','P_v','k_wk','LW:A_inter','k_w','LW:L_flux','r_i','D_v','h_fg','alpha'],
+                               promotes_inputs=['T_hp','v_fg','XS:D_od','R_g','P_v','k_wk','LW:A_inter','k_w','LW:L_flux','XS:r_i','XS:D_v','h_fg','alpha'],
                                promotes_outputs=['R_w','R_wk','R_inter'])
 
         elif geom == 'flat':
@@ -205,7 +205,7 @@ class Bridge(om.Group):
 
             self.add_subsystem(name='vapor',
                                subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['D_v', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_flux', 'LW:L_adiabatic'])
+                               promotes_inputs=['XS:D_v', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_flux', 'LW:L_adiabatic'])
 
         elif geom == 'flat':
 
@@ -237,7 +237,7 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
 
     if geom == 'round': 
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['D_v', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
+                            promotes_inputs=['XS:D_v', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
 
     elif geom =='flat':

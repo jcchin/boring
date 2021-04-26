@@ -40,7 +40,7 @@ class HeatPipeGroup(om.Group):
 
             if geom == 'round':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
-                                                        promotes_inputs=['D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'D_v', 'LW:L_adiabatic', 'alpha'])
+                                                        promotes_inputs=['XS:D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic', 'alpha'])
             if geom == 'flat':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
                                                         promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:L_adiabatic', 'alpha'])
@@ -71,8 +71,8 @@ class HeatPipeGroup(om.Group):
         self.set_input_defaults('XS:t_wk', 0.69 * np.ones(nn), units='mm')
 
         if geom == 'round':
-            self.set_input_defaults('D_od', 6. * np.ones(nn), units='mm')
-            self.set_input_defaults('D_v', 3.62 * np.ones(nn), units='mm')
+            self.set_input_defaults('XS:D_od', 6. * np.ones(nn), units='mm')
+            self.set_input_defaults('XS:D_v', 3.62 * np.ones(nn), units='mm')
 
         elif geom == 'flat':
             self.set_input_defaults('H', 20. * np.ones(nn), units='mm')

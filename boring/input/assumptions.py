@@ -14,14 +14,14 @@ inputs = {
     #                   """ Currently no check to ensure feasability of dimensions """
     'epsilon': [0.46],  # Porosity of the wick (0=void, 1=solid)
     'L_eff': [0.045, 'm'],  # Effective Length
-    'D_od': [0.006],  # Outer diameter of overall heatpipe
-    'D_v': [0.00362],  # Outer diameter of HP vapor chamber
-    't_wk': [0.00069],  # Thickness of the wick in the interior of the HP
-    't_w': [0.0005],  # Thickness of the HP wall
+    'XS:D_od': [0.006],  # Outer diameter of overall heatpipe
+    'XS:D_v': [0.00362],  # Outer diameter of HP vapor chamber
+    'XS:t_wk': [0.00069],  # Thickness of the wick in the interior of the HP
+    'XS:t_w': [0.0005],  # Thickness of the HP wall
     # 'L_heatpipe': [0.30],  # Overall length of the HP (including adiabatic portion)
     # 'liq_density':[1000]    # Density of the liquid in HP
     # 'fill_liq':[0.70]       # Fill perentage of liquid in HP (1=full, 0=empty)
-    'L_adiabatic': [0.03],  # Length of each adiabatic section
+    'LW:L_adiabatic': [0.03],  # Length of each adiabatic section
     'k_w': [11.4],  # heat pipe wall thermal conductivity
 
     # ----------------------------------------Battery Sizing Vars-----------------------------------------#

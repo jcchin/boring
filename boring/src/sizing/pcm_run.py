@@ -27,12 +27,12 @@ class PCMrun(om.Group):
         nn = self.options['num_nodes']
 
         self.add_subsystem('evap', Radial_Stack(n_in=0, n_out=1, num_nodes=nn),
-                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic',
+                           promotes_inputs=['XS:D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic',
                                             'alpha'])  # promote shared values (geometry, mat props)
         self.add_subsystem('cond', Radial_Stack(n_in=1, n_out=1, num_nodes=nn),
-                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+                           promotes_inputs=['XS:D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic', 'alpha'])
         self.add_subsystem('cond2', Radial_Stack(n_in=1, n_out=0, num_nodes=nn),
-                           promotes_inputs=['D_od', 't_wk', 't_w', 'k_w', 'D_v', 'L_adiabatic', 'alpha'])
+                           promotes_inputs=['XS:D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic', 'alpha'])
 
         self.add_subsystem(name='T_rate_cond',
                            subsys=TempRateComp(num_nodes=nn))
@@ -45,7 +45,7 @@ class PCMrun(om.Group):
 
         # self.add_subsystem(name='hp_mass',
         #                    subsys=heatPipeMass(num_nodes=nn),
-        #                    promotes_inputs=['D_od','D_v','L_heatpipe','t_w','t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
+        #                    promotes_inputs=['XS:D_od','XS:D_v','L_heatpipe','XS:t_w','XS:t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
         #                    promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
 
         thermal_link(self, 'evap', 'cond', num_nodes=nn)
@@ -73,11 +73,11 @@ if __name__ == "__main__":
 
     # p.set_val('L_evap',0.01)
     # p.set_val('L_cond',0.02)
-    # p.set_val('L_adiabatic',0.03)
-    # p.set_val('t_w',0.0005)
-    # p.set_val('t_wk',0.00069)
-    # p.set_val('D_od', 0.006)
-    # p.set_val('D_v',0.00362)
+    # p.set_val('LW:L_adiabatic',0.03)
+    # p.set_val('XS:t_w',0.0005)
+    # p.set_val('XS:t_wk',0.00069)
+    # p.set_val('XS:D_od', 0.006)
+    # p.set_val('XS:D_v',0.00362)
     # p.set_val('Q_hp',1)
     # p.set_val('h_c',1200)
     # p.set_val('T_coolant',293)
