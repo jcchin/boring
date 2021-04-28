@@ -21,7 +21,7 @@ class PCM_PS(om.ExplicitComponent):
         nn=self.options['num_nodes']
 
         # pad geometry
-        self.add_input('T', 280*np.ones(nn), units='K', desc='PCM temp')
+        self.add_input('T', 334*np.ones(nn), units='K', desc='PCM temp')
         self.add_input('T_lo', 333*np.ones(nn), units='K', desc='PCM lower temp transition point')
         self.add_input('T_hi', 338*np.ones(nn), units='K', desc='PCM upper temp transition point')
 

@@ -86,7 +86,7 @@ class Build_Pack(om.Group):
 
         # Run dymos transient, return neighboring temperatures
         self.add_subsystem(name='temp',
-                           subsys=PCMrun(num_nodes=nn, num_cells = num_cells, pcm_bool= True, geom=geom),
+                           subsys=PCM_transient(num_nodes=nn, num_cells = num_cells, pcm_bool= True, geom=geom),
                            promotes_inputs=inpts,
                            promotes_outputs=['temp2_data'])
 

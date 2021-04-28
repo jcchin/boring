@@ -20,11 +20,11 @@ class TestHeatPipeMass(unittest.TestCase):
         p1.run_model()
 
     def test_hp_mass(self):
-        self.prob['hp_mass.D_od'] = 0.03
-        self.prob['hp_mass.D_v'] = 0.03
+        self.prob['hp_mass.XS:D_od'] = 0.03
+        self.prob['hp_mass.XS:D_v'] = 0.03
         self.prob['hp_mass.L_heatpipe'] = 0.3
-        self.prob['hp_mass.t_w'] = .0005
-        self.prob['hp_mass.t_wk'] = 0.0005
+        self.prob['hp_mass.XS:t_w'] = .0005
+        self.prob['hp_mass.XS:t_wk'] = 0.0005
         self.prob['hp_mass.cu_density'] = 8960
         self.prob['hp_mass.fill_wk'] = 0.10
         self.prob['hp_mass.liq_density'] = 1000

@@ -10,17 +10,19 @@ import openmdao.api as om
 import numpy as np
 import dymos as dm
 
-from boring.src.sizing.heatpipe_run import HeatPipeGroup  # import the ODE
+from boring.src.sizing.heatpipe_group import HeatPipeGroup  # import the ODE
 from boring.util.save_csv import save_csv
 
 from boring.util.load_inputs import load_inputs
 
 import matplotlib.pyplot as plt
 
+# compressed = False requires more variables, but can provide more robust convergence
+# solve_segments = <False, forward, backard> method for converging states
 
 def get_hp_phase(transcription='gauss-radau', num_segments=5,
                  transcription_order=3, compressed=False,
-                 solve_segments=False, num_cells=3, db=(1, 300),
+                 solve_segments='forward', num_cells=3, db=(1, 300),
                  pcm=False, geom='round'):
 
     phase = dm.Phase(ode_class=HeatPipeGroup,
@@ -34,11 +36,24 @@ def get_hp_phase(transcription='gauss-radau', num_segments=5,
 
     for i in np.arange(num_cells):
 
-        phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_cell_{}.Tdot'.format(i), targets='cell_{}.Rex.T_in'.format(i), units='K',
-                        lower=250, upper=400, fix_initial=True, fix_final=False, solve_segments=solve_segments)
+        if pcm:
+            # create cell temp states, connect to 
+            # phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_cell_{}.Tdot'.format(i), targets='cell_{}.Rex.T_in'.format(i), units='K',
+            #                 lower=250, upper=400, fix_initial=True, fix_final=False, solve_segments=solve_segments)
+            # create pcm temp states, connect T_in to external resistance Rex
+            phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_pcm_{}.Tdot'.format(i), targets='cell_{}.Rex.T_in'.format(i), units='K',
+                            lower=250, upper=400, fix_initial=True, fix_final=False, solve_segments=solve_segments)
 
-        phase.add_parameter('cell_{}.L_flux'.format(i), val=0.02, units='m', targets='cell_{}.L_flux'.format(i), include_timeseries=False, opt=False)
-        phase.add_parameter('cell_{}.R'.format(i), val=0.0001, units='K/W', targets='cell_{}.Rex.R'.format(i), include_timeseries=False, opt=False)
+            phase.add_parameter('cell_{}.LW:L_flux'.format(i), val=0.02, units='m', targets='cell_{}.LW:L_flux'.format(i), include_timeseries=False, opt=False)
+            phase.add_parameter('cell_{}.R'.format(i), val=0.0001, units='K/W', targets='cell_{}.Rex.R'.format(i), include_timeseries=False, opt=False)
+        
+        else:
+            # since there is no pcm, connect cell T_in directly to external resistance Rex
+            phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_cell_{}.Tdot'.format(i), targets='cell_{}.Rex.T_in'.format(i), units='K',
+                            lower=250, upper=400, fix_initial=True, fix_final=False, solve_segments=solve_segments)
+
+            phase.add_parameter('cell_{}.LW:L_flux'.format(i), val=0.02, units='m', targets='cell_{}.LW:L_flux'.format(i), include_timeseries=False, opt=False)
+            phase.add_parameter('cell_{}.R'.format(i), val=0.0001, units='K/W', targets='cell_{}.Rex.R'.format(i), include_timeseries=False, opt=False)
 
     return phase
 
@@ -72,6 +87,7 @@ if __name__ == '__main__':
     p.model.linear_solver = om.DirectSolver(assemble_jac=True)
     p.setup()
 
+    p.model.list_inputs(prom_name=True)
     p['phase.t_initial'] = 0.0
     p['phase.t_duration'] = 10.
 
