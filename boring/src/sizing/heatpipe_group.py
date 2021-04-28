@@ -79,6 +79,8 @@ class HeatPipeGroup(om.Group):
         self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
         self.set_input_defaults('XS:t_w', 0.5 * np.ones(nn), units='mm')
         self.set_input_defaults('XS:t_wk', 0.69 * np.ones(nn), units='mm')
+        self.set_input_defaults('T_rate_pcm_1.mass', 0.005*np.ones(nn), units='kg')
+        self.set_input_defaults('T_rate_pcm_0.mass', 0.003*np.ones(nn), units='kg')
 
         if geom == 'round':
             self.set_input_defaults('XS:D_od', 6. * np.ones(nn), units='mm')

@@ -402,6 +402,8 @@ if __name__ == "__main__":
 
     p.run_model() 
     #om.n2(p)
+    #om.view_connections(p)
+
 
     p.model.list_inputs(values=True, prom_name=True)   
     p.model.list_outputs(values=True, prom_name=True)   

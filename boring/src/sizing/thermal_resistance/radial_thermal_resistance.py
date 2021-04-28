@@ -162,7 +162,17 @@ class RadialThermalResistance(om.ExplicitComponent):
             partials['R_wk', 'k_wk'] = - t_wk / (k_wk**2 * A_inter)
             partials['R_wk', 'LW:A_inter'] = - t_wk / (k_wk * A_inter**2)
 
+if __name__ == '__main__':
+    from openmdao.api import Problem
 
+    nn = 10
+
+    prob = Problem()
+    prob.model.add_subsystem('comp1', RadialThermalResistance(num_nodes=nn), promotes_outputs=['*'], promotes_inputs=['*'])
+    prob.setup()
+    prob.run_model()
+    prob.check_partials(compact_print=True)
+    om.view_connections(prob)
 
         
 

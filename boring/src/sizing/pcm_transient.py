@@ -31,7 +31,7 @@ num_cells = 3  # number of battery cells in the array
 # db=(min,max) duration of the simulation in seconds
 # num_segments, minimum of 3, # of polynomials the simulation is fit to
 # pcm = True, use Phase Change material pad (connected in thermal_network.py)
-phase = get_hp_phase(num_cells=num_cells, db=(100, 100), num_segments=5, pcm=True)
+phase = get_hp_phase(num_cells=num_cells, db=(60, 60), num_segments=5, geom='round', pcm=True)
 
 traj.add_phase('phase', phase)
 # minimize final time, somewhat meaningless for a fixed time IVP,
@@ -43,22 +43,22 @@ p.setup(force_alloc_complex=True)
 
 p.model.list_inputs(prom_name=True)
 p.model.list_outputs(prom_name=True)
-#om.view_connections(p)
+
 # om.n2(p)
 # quit()
 
 p['phase.t_initial'] = 0.0
-p['phase.t_duration'] = 100.
+p['phase.t_duration'] = 60.
 
 # set intial temperature profile for all cells
 for cell in np.arange(num_cells):  
-    p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
+    p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 350.0], nodes='state_input')
 
 # Override cell 2 to be initialized hot
-p['phase.states:T_cell_2'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
+p['phase.states:T_cell_0'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
 
 p.run_driver()
-
+om.view_connections(p)
 
 # Plot temperature results
 import matplotlib.pyplot as plt
