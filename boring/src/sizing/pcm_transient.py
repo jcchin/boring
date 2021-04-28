@@ -31,7 +31,7 @@ num_cells = 2  # number of battery cells in the array
 # db=(min,max) duration of the simulation in seconds
 # num_segments, minimum of 3, # of polynomials the simulation is fit to
 # pcm = True, use Phase Change material pad (connected in thermal_network.py)
-phase = get_hp_phase(num_cells=num_cells, db=(60, 60), num_segments=5, geom='round', pcm=True)
+phase = get_hp_phase(num_cells=num_cells, db=(10, 10), num_segments=5, geom='round', pcm=True)
 phase.add_timeseries_output('T_rate_pcm_1.cp_bulk', output_name='cp_bulk', units='kJ/kg/degK')
 
 traj.add_phase('phase', phase)
@@ -49,7 +49,7 @@ p.model.list_outputs(prom_name=True)
 # quit()
 
 p['phase.t_initial'] = 0.0
-p['phase.t_duration'] = 60.
+p['phase.t_duration'] = 10.
 
 # set intial temperature profile for all cells
 for cell in np.arange(num_cells):  
