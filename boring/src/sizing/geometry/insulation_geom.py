@@ -5,7 +5,7 @@ import dymos as dm
 
 from boring.src.sizing.mass.mass import packMass
 # from boring.src.sizing.pack_design import packSize, pcmSize, SizingGroup
-from boring.src.sizing.structure import tempODE
+from boring.src.sizing.geometry.insulation_props import tempODE
 
 """
 Author(s): Jeff Chin

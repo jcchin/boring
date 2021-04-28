@@ -12,11 +12,10 @@ from boring.src.sizing.thermal_resistance.radial_thermal_resistance import Radia
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
 from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.geometry.hp_geom import HPgeom
-from boring.src.sizing.material_properties.pcm_group import PCM_Group
 
 
 class Resistor(om.ExplicitComponent):
-    """Computes flux across a resistor using Ohm's law."""
+    """Computes heat flux across a thermal resistance using Ohm's law."""
 
     def initialize(self):
         self.options.declare('num_nodes', types=int, default=1)
@@ -95,7 +94,6 @@ class Radial_Stack(om.Group):
         self.options.declare('num_nodes', types=int, default=1)  
         self.options.declare('n_in', types=int, default=0)  # middle = 2, end = 1
         self.options.declare('n_out', types=int, default=0)  # middle = 2, end = 1
-        self.options.declare('pcm_bool', types=bool, default=False)
         self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
@@ -134,12 +132,6 @@ class Radial_Stack(om.Group):
                                promotes_inputs=['T_hp','v_fg','XS:t_w','R_g','P_v','k_wk','LW:A_inter','k_w','XS:t_wk','h_fg','alpha'],
                                promotes_outputs=['R_w','R_wk','R_inter'])
 
-        if self.options['pcm_bool']:
-            self.add_subsystem(name='pcm',
-                               subsys=PCM_Group(num_nodes=nn),
-                               promotes_inputs=['T'],
-                               promotes_outputs=['Tdot'])
-
 
         # Define Resistors
         self.add_subsystem('Rex', Resistor(num_nodes=nn))
@@ -175,9 +167,6 @@ class Radial_Stack(om.Group):
         self.connect('R_w','Rw.R')
         self.connect('R_wk','Rwk.R')
         self.connect('R_inter','Rinter.R')
-
-        if self.options['pcm_bool']:
-            self.connect('Rex.q','pcm.q')
 
         # self.nonlinear_solver = om.NewtonSolver(solve_subsystems=True)
         # self.nonlinear_solver.options['iprint'] = 2

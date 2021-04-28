@@ -1,5 +1,27 @@
 """
 Author: Jeff Chin
+
+http://www.aerogeltechnologies.com/airloy/airloy-product-selection-guide/
+T = High Thermal Limit
+H = Hydrophobic
+ 
+110 = Polyimide (300C)
+120 = Polyamide (250C)
+ 
+Density classes
+L = 0.1 g/cc (light, but easy to break)
+M = 0.2 g/cc (difficult to break) <-- this seems like the sweet spot
+H = 0.4 g/cc (heavy but not brittle)
+ 
+Airloy T116-L looks good except it's rigid/breakable
+22 mW/m-K
+0.1 g/cc
+stability up to 400C (withstand flames 3000+F)
+easy to machine
+
+$90 per 2.5″ x 3″ x 0.4″ tile, or $490 per 12x12x0.4" panel (for reference our cells are 2.25" x 2" x 0.25")
+http://www.buyaerogel.com/product/airloy-x116-large-panels/
+(it can also be purchased as a flexible thin wrap)
 """
 
 from scipy.integrate import odeint

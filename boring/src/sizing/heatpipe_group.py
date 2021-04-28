@@ -1,4 +1,6 @@
 """"
+This group instantiates "n" radial stacks, and then links them.
+
 Calculate steady-state heat pipe performance by converging the following subsystems
 
 1) Calculate the fluid properties based on temeprature
@@ -7,6 +9,8 @@ Calculate steady-state heat pipe performance by converging the following subsyst
 
 (repeat until convergence)
 
+The network can include PCM pads, with an option for round or flat heatpipes,
+and the network is constructed using a for loop to handle n cells in the system.
 
 Author: Dustin Hall, Jeff Chin, Sydney Schnulo
 """
@@ -15,7 +19,8 @@ import numpy as np
 
 from boring.src.sizing.thermal_network import Radial_Stack, thermal_link
 from boring.src.sizing.material_properties.pcm_group import TempRateComp
-from boring.src.sizing.mass.round_hp_mass import roundHPmass
+
+from boring.src.sizing.material_properties.pcm_group import PCM_Group
 
 # from boring.util.load_inputs import load_inputs
 
@@ -36,24 +41,29 @@ class HeatPipeGroup(om.Group):
         n_out = np.append(np.ones(n-1),0)
         n_in = np.append(0, np.ones(n-1))
 
-        for i in np.arange(n):
 
+        for i in np.arange(n):
+            # insantiate the radial stacks based on geometry
             if geom == 'round':
-                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
+                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
                                                         promotes_inputs=['XS:D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic', 'alpha'])
             if geom == 'flat':
-                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, pcm_bool=pcm_bool, geom=geom),
+                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
                                                         promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:L_adiabatic', 'alpha'])
-
+            # add temp rate comps
             self.add_subsystem(name='T_rate_cell_{}'.format(i),
                                subsys=TempRateComp(num_nodes=nn))
 
-            self.connect('cell_{}.Rex.q'.format(i), 'T_rate_cell_{}.q'.format(i))
+            if pcm_bool:
+                self.add_subsystem(name='T_rate_pcm_{}'.format(i),
+                               subsys=PCM_Group(num_nodes=nn))
 
-        self.add_subsystem(name='hp_mass',
-                           subsys=roundHPmass(num_nodes=nn),
-                           promotes_inputs=['XS:D_od','XS:D_v','L_heatpipe','XS:t_w','XS:t_wk','cu_density',('fill_wk','epsilon'),'liq_density','fill_liq'],
-                           promotes_outputs=['mass_heatpipe', 'mass_wick', 'mass_liquid'])
+
+            # connect external flux
+            if pcm_bool:
+                self.connect('cell_{}.Rex.q'.format(i), 'T_rate_pcm_{}.q'.format(i))
+            else:
+                self.connect('cell_{}.Rex.q'.format(i), 'T_rate_cell_{}.q'.format(i))
 
         for j in range(n-1):
 
