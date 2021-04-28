@@ -25,13 +25,14 @@ p.driver = om.pyOptSparseDriver(optimizer='SNOPT')
 
 p.driver.declare_coloring()
 
-num_cells = 3  # number of battery cells in the array
+num_cells = 2  # number of battery cells in the array
 
 # construct the Dymos phase
 # db=(min,max) duration of the simulation in seconds
 # num_segments, minimum of 3, # of polynomials the simulation is fit to
 # pcm = True, use Phase Change material pad (connected in thermal_network.py)
 phase = get_hp_phase(num_cells=num_cells, db=(60, 60), num_segments=5, geom='round', pcm=True)
+phase.add_timeseries_output('T_rate_pcm_1.cp_bulk', output_name='cp_bulk', units='kJ/kg/degK')
 
 traj.add_phase('phase', phase)
 # minimize final time, somewhat meaningless for a fixed time IVP,
@@ -41,7 +42,7 @@ phase.add_objective('time', loc='final', ref=1)
 p.model.linear_solver = om.DirectSolver()
 p.setup(force_alloc_complex=True)
 
-p.model.list_inputs(prom_name=True)
+#p.model.list_inputs(prom_name=True)
 p.model.list_outputs(prom_name=True)
 
 # om.n2(p)
@@ -65,17 +66,22 @@ import matplotlib.pyplot as plt
 
 time_opt = p.get_val('phase.timeseries.time', units='s')
 
+fig, ax = plt.subplots(2,1, sharex=True)
+
+
 for j in np.arange(num_cells):
 
     T_cell = p.get_val('phase.timeseries.states:T_cell_{}'.format(j), units='K')
+    Cp_pcm = p.get_val('phase.timeseries.cp_bulk')
 
-    plt.plot(time_opt, T_cell, label='cell {}'.format(j))
+    ax[1].plot(time_opt, T_cell, label='cell {}'.format(j))
+    ax[0].plot(time_opt, Cp_pcm, label='cp {}'.format(j))
 
-plt.xlabel('time, s')
-plt.ylabel('T_cell, K')
-plt.legend()
-plt.axhline(y=333, color='r', linestyle='-')
-plt.axhline(y=338, color='r', linestyle='-')
+ax[1].set_xlabel('time, s')
+ax[1].set_ylabel('T_cell, K')
+#ax[1].legend()
+ax[1].axhline(y=333, color='r', linestyle='-')
+ax[1].axhline(y=338, color='r', linestyle='-')
 print("--- elapsed time: %s seconds ---" % (time.time() - start))
 
 plt.show()

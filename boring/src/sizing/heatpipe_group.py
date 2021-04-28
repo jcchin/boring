@@ -51,13 +51,12 @@ class HeatPipeGroup(om.Group):
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
                                                         promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:L_adiabatic', 'alpha'])
             # add temp rate comps
-            self.add_subsystem(name='T_rate_cell_{}'.format(i),
-                               subsys=TempRateComp(num_nodes=nn))
-
             if pcm_bool:
                 self.add_subsystem(name='T_rate_pcm_{}'.format(i),
                                subsys=PCM_Group(num_nodes=nn))
-
+            else:   
+                self.add_subsystem(name='T_rate_cell_{}'.format(i),
+                               subsys=TempRateComp(num_nodes=nn))
 
             # connect external flux
             if pcm_bool:
@@ -79,8 +78,9 @@ class HeatPipeGroup(om.Group):
         self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
         self.set_input_defaults('XS:t_w', 0.5 * np.ones(nn), units='mm')
         self.set_input_defaults('XS:t_wk', 0.69 * np.ones(nn), units='mm')
-        self.set_input_defaults('T_rate_pcm_1.mass', 0.005*np.ones(nn), units='kg')
-        self.set_input_defaults('T_rate_pcm_0.mass', 0.003*np.ones(nn), units='kg')
+        if pcm_bool: # manually set mass for debugging
+            self.set_input_defaults('T_rate_pcm_1.mass', 0.005*np.ones(nn), units='kg')
+            self.set_input_defaults('T_rate_pcm_0.mass', 0.003*np.ones(nn), units='kg')
 
         if geom == 'round':
             self.set_input_defaults('XS:D_od', 6. * np.ones(nn), units='mm')
