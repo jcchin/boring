@@ -26,7 +26,7 @@ class PCM_props(om.ExplicitComponent):
 
         # pad geometry
         self.add_input('t_pad', 0.001 * np.ones(nn), units='m', desc='PCM pad thickness')
-        self.add_input('porosity', 0.9 * np.ones(nn), desc='percentage porosity, 1 = completely void, 0 = solid')
+        self.add_input('porosity', 1.0 * np.ones(nn), desc='percentage porosity, 1 = completely void, 0 = solid')
         self.add_input('pad_area', 0.0571 * .102 * np.ones(nn), units='m', desc='cell frontal area')
         # conductive foam properties
         self.add_input('k_foam', 401. * np.ones(nn), units='W/m*K', desc='thermal conductivity of the foam')

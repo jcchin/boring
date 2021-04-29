@@ -2,7 +2,7 @@
 Run a heat pipe transient, where the final temperature of the condensor is specified,
 dymos will determine the duration of the simulation
 
-Authors: Sydney Schnulo, Jeff Chin
+Authors: Jeff Chin, Sydney Schnulo
 """
 
 import openmdao.api as om
@@ -15,15 +15,25 @@ from boring.util.save_csv import save_csv
 
 from boring.util.load_inputs import load_inputs
 
+from pathlib import Path
 import time
 start = time.time()
+
+case_name = 'cases.sql'
 
 traj=dm.Trajectory()
 p = om.Problem(model=traj)
 p.driver = om.ScipyOptimizeDriver()
 p.driver = om.pyOptSparseDriver(optimizer='SNOPT')
-
 p.driver.declare_coloring()
+
+# case recording
+recorder = om.SqliteRecorder(case_name)
+p.recording_options['includes'] = ['*'] # save everything when prob.record_iteration is called
+p.recording_options['record_constraints'] = True 
+p.recording_options['record_desvars'] = True 
+p.recording_options['record_objectives'] = True 
+p.add_recorder(recorder)
 
 num_cells = 2  # number of battery cells in the array
 
@@ -56,10 +66,15 @@ for cell in np.arange(num_cells):
     p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 350.0], nodes='state_input')
 
 # Override cell 2 to be initialized hot
-p['phase.states:T_cell_0'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
+p['phase.states:T_cell_0'] = phase.interpolate(ys=[500, 330], nodes='state_input')
 
 p.run_driver()
 om.view_connections(p)
+
+# move cases.sql up and over to the output folder
+pth = Path('./cases.sql').absolute()
+pth.rename(pth.parents[2]/'output'/pth.name)
+
 
 # Plot temperature results
 import matplotlib.pyplot as plt
