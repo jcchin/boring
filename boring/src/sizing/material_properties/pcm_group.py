@@ -58,7 +58,7 @@ class PCM_Group(om.Group):
 
         self.add_subsystem(name='cp',
                            subsys=PCM_Cp(num_nodes=nn),
-                           promotes_inputs=['T', 'T_lo', 'T_hi'],
+                           promotes_inputs=['T'],#, 'T_lo', 'T_hi'],
                            promotes_outputs=['cp_pcm'])
 
         self.add_subsystem(name='bulk',
