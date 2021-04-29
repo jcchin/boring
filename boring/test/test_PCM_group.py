@@ -9,6 +9,7 @@ from boring.util.spec_test import assert_match_spec
 from boring.src.sizing.material_properties.pcm_properties import PCM_props
 from boring.src.sizing.material_properties.pcm_ps import PCM_PS
 from boring.src.sizing.material_properties.cp_func import PCM_Cp
+from boring.src.sizing.material_properties.pcm_group import PCM_Group
 
 
 class TestPCMcp(unittest.TestCase):
@@ -101,6 +102,26 @@ class TestPCMProps(unittest.TestCase):
 
     #     subsystem = PCM_props(num_nodes=1)
     #     assert_match_spec(subsystem, 'Design_specs/struct.json')
+
+
+class TestPCMgroup(unittest.TestCase):
+
+    def setUp(self):
+        p1 = self.prob = Problem(model=PCM_Group())
+        p1.setup(force_alloc_complex=True)
+        p1.model.list_outputs()
+
+    def test_group_calc(self):
+        self.prob['T'] = 334
+        self.prob.run_model()
+        assert_near_equal(self.prob.get_val('rate.c_p'), 49880.07777508, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('bulk.cp_bulk'), 49.88007777508, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('rate.Tdot'), -2.00480842e-05, tolerance=1.0E-5)
+
+        self.prob['T'] = 340
+        self.prob.run_model()
+        assert_near_equal(self.prob.get_val('rate.c_p'), 1500.29799247, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('rate.Tdot'), -0.00066653, tolerance=1.0E-5)
 
 
 if __name__ == '__main__':
