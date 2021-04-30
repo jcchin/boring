@@ -16,11 +16,11 @@ class AxialThermalResistance(om.ExplicitComponent):
 
         self.add_input('epsilon', 0.46*np.ones(nn), desc='wick porosity')
         self.add_input('k_w', 11.4*np.ones(nn), units='W/(m*K)', desc='copper conductivity')
-        self.add_input('k_l', 3*np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
-        self.add_input('LW:L_flux', 4*np.ones(nn), units='m', desc='flux length') # Effective, not Adiabatic!
-        self.add_input('LW:L_adiabatic', 4*np.ones(nn), units='m', desc='Effective Length') # Effective, not Adiabatic!
-        self.add_input('XS:A_w', 5*np.ones(nn), units='m**2', desc='Wall Area')
-        self.add_input('XS:A_wk', 6*np.ones(nn), units='m**2', desc='Wick Area')
+        self.add_input('k_l', np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
+        self.add_input('LW:L_flux', np.ones(nn), units='m', desc='flux length')
+        self.add_input('LW:L_adiabatic', np.ones(nn), units='m', desc='Effective Length')
+        self.add_input('XS:A_w', np.ones(nn), units='m**2', desc='Wall Area')
+        self.add_input('XS:A_wk', np.ones(nn), units='m**2', desc='Wick Area')
 
         self.add_output('k_wk', val=np.ones(nn), units='W/(m*K)', desc='Wick Conductivity')
         self.add_output('R_aw', val=np.ones(nn), units='K/W', desc='Wall Axial Resistance')
@@ -47,15 +47,11 @@ class AxialThermalResistance(om.ExplicitComponent):
         k_w = inputs['k_w']
         A_wk = inputs['XS:A_wk']
 
-        if geom == 'flat':
-            L_eff = L_flux + L_adiabatic
+        L_eff = L_flux + L_adiabatic
 
-        if geom == 'round':
-            L_eff = L_adiabatic
-
-        outputs['k_wk']=(1-epsilon)*k_w+epsilon*k_l
-        outputs['R_aw']=L_adiabatic/(A_w*k_w)
-        outputs['R_awk']=L_eff/(A_wk*outputs['k_wk'])
+        outputs['k_wk'] = (1-epsilon)*k_w+epsilon*k_l
+        outputs['R_aw'] = L_eff/(A_w*k_w)
+        outputs['R_awk'] = L_eff/(A_wk*outputs['k_wk'])
 
     def compute_partials(self, inputs, J):
 
@@ -69,16 +65,12 @@ class AxialThermalResistance(om.ExplicitComponent):
         A_w = inputs['XS:A_w']
         k_w = inputs['k_w']
         A_wk = inputs['XS:A_wk']
-
         d_k_wk__d_epsilon = -k_w + k_l
 
-        if geom == 'flat':
-            L_eff = L_flux + L_adiabatic
-            J['R_awk', 'LW:L_flux'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
-            J['R_aw', 'LW:L_flux'] = 1/(A_w*k_w) 
+        L_eff = L_flux + L_adiabatic
 
-        if geom == 'round':
-            L_eff = L_adiabatic
+        J['R_awk', 'LW:L_flux'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
+        J['R_aw', 'LW:L_flux'] = 1/(A_w*k_w)
 
         J['k_wk', 'epsilon'] = -k_w + k_l
         J['k_wk', 'k_w'] = (1 - epsilon)

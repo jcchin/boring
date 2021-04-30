@@ -102,17 +102,6 @@ class Radial_Stack(om.Group):
         nn = self.options['num_nodes']
         geom = self.options['geom']
 
-        if geom == 'round':
-            self.add_subsystem(name = 'size',
-                              subsys = HPgeom(num_nodes=nn, geom=geom),
-                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
-                              promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter']) 
-        elif geom == 'flat':
-            self.add_subsystem(name = 'size',
-                              subsys = HPgeom(num_nodes=nn, geom=geom),
-                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_hp'],
-                              promotes_outputs=['LW:A_flux', 'LW:A_inter']) 
-
         # Calculate Fluid Properties
         self.add_subsystem(name = 'fluids',
                            subsys = FluidPropertiesComp(num_nodes=nn),
@@ -187,7 +176,7 @@ class Bridge(om.Group):
         # Compute Resistances
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'XS:A_w', 'XS:A_wk'],
+                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'XS:A_w', 'XS:A_wk','LW:L_flux', 'LW:L_adiabatic'],
                            promotes_outputs=['k_wk']) 
 
         if geom == 'round': 
@@ -226,18 +215,18 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
 
     if geom == 'round': 
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['XS:D_v', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
+                            promotes_inputs=['XS:D_v', 'XS:A_w','XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
 
     elif geom =='flat':
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['W', 'H', 'XS:t_w', 'XS:t_wk',  'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
+                            promotes_inputs=['W', 'H', 'XS:A_w', 'XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
     
     # model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
     # Link Geometry
-    model.connect('{}.size.XS:A_w'.format(l_name),'{}.XS:A_w'.format(b_name)) # this can come from either component
-    model.connect('{}.size.XS:A_wk'.format(l_name),'{}.XS:A_wk'.format(b_name)) # this can come from either component
+    #model.connect('{}.XS:A_w'.format(l_name),'{}.XS:A_w'.format(b_name)) # this can come from either component
+    #model.connect('{}.XS:A_wk'.format(l_name),'{}.XS:A_wk'.format(b_name)) # this can come from either component
 
     model.connect('{}.R_g'.format(r_name),'{}.R_g'.format(b_name))
     model.connect('{}.mu_v'.format(r_name),'{}.mu_v'.format(b_name))

@@ -55,7 +55,7 @@ p.setup(force_alloc_complex=True)
 #p.model.list_inputs(prom_name=True)
 p.model.list_outputs(prom_name=True)
 
-# om.n2(p)
+om.n2(p)
 # quit()
 
 p['phase.t_initial'] = 0.0
@@ -70,6 +70,7 @@ p['phase.states:T_cell_0'] = phase.interpolate(ys=[500, 330], nodes='state_input
 
 p.run_driver()
 om.view_connections(p)
+
 
 # move cases.sql up and over to the output folder
 pth = Path('./cases.sql').absolute()

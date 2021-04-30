@@ -21,6 +21,8 @@ from boring.src.sizing.thermal_network import Radial_Stack, thermal_link
 from boring.src.sizing.material_properties.pcm_group import TempRateComp
 
 from boring.src.sizing.material_properties.pcm_group import PCM_Group
+from boring.src.sizing.geometry.hp_geom import HPgeom
+
 
 # from boring.util.load_inputs import load_inputs
 
@@ -46,10 +48,10 @@ class HeatPipeGroup(om.Group):
             # insantiate the radial stacks based on geometry
             if geom == 'round':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['XS:D_od', 'XS:t_wk', 'XS:t_w', 'k_w', 'XS:D_v', 'LW:L_adiabatic', 'alpha'])
+                                                        promotes_inputs=['XS:D_od', 'XS:r_i', 'k_w', 'XS:D_v', 'LW:A_inter', 'LW:L_flux', 'alpha'])
             if geom == 'flat':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:L_adiabatic', 'alpha'])
+                                                        promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:A_inter', 'LW:L_flux', 'alpha'])
             # add temp rate comps
             if pcm_bool:
                 self.add_subsystem(name='T_rate_pcm_{}'.format(i),
@@ -72,12 +74,12 @@ class HeatPipeGroup(om.Group):
 
         self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(n-1))
 
+        
+
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
         self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
         self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
-        self.set_input_defaults('XS:t_w', 0.5 * np.ones(nn), units='mm')
-        self.set_input_defaults('XS:t_wk', 0.69 * np.ones(nn), units='mm')
 
         if pcm_bool: # manually set mass for debugging
             self.set_input_defaults('T_rate_pcm_1.mass', 0.003*np.ones(nn), units='kg')
@@ -100,6 +102,13 @@ if __name__ == "__main__":
 
     num_cells_tot = 2
 
+
+    p.model.add_subsystem(name = 'size',
+                      subsys = HPgeom(num_nodes=nn, geom='round'),
+                      promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
+                      promotes_outputs=['XS:D_od','XS:r_i', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter']) 
+
+
     p.model.add_subsystem(name='hp',
                           subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='round'),
                           promotes_inputs=['*'],
@@ -109,10 +118,11 @@ if __name__ == "__main__":
 
     T_in = 20 * np.ones(num_cells_tot)
     T_in[1] = 100
+    p.model.list_inputs()
 
     for x in np.arange(num_cells_tot):
         p['cell_{}.Rex.T_in'.format(x)] = T_in[x]
-        p['cell_{}.L_flux'.format(x)] = 0.02
+        p['size.LW:L_flux'.format(x)] = 0.02
         p['cell_{}.Rex.R'.format(x)] = [0.0001],
 
     p.run_model()
@@ -120,14 +130,7 @@ if __name__ == "__main__":
     # om.view_connections(p)
     # p.model.list_inputs(values=True, prom_name=True)
     # p.model.list_outputs(values=True, prom_name=True)
-    print('Finished Successfully')
 
-    print('\n', '\n')
-    print('--------------Outputs---------------')
-    print('The HEATPIPE mass is ......', p.get_val('mass_heatpipe'))
-    print('The LIQUID mass is.........', p.get_val('mass_liquid'))
-    print('The WICK mass is...........', p.get_val('mass_wick'))
-    print('\n', '\n')
 
     show_plots = True
 

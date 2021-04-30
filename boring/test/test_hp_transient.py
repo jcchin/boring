@@ -13,21 +13,22 @@ class TestHPtransient(unittest.TestCase):
 
     def run_asserts(self, p):
         # check duration
-        tf = p.get_val('phase.timeseries.time')[-1]
+        tf = p.get_val('traj.phase.timeseries.time')[-1]
         assert_near_equal(tf, 10., tolerance=1.E-5)
 
         # check final values
-        Tf = p.get_val('phase.timeseries.states:T_cell_2')[-1]
-        assert_near_equal(Tf, 319.81666721, tolerance=1.E-5)
+        Tf = p.get_val('traj.phase.timeseries.states:T_cell_2')[-1]
+        assert_near_equal(Tf, 324.32626399, tolerance=1.E-5)
 
     def test_get_hp_phase(self):
 
-        traj=dm.Trajectory()
-        p = om.Problem(model=traj)
+        p = om.Problem()
         p.driver = om.ScipyOptimizeDriver()
         p.driver = om.pyOptSparseDriver(optimizer='SLSQP')
-
         p.driver.declare_coloring()
+
+        traj=dm.Trajectory()
+        p.model.add_subsystem('traj', traj)
 
         num_cells = [5, 10, 15]
         color = ('C0', 'C1', 'C2', 'C3', 'C4')
@@ -36,10 +37,11 @@ class TestHPtransient(unittest.TestCase):
 
         cells = 3
 
-
+        # construct the phase, add all the cell states
         phase = get_hp_phase(num_cells=cells, db=(10, 10), num_segments=10, solve_segments=False, geom='round')
 
         traj.add_phase('phase', phase)
+
 
         phase.add_objective('time', loc='final', ref=1)
 
@@ -47,13 +49,13 @@ class TestHPtransient(unittest.TestCase):
         p.model.linear_solver = om.DirectSolver(assemble_jac=True)
         p.setup()
 
-        p['phase.t_initial'] = 0.0
-        p['phase.t_duration'] = 10.
+        p['traj.phase.t_initial'] = 0.0
+        p['traj.phase.t_duration'] = 10.
 
         for cell in np.arange(cells):
-            p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
+            p['traj.phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
 
-        p['phase.states:T_cell_2'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
+        p['traj.phase.states:T_cell_2'] = phase.interpolate(ys=[373.15, 333.15], nodes='state_input')
 
         p.run_driver()
         self.run_asserts(p)
