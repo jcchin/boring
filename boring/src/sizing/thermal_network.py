@@ -110,17 +110,14 @@ class Radial_Stack(om.Group):
 
         # Calculate Resistances
         if geom == 'round':
-            self.add_subsystem(name='radial',
-                               subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['T_hp','v_fg','XS:D_od','R_g','P_v','k_wk','LW:A_inter','k_w','LW:L_flux','XS:r_i','XS:D_v','h_fg','alpha'],
-                               promotes_outputs=['R_w','R_wk','R_inter'])
-
+            inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:D_od','LW:L_flux','XS:r_i','XS:D_v']
         elif geom == 'flat':
-            self.add_subsystem(name='radial',
-                               subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['T_hp','v_fg','XS:t_w','R_g','P_v','k_wk','LW:A_inter','k_w','XS:t_wk','h_fg','alpha'],
-                               promotes_outputs=['R_w','R_wk','R_inter'])
+            inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:t_w','XS:t_wk']
 
+        self.add_subsystem(name='radial',
+                           subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
+                           promotes_inputs=inpts,
+                           promotes_outputs=['R_w','R_wk','R_inter'])
 
         # Define Resistors
         self.add_subsystem('Rex', Resistor(num_nodes=nn))
@@ -176,20 +173,16 @@ class Bridge(om.Group):
         # Compute Resistances
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'XS:A_w', 'XS:A_wk','LW:L_flux', 'LW:L_adiabatic'],
-                           promotes_outputs=['k_wk']) 
+                           promotes_inputs=['k_w', 'k_wk', 'XS:A_w', 'XS:A_wk','LW:L_eff']) 
 
         if geom == 'round': 
-
-            self.add_subsystem(name='vapor',
-                               subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['XS:D_v', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_flux', 'LW:L_adiabatic'])
-
+            inpts = ['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_eff','XS:D_v']
         elif geom == 'flat':
+            inpts = ['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_eff', 'W', 'H', 'XS:t_w', 'XS:t_wk']
 
-            self.add_subsystem(name='vapor',
-                               subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['W', 'H', 'XS:t_w', 'XS:t_wk', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_flux', 'LW:L_adiabatic'])
+        self.add_subsystem(name='vapor',
+                           subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
+                           promotes_inputs=inpts)
 
         # Define Axial Resistors
         self.add_subsystem('Rv', Resistor(num_nodes=nn)) # vapor channel
@@ -214,15 +207,12 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
     #                     promotes_outputs=['L_eff'])
 
     if geom == 'round': 
-        model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['XS:D_v', 'XS:A_w','XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
-                            #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
-
+        inpts = ['XS:A_w', 'XS:A_wk', 'LW:L_eff', 'k_w', 'XS:D_v']
     elif geom =='flat':
-        model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['W', 'H', 'XS:A_w', 'XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
-                            #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
+        inpts = ['XS:A_w', 'XS:A_wk', 'LW:L_eff', 'k_w', 'W', 'H']
     
+    model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom), promotes_inputs=inpts)
+
     # model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
     # Link Geometry
     #model.connect('{}.XS:A_w'.format(l_name),'{}.XS:A_w'.format(b_name)) # this can come from either component
@@ -233,7 +223,7 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
     model.connect('{}.P_v'.format(r_name),'{}.P_v'.format(b_name))
     model.connect('{}.h_fg'.format(r_name),'{}.h_fg'.format(b_name))
     model.connect('{}.rho_v'.format(r_name),'{}.rho_v'.format(b_name))
-    model.connect('{}.k_l'.format(r_name),'{}.k_l'.format(b_name))
+    # model.connect('{}.radial.k_wk'.format(r_name),'{}.k_wk'.format(b_name))
     model.connect('{}.T_hp'.format(r_name),'{}.T_hp'.format(b_name))
 
 

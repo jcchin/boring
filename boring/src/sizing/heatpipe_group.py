@@ -47,11 +47,13 @@ class HeatPipeGroup(om.Group):
         for i in np.arange(n):
             # insantiate the radial stacks based on geometry
             if geom == 'round':
-                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['XS:D_od', 'XS:r_i', 'k_w', 'XS:D_v', 'LW:A_inter', 'LW:L_flux', 'alpha'])
+                inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:D_od','LW:L_flux','XS:r_i','XS:D_v']
             if geom == 'flat':
-                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:A_inter', 'LW:L_flux', 'alpha'])
+                inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:t_w','XS:t_wk']
+            
+            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
+                                                        promotes_inputs=inpts)
+            
             # add temp rate comps
             if pcm_bool:
                 self.add_subsystem(name='T_rate_pcm_{}'.format(i),
@@ -70,16 +72,17 @@ class HeatPipeGroup(om.Group):
 
             thermal_link(self, 'cell_{}'.format(j), 'cell_{}'.format(j+1), num_nodes=nn, geom=geom)
 
-            self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(j))
+            self.connect('cell_0.radial.k_wk', 'cell_{}_bridge.k_wk'.format(j))
 
-        self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(n-1))
+        #self.connect('cell_0.radial.k_wk', 'cell_bridge_{}.k_wk'.format(n-1))
 
         
 
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
         self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
-        self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
+        if n > 1: # axial bridge only exists if there are 2 or more cells
+            self.set_input_defaults('LW:L_eff', 0.05 * np.ones(nn), units='m')
 
         if pcm_bool: # manually set mass for debugging
             self.set_input_defaults('T_rate_pcm_1.mass', 0.003*np.ones(nn), units='kg')
@@ -117,7 +120,7 @@ if __name__ == "__main__":
     p.setup(force_alloc_complex=True)
 
     T_in = 20 * np.ones(num_cells_tot)
-    T_in[1] = 100
+    T_in[num_cells_tot-1] = 100
     p.model.list_inputs()
 
     for x in np.arange(num_cells_tot):

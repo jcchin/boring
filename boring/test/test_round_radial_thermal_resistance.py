@@ -28,7 +28,7 @@ class TestRoundRadialResistance(unittest.TestCase):
         k_w = 11.4
         epsilon = 0.46
         ######################################## Overall Geometry ########################################################
-        L_evap = 0.01
+        L_evap = 0.02
         L_cond = 0.02
         L_adiabatic = 0.03
         L_eff = (L_evap + L_cond) / 2 + L_adiabatic
@@ -37,13 +37,13 @@ class TestRoundRadialResistance(unittest.TestCase):
         D_od = 0.006
         D_v = 0.00362  # make this a calculation
         r_i = (D_od / 2 - t_w)
-        A_cond = np.pi * D_od * L_cond  # Karsten
-        A_evap = np.pi * D_od * L_evap  # Karsten
+        A_cond = np.pi * D_od * L_cond 
+        A_evap = np.pi * D_od * L_evap 
         ######################################## Heat Pipe Core Geometry ########################################################
-        A_w = np.pi * ((D_od / 2) ** 2 - (D_od / 2 - t_w) ** 2)  # Dustin
-        A_wk = np.pi * ((D_od / 2 - t_w) ** 2 - (D_v / 2) ** 2)  # Dustin
-        A_interc = np.pi * D_v * L_cond  # Dustin
-        A_intere = np.pi * D_v * L_evap  # Dustin
+        A_w = np.pi * ((D_od / 2) ** 2 - (D_od / 2 - t_w) ** 2)
+        A_wk = np.pi * ((D_od / 2 - t_w) ** 2 - (D_v / 2) ** 2)
+        A_interc = np.pi * D_v * L_cond
+        A_intere = np.pi * D_v * L_evap
         ######################################## External Convection at Condenser ########################################################
         h_c = 1200
         T_coolant = 285
@@ -65,7 +65,8 @@ class TestRoundRadialResistance(unittest.TestCase):
         D_v_array = []
         k_wk_array = []
         A_interc_array = []
-
+        k_l_array = []
+        epsilon_array = []
         h_interc_array = []
         R_wc_array = []
         R_wkc_array = []
@@ -115,14 +116,14 @@ class TestRoundRadialResistance(unittest.TestCase):
             gamma = cp_v / cv_v
 
             ######################################## Axial Thermal Resistances ########################################################
-            k_wk = (1 - epsilon) * k_w + epsilon * k_l  # Dustin
+            k_wk = (1 - epsilon) * k_w + epsilon * k_l
             ######################################## Condenser Section Thermal Resistances ########################################################
             alpha = 1  # Look into this, need better way to determine this rather than referencing papers.
             h_interc = 2 * alpha / (2 - alpha) * (h_fg ** 2 / (T_hp * v_fg)) * np.sqrt(1 / (2 * np.pi * R_g * T_hp)) * (
-                        1 - P_v * v_fg / (2 * h_fg))  # Sydney
-            R_wc = np.log((D_od / 2) / (r_i)) / (2 * np.pi * k_w * L_cond)  # Sydney
-            R_wkc = np.log((r_i) / (D_v / 2)) / (2 * np.pi * k_wk * L_cond)  # Sydney
-            R_interc = 1 / (h_interc * A_interc)  # Sydney
+                        1 - P_v * v_fg / (2 * h_fg))
+            R_wc = np.log((D_od / 2) / (r_i)) / (2 * np.pi * k_w * L_cond)
+            R_wkc = np.log((r_i) / (D_v / 2)) / (2 * np.pi * k_wk * L_cond)
+            R_interc = 1 / (h_interc * A_interc)
 
             alpha_array.append(alpha)
             h_fg_array.append(h_fg)
@@ -137,12 +138,15 @@ class TestRoundRadialResistance(unittest.TestCase):
             D_v_array.append(D_v)
             k_wk_array.append(k_wk)
             A_interc_array.append(A_interc)
+            k_l_array.append(k_l)
+            epsilon_array.append(epsilon)
 
             h_interc_array.append(h_interc)
             R_wc_array.append(R_wc)
             R_wkc_array.append(R_wkc)
             R_interc_array.append(R_interc)
 
+        #self.prob['axial_thermal.epsilon'] = 0.46
         self.prob.set_val('alpha', alpha_array)
         self.prob.set_val('LW:L_flux', L_cond_array)
         self.prob.set_val('h_fg', h_fg_array)
@@ -153,11 +157,14 @@ class TestRoundRadialResistance(unittest.TestCase):
         self.prob.set_val('XS:D_od', D_od_array)
         self.prob.set_val('XS:r_i', r_i_array)
         self.prob.set_val('k_w', k_w_array)
+        self.prob.set_val('k_l', k_l_array)
+        self.prob.set_val('epsilon', epsilon_array)
         self.prob.set_val('XS:D_v', D_v_array)
         self.prob.set_val('k_wk', k_wk_array)
         self.prob.set_val('LW:A_inter', A_interc_array)
         self.prob.run_model()
 
+        # assert_near_equal(self.prob.get_val('axial_thermal.k_wk'), 6.442931876303132, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('h_inter'), h_interc_array, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('R_w'), R_wc_array, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('R_wk'), R_wkc_array, tolerance=1.0E-5)
