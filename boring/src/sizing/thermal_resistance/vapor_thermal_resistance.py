@@ -33,8 +33,8 @@ class VaporThermalResistance(om.ExplicitComponent):
         self.add_input('h_fg', 100 * np.ones(nn), units='J/kg', desc='latent heat')
         self.add_input('P_v', 1000 * np.ones(nn), units='Pa', desc='pressure')
         self.add_input('rho_v', 100 * np.ones(nn), units='kg/m**3', desc='density of vapor')
-        self.add_input('LW:L_flux', val=np.ones(nn), units='mm', desc='length of cells')
-        self.add_input('LW:L_adiabatic', val=np.ones(nn), units='mm', desc = 'length of adiabatic section')
+        self.add_input('LW:L_flux', val=np.ones(nn), units='m', desc='length of cells')
+        self.add_input('LW:L_adiabatic', val=np.ones(nn), units='m', desc = 'length of adiabatic section')
 
         self.add_output('r_h', val=1.0 * np.ones(nn), units='m', desc='hydraulic radius')
         self.add_output('R_v', val=1.0 * np.ones(nn), units='K/W', desc='thermal resistance of vapor region')
@@ -86,6 +86,7 @@ class VaporThermalResistance(om.ExplicitComponent):
             pass
 
         L_eff = L_flux+L_adiabatic
+
         outputs['R_v'] = 8 * R_g * mu_v * T_hp ** 2 / (np.pi * h_fg ** 2 * P_v * rho_v) * (
                     L_eff / (outputs['r_h'] ** 4))
 
