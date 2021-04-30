@@ -31,8 +31,8 @@ class TestAxialResistance(unittest.TestCase):
         self.prob.run_model()
 
         assert_near_equal(self.prob.get_val('axial_thermal.k_wk'), 6.442931876303132, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('axial_thermal.R_aw'), 304.6027618983643, tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('axial_thermal.R_awk'), 498.38100523379876, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('axial_thermal.R_aw'), 507.67126983060723, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('axial_thermal.R_awk'), 830.63500872, tolerance=1.0E-5)
 
     def test_partials(self):  # derivative check
 

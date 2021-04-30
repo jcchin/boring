@@ -22,7 +22,7 @@ plt.rc('font', family='serif')
 k_w = 11.4
 epsilon = 0.46
 ######################################## Overall Geometry ########################################################
-L_evap = 0.01
+L_evap = 0.02
 L_cond = 0.02
 L_adiabatic = 0.03
 L_eff = (L_evap + L_cond) / 2 + L_adiabatic

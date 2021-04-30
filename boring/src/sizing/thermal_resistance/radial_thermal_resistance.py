@@ -88,7 +88,6 @@ class RadialThermalResistance(om.ExplicitComponent):
         elif geom == 'flat':
             t_w = inputs['XS:t_w']
             t_wk = inputs['XS:t_wk']
-
             outputs['R_w'] = inputs['XS:t_w']/(k_w*A_inter)
             outputs['R_wk'] = inputs['XS:t_wk']/(k_wk*A_inter)
 

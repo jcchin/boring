@@ -49,10 +49,20 @@ class Build_Pack(om.Group):
 
 
         # Size the pack components
-        self.add_subsystem(name='sizeHP',
-                           subsys = HPgeom(num_nodes=nn, geom=geom),
-                           promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
-                           promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter'])
+        if geom == 'round':
+            self.add_subsystem(name = 'size',
+                              subsys = HPgeom(num_nodes=nn, geom=geom),
+                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
+                              promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter']) 
+        elif geom == 'flat':
+            self.add_subsystem(name = 'size',
+                              subsys = HPgeom(num_nodes=nn, geom=geom),
+                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_hp'],
+                              promotes_outputs=['LW:A_flux', 'LW:A_inter']) 
+        # self.add_subsystem(name='sizeHP',
+        #                    subsys = HPgeom(num_nodes=nn, geom=geom),
+        #                    promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
+        #                    promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter'])
         self.add_subsystem(name='sizeInsulation',
                            subsys= calcThickness(),
                            promotes_inputs=['temp_limit'],
