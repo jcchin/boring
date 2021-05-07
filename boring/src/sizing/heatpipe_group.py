@@ -48,10 +48,10 @@ class HeatPipeGroup(om.Group):
             # insantiate the radial stacks based on geometry
             if geom == 'round':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['XS:D_od', 'XS:r_i', 'k_w', 'XS:D_v', 'LW:A_inter', 'LW:L_flux', 'alpha'])
+                                                        promotes_inputs=['T_hp', 'XS:D_od', 'XS:r_i', 'k_w', 'XS:D_v', 'LW:A_inter', 'LW:L_flux', 'alpha'])
             if geom == 'flat':
                 self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:A_inter', 'LW:L_flux', 'alpha'])
+                                                        promotes_inputs=['T_hp', 'XS:t_w', 'XS:t_wk', 'k_w', 'LW:A_inter', 'alpha'])
             # add temp rate comps
             if pcm_bool:
                 self.add_subsystem(name='T_rate_pcm_{}'.format(i),
@@ -74,7 +74,7 @@ class HeatPipeGroup(om.Group):
 
         self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(n-1))
 
-        
+        self.set_input_defaults('T_hp', 300 * np.ones(nn), units='K')
 
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)

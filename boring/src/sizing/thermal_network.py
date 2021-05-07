@@ -221,7 +221,7 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
 
     elif geom =='flat':
         model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['W', 'H', 'XS:A_w', 'XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
+                            promotes_inputs=['T_hp', 'W', 'H', 'XS:A_w', 'XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon', 'XS:t_wk', 'XS:t_w'])#,
                             #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
     
     # model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
@@ -348,7 +348,7 @@ class Circuit(om.Group):
         self.linear_solver = om.DirectSolver()
         # self.nonlinear_solver.linesearch = om.ArmijoGoldsteinLS()
         # self.nonlinear_solver.linesearch.options['maxiter'] = 10
-        # self.nonlinear_solver.linesearch.options['iprint'] = 2
+        self.nonlinear_solver.linesearch.options['iprint'] = 2
 
     
 

@@ -21,8 +21,8 @@ class VaporThermalResistance(om.ExplicitComponent):
         elif geom == 'flat':
             self.add_input('H', 0.02 * np.ones(nn), units='m', desc='total thickness of heat pipe')
             self.add_input('W', 0.02 * np.ones(nn), units='m', desc='width of heat pipe into the page')
-            self.add_input('XS:t_w', 0.02 * np.ones(nn), units='m', desc='wall thickness')
-            self.add_input('XS:t_wk', 0.02 * np.ones(nn), units='m', desc='wick thickness')
+            self.add_input('XS:t_w', val=np.ones(nn), units='m', desc='wall thickness')
+            self.add_input('XS:t_wk', val=np.ones(nn), units='m', desc='wick thickness')
 
         else:
             pass

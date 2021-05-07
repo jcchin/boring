@@ -15,7 +15,7 @@ class AxialThermalResistance(om.ExplicitComponent):
         nn=self.options['num_nodes']
 
         self.add_input('epsilon', 0.46*np.ones(nn), desc='wick porosity')
-        self.add_input('k_w', 11.4*np.ones(nn), units='W/(m*K)', desc='copper conductivity')
+        self.add_input('k_w', val=np.ones(nn), units='W/(m*K)', desc='thermal conductivity of the wall')
         self.add_input('k_l', np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
         self.add_input('LW:L_flux', np.ones(nn), units='m', desc='flux length')
         self.add_input('LW:L_adiabatic', np.ones(nn), units='m', desc='Effective Length')
