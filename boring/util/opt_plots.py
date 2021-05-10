@@ -98,5 +98,8 @@ def opt_plots(filename, x):
     plt.show()
 
 if __name__ == '__main__':
-    
-    opt_plots(['../metamodel/pcm_opt.csv', '../metamodel/al_opt.csv','../metamodel/hny_opt2.csv'],30)
+    # opt_plots(['../metamodel/pcm_opt.csv'],30)
+    # opt_plots(['../metamodel/al_opt.csv'],30)
+    # opt_plots(['../metamodel/hny_opt2.csv'],30)
+    # opt_plots(['../metamodel/hny_hole_opt.csv'],30)
+    opt_plots(['../metamodel/pcm_opt.csv', '../metamodel/al_opt.csv','../metamodel/hny_opt2.csv','../metamodel/hny_hole_opt.csv'],30)
