@@ -30,7 +30,7 @@ class flatHPmass(om.ExplicitComponent):
         self.add_output('volume_wall', .005 * np.ones(nn), units='m**3', desc='volume of the wall')
         self.add_output('volume_wick', .005 * np.ones(nn), units='m**3', desc='volume of the wick')
         self.add_output('volume_fluid', .005 * np.ones(nn), units='m**3', desc='volume of the fluid')
-        self.add_output('mass_flat_hp', .05 * np.ones(nn), units='kg', desc='mass of the flat hp')
+        self.add_output('mass_hp', .05 * np.ones(nn), units='kg', desc='mass of the flat hp')
 
     def setup_partials(self):
         nn=self.options['num_nodes']
@@ -39,7 +39,7 @@ class flatHPmass(om.ExplicitComponent):
         self.declare_partials('volume_wall', ['width_hp', 'height_hp', 'wall_t', 'length_hp'], rows=ar, cols=ar)
         self.declare_partials('volume_wick', ['width_hp', 'wall_t', 'height_hp', 'wick_t', 'wick_porosity', 'length_hp'], rows=ar, cols=ar)
         self.declare_partials('volume_fluid', ['width_hp', 'wall_t', 'wick_t', 'height_hp', 'length_hp', 'fluid_fill'], rows=ar, cols=ar)
-        self.declare_partials('mass_flat_hp', ['wall_density', 'wick_density', 'fluid_density', 'width_hp', 'height_hp', 'wall_t', 'length_hp', 'wick_porosity', 'fluid_fill', 'wick_t'], rows=ar, cols=ar)
+        self.declare_partials('mass_hp', ['wall_density', 'wick_density', 'fluid_density', 'width_hp', 'height_hp', 'wall_t', 'length_hp', 'wick_porosity', 'fluid_fill', 'wick_t'], rows=ar, cols=ar)
 
     def compute(self, inputs, outputs):
         length_hp =     inputs['length_hp']
@@ -57,7 +57,7 @@ class flatHPmass(om.ExplicitComponent):
         outputs['volume_wick'] = ((((width_hp-2*wall_t)*(height_hp-2*wall_t)) - \
                                  ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)))*(1-wick_porosity)) * (length_hp)
         outputs['volume_fluid'] = ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp) * (fluid_fill)
-        outputs['mass_flat_hp'] = wall_density*outputs['volume_wall'] + wick_density*outputs['volume_wick']+ fluid_density*outputs['volume_fluid']
+        outputs['mass_hp'] = wall_density*outputs['volume_wall'] + wick_density*outputs['volume_wick']+ fluid_density*outputs['volume_fluid']
 
 
     def compute_partials(self, inputs, J):
@@ -76,7 +76,7 @@ class flatHPmass(om.ExplicitComponent):
         volume_wall = ( (width_hp*height_hp) - ((width_hp-2*wall_t)*(height_hp-2*wall_t)) ) * (length_hp)
         volume_wick = ((((width_hp-2*wall_t)*(height_hp-2*wall_t)) - ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)))*(1-wick_porosity)) * (length_hp)
         volume_fluid = ((width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)) * (length_hp) * (fluid_fill)
-        mass_flat_hp = wall_density*volume_wall + wick_density*volume_wick+ fluid_density*volume_fluid
+        mass_hp = wall_density*volume_wall + wick_density*volume_wick+ fluid_density*volume_fluid
 
         alpha = (width_hp-2*wall_t - 2*wick_t)*(height_hp-2*wall_t - 2*wick_t)*length_hp
         d_alpha__d_width_hp = (height_hp-2*wall_t - 2*wick_t)*length_hp
@@ -134,16 +134,16 @@ class flatHPmass(om.ExplicitComponent):
         J['volume_fluid', 'length_hp' ] = d_volume_fluid__d_length_hp
         J['volume_fluid', 'fluid_fill' ] = d_volume_fluid__d_fluid_fill
 
-        J['mass_flat_hp', 'wall_density'] = d_mass__d_wall_density
-        J['mass_flat_hp', 'wick_density'] = d_mass__d_wick_density
-        J['mass_flat_hp', 'fluid_density'] = d_mass__d_fluid_density
-        J['mass_flat_hp', 'width_hp'] = d_mass__d_width_hp
-        J['mass_flat_hp', 'height_hp'] = d_mass__d_height_hp
-        J['mass_flat_hp', 'wall_t'] = d_mass__d_wall_t
-        J['mass_flat_hp', 'length_hp'] = d_mass__d_length_hp
-        J['mass_flat_hp', 'wick_porosity'] = d_mass__d_wick_porosity
-        J['mass_flat_hp', 'fluid_fill'] = d_mass__d_fluid_fill
-        J['mass_flat_hp', 'wick_t'] = d_mass__d_wick_t
+        J['mass_hp', 'wall_density'] = d_mass__d_wall_density
+        J['mass_hp', 'wick_density'] = d_mass__d_wick_density
+        J['mass_hp', 'fluid_density'] = d_mass__d_fluid_density
+        J['mass_hp', 'width_hp'] = d_mass__d_width_hp
+        J['mass_hp', 'height_hp'] = d_mass__d_height_hp
+        J['mass_hp', 'wall_t'] = d_mass__d_wall_t
+        J['mass_hp', 'length_hp'] = d_mass__d_length_hp
+        J['mass_hp', 'wick_porosity'] = d_mass__d_wick_porosity
+        J['mass_hp', 'fluid_fill'] = d_mass__d_fluid_fill
+        J['mass_hp', 'wick_t'] = d_mass__d_wick_t
 
 
 
@@ -160,4 +160,4 @@ if __name__ == "__main__":
     print('Volume of wall: ', prob.get_val('volume_wall'))
     print('Volume of wick: ', prob.get_val('volume_wick'))
     print('Volume of fluid: ', prob.get_val('volume_fluid'))
-    print('Mass of flat hp: ', prob.get_val('mass_flat_hp'))
+    print('Mass of flat hp: ', prob.get_val('mass_hp'))

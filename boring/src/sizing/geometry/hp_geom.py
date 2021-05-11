@@ -107,7 +107,6 @@ class HPgeom(om.ExplicitComponent):
             outputs['XS:A_wk'] = np.pi*t_wk**2 + np.pi*t_wk*D_v  # simplified from pi*((Dv/2+t_wk))^2 - pi*((Dv/2))^2
             outputs['XS:A_w'] = np.pi*t_w**2 + np.pi*t_w*D_v + 2*np.pi*t_wk*t_w # simplified from pi*((Dv/2+t_wk+t_w))^2 - pi*((Dv/2+t_k))^2
 
-
         elif geom == 'flat':
             W_v = inputs['XS:W_v']
             H_v = inputs['XS:H_v']
