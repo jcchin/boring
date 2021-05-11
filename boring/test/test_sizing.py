@@ -43,18 +43,6 @@ class SizeStuff(om.Group):
                            subsys = HPgeom(num_nodes=nn, geom=geom),
                            promotes_inputs=inpts,
                            promotes_outputs=outpts) 
-        
-        # self.add_subsystem(name='sizeHP',
-        #                    subsys = HPgeom(num_nodes=nn, geom=geom),
-        #                    promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
-        #                    promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter'])
-        
-        # self.add_subsystem(name='sizeInsulation',
-        #                    subsys= calcThickness(),
-        #                    promotes_inputs=['temp_limit'],
-        #                    promotes_outputs=['ins_thickness'])
-
-
 
         # Calculate total mass
         self.add_subsystem(name='massPCM',
@@ -138,8 +126,9 @@ class TestSizing(unittest.TestCase):
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
-    def test_tot_mass(self):  # calculation regression test
+    def _test_tot_mass(self):  # calculation regression test
     # Cells weigh 31.6g
 
         print(self.prob.get_val('size.mass_total'))
+
 
