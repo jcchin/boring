@@ -15,7 +15,7 @@ class pcmMass(om.ExplicitComponent):
         self.add_input('rho_pcm', 1450, units='kg/m**3', desc='density of the phase change material')
         self.add_input('t_pad', 0.020, units='m', desc='pcm pad thickness')
         self.add_input('batt_l', .10599, units='m', desc='cell length (105.99mm for Large Amprius)')
-        self.add_input('batt_w', 0.04902, units='m', desc='cell width, excluding lip material (49.02mm for Large Amprius')
+        self.add_input('L_flux', 0.04902, units='m', desc='cell width, excluding lip material (49.02mm for Large Amprius')
         self.add_input('porosity', 0.97, desc='porosity of the foam, 1 = completely void, 0 = solid')
         self.add_input('batt_l_pcm_scaler', 0.5, desc='sizes the pcm pad as a fraction of the cell length')
 
@@ -32,14 +32,14 @@ class pcmMass(om.ExplicitComponent):
         rho_p    =  inputs['rho_pcm']
         t        =  inputs['t_pad']
         batt_l   =  inputs['batt_l']
-        batt_w   =  inputs['batt_w']
+        L_flux   =  inputs['L_flux']
         porosity =  inputs['porosity']
         l_scaler = inputs['batt_l_pcm_scaler']
         
         rho_bulk = 1. / (porosity / rho_p + (1 - porosity) / rho_f)
         print('bulk density: ', rho_bulk)
 
-        outputs['A_pad'] = (batt_l*l_scaler) * batt_w
+        outputs['A_pad'] = (batt_l*l_scaler) * L_flux
         outputs['mass_pcm'] = rho_bulk*t*outputs['A_pad']
 
 

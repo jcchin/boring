@@ -71,7 +71,7 @@ class Build_Pack(om.Group):
         # Calculate total mass
         self.add_subsystem(name='massPCM',
                            subsys = pcmMass(num_nodes=nn),
-                           promotes_inputs=['t_pad','batt_l', 'batt_l_pcm_scaler', 'batt_w', 'porosity'],
+                           promotes_inputs=['t_pad','batt_l', 'batt_l_pcm_scaler', 'L_flux', 'porosity'],
                            promotes_outputs=['mass_pcm', 'A_pad'])
         self.add_subsystem(name='massInsulation',
                            subsys = insulationMass(num_nodes=nn),
