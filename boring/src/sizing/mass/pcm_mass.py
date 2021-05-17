@@ -15,7 +15,7 @@ class pcmMass(om.ExplicitComponent):
         self.add_input('rho_pcm', 1450, units='kg/m**3', desc='density of the phase change material')
         self.add_input('t_pad', 0.020, units='m', desc='pcm pad thickness')
         self.add_input('batt_l', .10599, units='m', desc='cell length (105.99mm for Large Amprius)')
-        self.add_input('batt_w', 0.05004, units='m', desc='cell width (50.04mm for Large Amprius')
+        self.add_input('batt_w', 0.04902, units='m', desc='cell width, excluding lip material (49.02mm for Large Amprius')
         self.add_input('porosity', 0.97, desc='porosity of the foam, 1 = completely void, 0 = solid')
         self.add_input('batt_l_pcm_scaler', 0.5, desc='sizes the pcm pad as a fraction of the cell length')
 
