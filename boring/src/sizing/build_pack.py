@@ -71,8 +71,8 @@ class Build_Pack(om.Group):
         # Calculate total mass
         self.add_subsystem(name='massPCM',
                            subsys = pcmMass(num_nodes=nn),
-                           promotes_inputs=['t_pad', 'A_pad', 'porosity'],
-                           promotes_outputs=['mass_pcm'])
+                           promotes_inputs=['t_pad','batt_l', 'batt_l_pcm_scaler', 'batt_w', 'porosity'],
+                           promotes_outputs=['mass_pcm', 'A_pad'])
         self.add_subsystem(name='massInsulation',
                            subsys = insulationMass(num_nodes=nn),
                            promotes_inputs=['num_cells','batt_l','L_flux','batt_h',],
@@ -137,6 +137,7 @@ if __name__ == "__main__":
     if geom == 'flat':
         p.model.add_design_var('hp_height', lower=0.003, upper=0.009)
         p.model.add_design_var('hp_width', lower=0.003, upper=0.009)
+        p.model.add_design_var('batt_l_pcm_scaler', lower=0.0, upper=1.0)  # sizes the pcm pad as a fraction of the cell length
     if geom == 'round':
         p.model.add_design_var('hp_D_od', lower=0.003, upper=0.009)
     p.model.add_design_var('hp_t_w', lower=0.003, upper=0.009)
