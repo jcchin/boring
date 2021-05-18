@@ -52,13 +52,13 @@ class Build_Pack(om.Group):
         if geom == 'round':
             self.add_subsystem(name = 'size',
                               subsys = HPgeom(num_nodes=nn, geom=geom),
-                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
+                              promotes_inputs=['LW:L_flux_round', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
                               promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter']) 
         elif geom == 'flat':
             self.add_subsystem(name = 'size',
                               subsys = HPgeom(num_nodes=nn, geom=geom),
-                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_hp'],
-                              promotes_outputs=['LW:A_flux', 'LW:A_inter']) 
+                              promotes_inputs=['W_pad', 'W_hp_scaler',  'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_hp'],
+                              promotes_outputs=['LW:L_flux_flat', 'LW:A_flux', 'LW:A_inter']) 
         # self.add_subsystem(name='sizeHP',
         #                    subsys = HPgeom(num_nodes=nn, geom=geom),
         #                    promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
@@ -71,16 +71,16 @@ class Build_Pack(om.Group):
         # Calculate total mass
         self.add_subsystem(name='massPCM',
                            subsys = pcmMass(num_nodes=nn),
-                           promotes_inputs=['t_pad','batt_l', 'batt_l_pcm_scaler', 'L_flux', 'porosity'],
-                           promotes_outputs=['mass_pcm', 'A_pad'])
+                           promotes_inputs=['t_pad','batt_l', 'batt_l_pcm_scaler', 'L_flux', 'porosity', 'LW:L_adiabatic'],
+                           promotes_outputs=['mass_pcm', 'W_pad', 'A_pad'])
         self.add_subsystem(name='massInsulation',
                            subsys = insulationMass(num_nodes=nn),
-                           promotes_inputs=['num_cells','batt_l','L_flux','batt_h',],
+                           promotes_inputs=['num_cells','batt_l','L_flux','batt_h', 'LW:L_flux_flat'],
                            promotes_outputs=['ins_mass'])
         if geom == 'flat':
             self.add_subsystem(name='massHP',
                                subsys = flatHPmass(num_nodes=nn),
-                               promotes_inputs=['length_hp', 'width_hp', 'wick_t', 'wall_t','wick_porosity'],
+                               promotes_inputs=['length_hp', 'width_hp', 'height_hp' 'wick_t', 'wall_t','wick_porosity'],
                                promotes_outputs=['mass_hp'])
         if geom == 'round':
             self.add_subsystem(name='massHP',

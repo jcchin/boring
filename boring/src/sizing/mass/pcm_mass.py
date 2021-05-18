@@ -39,7 +39,8 @@ class pcmMass(om.ExplicitComponent):
         rho_bulk = 1. / (porosity / rho_p + (1 - porosity) / rho_f)
         print('bulk density: ', rho_bulk)
 
-        outputs['A_pad'] = (batt_l*l_scaler) * L_flux
+        outputs['W_pad'] = (batt_l*l_scaler)
+        outputs['A_pad'] = outputs['W_pad']  * L_flux
         outputs['mass_pcm'] = rho_bulk*t*outputs['A_pad']
 
 

@@ -32,11 +32,15 @@ class insulationMass(om.ExplicitComponent):
         self.add_input('batt_h', 6.4, units='mm', desc='height (thickness) of the battery')
         self.add_input('ins_density', 1.6e-7, units='kg/mm**3', desc='density of the insulation material')
         self.add_input('ins_thickness', 2, units='mm', desc='height (thickness) of the insulation, equal to d')
-        self.add_input('batt_side_sep', 2, units='mm', desc='spacing between batteries in the horizontal')
+        self.add_input('LW:L_adiabatic', 2, units='mm', desc='spacing between batteries in the horizontal')
         self.add_input('batt_end_sep', 2, units='mm', desc='spacing at the ends of the batteries in the vertical')
+        self.add_input('stack_ins_t', 2, units='mm', desc='insulation thickness in the stack direction')
+        self.add_input('A_pad', 5, units='mm**2', desc='area of the pcm pad')
+        self.add_input('ins_pcm_layer_t', units='mm', desc='thickness of the pcm insulation layer')
+        self.add_input('LW:L_flux', units='mm', desc='width of the heatpipe')
 
         self.add_output('ins_volume', 50, units='mm**3', desc='volume of the insulation')
-        self.add_output('ins_backing_area', 250, units='mm**2', desc='area of the insulation on the back of the batts')
+        self.add_output('cell_tray_area', 250, units='mm**2', desc='area of the insulation on the back of the batts')
         self.add_output('A', 50, units='mm**2', desc='side area of the battery')
         self.add_output('ins_side_sep_area', 250, units='mm**2', desc='area of the ins between the batts')
         self.add_output('ins_end_sep_area', 250, units='mm**2', desc='area of the ins at the vertical ends of the batts')
@@ -52,14 +56,28 @@ class insulationMass(om.ExplicitComponent):
         batt_h = inputs['batt_h']
         ins_density = inputs['ins_density']
         ins_thickness = inputs['ins_thickness']
-        batt_side_sep = inputs['batt_side_sep']
+        batt_side_sep = inputs['LW:L_adiabatic']
         batt_end_sep = inputs['batt_end_sep']
+        stack_ins_t = inputs['stack_ins_t']
+        A_pad = inputs['A_pad']
+        ins_pcm_layer_t = inputs['ins_pcm_layer_t']
+        hp_w = inputs['LW:L_flux']
 
-        outputs['ins_backing_area'] = (num_cells*batt_l*L_flux) + (batt_side_sep*(num_cells+1)) + (batt_end_sep*(num_stacks+1))
+        outputs['cell_tray_area'] = (num_cells*batt_l*L_flux) + (batt_side_sep*batt_l*(num_cells+1)) + ( batt_end_sep*(num_stacks+1) * ((num_cells*L_flux)+(batt_side_sep*(num_cells+1)))  )
+        outputs['cell_tray_thickness'] = batt_h + stack_ins_t
+        outputs['cell_tray_mass'] =((outputs['cell_tray_area']*outputs['cell_tray_thickness']) - (batt_h*L_flux*batt_l*num_cells)) * ins_density
+
+        outputs['ins_pcm_layer_area'] = outputs['cell_tray_area'] - (num_cells*A_pad)
+        outputs['ins_pcm_layer_volume'] = outputs['ins_pcm_layer_area'] * ins_pcm_layer_t
+        outputs['ins_pcm_layer_mass'] = outputs['cell_tray_area'] * outputs['ins_pcm_layer_area'] * ins_density
+
+        outputs['ins_hp_layer_area'] = outputs['cell_tray_area'] - hp_w
+        outputs['ins_hp_layer_volume'] = outputs['ins_hp_layer_area'] * hp_t
+
         outputs['A'] = batt_l*batt_h
         outputs['ins_side_sep_area'] = outputs['A']*num_stacks*(num_cells+1)
         outputs['ins_end_sep_area'] = batt_h * ((num_cells*L_flux) + (batt_side_sep*(num_cells+1))) * (num_stacks+1)
-        outputs['ins_volume'] = (outputs['ins_backing_area'] + outputs['ins_side_sep_area'] + outputs['ins_end_sep_area']) * ins_thickness
+        outputs['ins_volume'] = (outputs['cell_tray_area'] + outputs['ins_side_sep_area'] + outputs['ins_end_sep_area']) * ins_thickness
         outputs['ins_mass'] = outputs['ins_volume'] * ins_density
 
 
@@ -76,7 +94,7 @@ if __name__ == "__main__":
     prob.setup(force_alloc_complex=True)
     prob.run_model()
 
-    print('ins_backing_area = ', prob.get_val('ins_mass.ins_backing_area'))
+    print('cell_tray_area = ', prob.get_val('ins_mass.cell_tray_area'))
     print('ins_side_sep_area = ', prob.get_val('ins_mass.ins_side_sep_area'))
     print('ins_end_sep_area = ', prob.get_val('ins_mass.ins_end_sep_area'))
     print('ins_volume = ', prob.get_val('ins_mass.ins_volume'))
