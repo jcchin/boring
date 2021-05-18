@@ -21,7 +21,7 @@ class TestPCM(unittest.TestCase):
         p1.run_model()
 
     def test_mass(self):
-        assert_near_equal(self.prob.get_val('mass_pcm'), 2.18181818e-05, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('mass_pcm'), 0.00862692, tolerance=1.0E-5)
 
     def test_partials(self):
 

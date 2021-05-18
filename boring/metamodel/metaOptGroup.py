@@ -60,6 +60,8 @@ class MetaOptimize(om.Group):
                                subsys=om.ExecComp('obj = mass + side/80'),
                                promotes_inputs=['mass','side'],
                                promotes_outputs=['obj'])
+            self.set_input_defaults('extra',1)
+            self.set_input_defaults('ratio',1)
         # else:
         #     self.add_subsystem(name='obj',
         #                        subsys=om.ExecComp('obj = mass + extra'),
@@ -74,7 +76,7 @@ if __name__ == "__main__":
 
 
     p.model.add_subsystem(name='meta_optimize',
-                          subsys=MetaOptimize(num_nodes=nn, config='honeycomb'), #,config='honeycomb'
+                          subsys=MetaOptimize(num_nodes=nn, config='grid'), #,config='honeycomb'
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
     
@@ -95,8 +97,8 @@ if __name__ == "__main__":
     # (DV-ref0)/ref
 
 
-    p.model.add_design_var('extra', lower=1.0, upper=1.5, ref=1e-3)
-    #p.model.add_design_var('ratio', lower=0.1, upper=0.9, ref=1e-3) 
+    p.model.add_design_var('extra', lower=1.0, upper=2.0, ref=1e3)
+    p.model.add_design_var('ratio', lower=0.2, upper=0.8, ref=1e-3) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
     # p.model.add_objective('obj', ref=1e-2)
     p.model.add_objective('mass', ref=1e-2)
@@ -108,6 +110,7 @@ if __name__ == "__main__":
 
 
     p.model.linear_solver = om.DirectSolver()
+
 
     p.setup(force_alloc_complex=True)
     # p.final_setup()
@@ -122,7 +125,7 @@ if __name__ == "__main__":
     #p.set_val('n',4)
 
     x = 30
-    nrg_list = np.linspace(16.,32.,x)
+    nrg_list = np.linspace(1.,48.,x)
     # ------- or ---------------------
     # nrg_list = np.array([24,])
     # x = len(nrg_list)
@@ -215,7 +218,7 @@ if __name__ == "__main__":
                     'success': opt_success
                     })
 
-    ofile = 'hny_hole_opt.csv'
+    ofile = 'grid_48_opt.csv'
     df.to_csv(ofile,index=False)
 
     opt_plots([ofile],x)

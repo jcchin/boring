@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from scipy import stats
+from scipy.optimize import curve_fit
 import more_itertools as mit
 import numpy as np
 
@@ -26,6 +27,8 @@ def opt_plots(filename, x):
     intercept = np.zeros(l)
     r_value = np.zeros(l)
     s_label = 'Wh/kg cell'
+    popt = np.zeros((l,4))
+    
 
     fig, ax = plt.subplots(3,3)
 
@@ -48,7 +51,11 @@ def opt_plots(filename, x):
         overhead = 100*opt_mass/(opt_mass + .048*16*(18/nrg_list))
 
         slope[z], intercept[z], r_value[z], p_value, std_err = stats.linregress(cell_dens[z],pack_dens[z])
+        def func(x, a, b, c, d):
+            return a*x**3 + b*x**2 + c*x + d
 
+        popt[z],pcov = curve_fit(func, cell_dens[z],pack_dens[z])
+        print(popt)
         indices = [i for i in range(len(opt_success[z])) if opt_success[z][i] > 3]  # record indices where 32,41
         def find_ranges(iterable):  #     Yield range of consecutive numbers
             for group in mit.consecutive_groups(iterable):
@@ -67,7 +74,9 @@ def opt_plots(filename, x):
         ax[1,2].plot(nrg_list[z],opt_side[z])
         ax[1,2].set_ylabel('side (mm)')
         ax[2,2].plot(cell_dens[z],pack_dens[z])
-        ax[2,2].plot(cell_dens[z],cell_dens[z]*slope[z]+intercept[z]) # *0.412+80
+        # ax[2,2].plot(cell_dens[z],cell_dens[z]*slope[z]+intercept[z]) # *0.412+80
+        ax[2,2].plot(cell_dens[z], (170/233)*cell_dens[z])#func(cell_dens[z], *popt[z]), 'r-',
+         # label='fit: a=%5.3f, b=%5.3f, c=%5.3f, d=%5.3f' % tuple(popt[z]))
         ax[2,2].set_ylabel('Wh/kg pack')
         s_label = s_label + '\n pack = {:.2f}*cell + {:2.1f} (R = {:.2f})'.format(slope[z],intercept[z],r_value[z])
         ax[2,2].set_xlabel(s_label)
@@ -102,4 +111,4 @@ if __name__ == '__main__':
     # opt_plots(['../metamodel/al_opt.csv'],30)
     # opt_plots(['../metamodel/hny_opt2.csv'],30)
     # opt_plots(['../metamodel/hny_hole_opt.csv'],30)
-    opt_plots(['../metamodel/pcm_opt.csv', '../metamodel/al_opt.csv','../metamodel/hny_opt2.csv','../metamodel/hny_hole_opt.csv'],30)
+    opt_plots(['../metamodel/pcm_opt.csv', '../metamodel/al_opt.csv','../metamodel/hny_opt2.csv','../metamodel/hny_hole_opt.csv','../metamodel/grid_48_opt.csv'],30)

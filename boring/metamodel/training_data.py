@@ -19,8 +19,10 @@ import pickle
 # t_data3 = np.load('cell3_hny.npy')  # Al honeycomb
 # t_data2 = np.load('cell2_pcm.npy')  # PCM grid
 # t_data3 = np.load('cell3_pcm.npy')  # PCM grid
-t_data2 = np.load('cell2_hny_hole.npy')  # PCM grid
-t_data3 = np.load('cell3_hny_hole.npy')  # PCM grid
+# t_data2 = np.load('cell2_hny_hole.npy')  # Al honeycomb with holes
+# t_data3 = np.load('cell3_hny_hole.npy')  # Al honeycomb with holes
+t_data2 = np.load('cell2_48kj_h10.npy')  # Al grid 8-48kj
+t_data3 = np.load('cell3_48kj_h10.npy')  # Al grid 8-48kj
 
 m_data = np.squeeze(np.load('mass_hny_hole.npy'))
 # print(m_data.shape)
@@ -47,9 +49,9 @@ class MetaTempGroup(om.Group):
         temp2_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
         temp3_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
 
-        energy_bp = np.linspace(16.,32.,5)
-        extra_bp = np.linspace(1.,1.5,6)
-        ratio_bp = np.linspace(0.1,0.9,5)  # <--
+        energy_bp = np.array([0.1, 8,16,24,32,40,48]) #np.linspace(8.,48.,6)
+        extra_bp = np.linspace(1.,1.6,4)
+        ratio_bp = np.linspace(0.2,0.8,4)  # <--
 
         #res_bp = np.linspace(0.006, 0.006, 1)
         temp2_interp.add_input('energy', val=16, training_data=energy_bp, units='kJ')         
@@ -74,15 +76,15 @@ class MetaTempGroup(om.Group):
                             promotes_inputs=inpts,     # comment out to view_mm
                             promotes_outputs=['temp3_data'])                            
 
-        # if mass is computed by COMSOL
-        mass_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
-        mass_interp.add_input('energy', val=16, training_data=energy_bp, units='kJ')         
-        mass_interp.add_input('extra', val=1, training_data=extra_bp)
-        mass_interp.add_input('ratio', val=1, training_data=ratio_bp)  # <--
-        mass_interp.add_output('mass', val=0.5*np.ones(nn), training_data=m_data, units='kg')
-        self.add_subsystem('meta_mass_data', mass_interp,
-                            promotes_inputs=['energy','extra','ratio'],
-                            promotes_outputs=['mass'])
+        ## if mass is computed by COMSOL
+        # mass_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
+        # mass_interp.add_input('energy', val=16, training_data=energy_bp, units='kJ')         
+        # mass_interp.add_input('extra', val=1, training_data=extra_bp)
+        # mass_interp.add_input('ratio', val=1, training_data=ratio_bp)  # <--
+        # mass_interp.add_output('mass', val=0.5*np.ones(nn), training_data=m_data, units='kg')
+        # self.add_subsystem('meta_mass_data', mass_interp,
+        #                     promotes_inputs=['energy','extra','ratio'],
+        #                     promotes_outputs=['mass'])
 
 if __name__ == '__main__':
     prob = om.Problem()

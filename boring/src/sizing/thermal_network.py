@@ -10,7 +10,6 @@ import numpy as np
 from boring.src.sizing.material_properties.fluid_properties import FluidPropertiesComp
 from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
-from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.geometry.hp_geom import HPgeom
 
 
@@ -110,7 +109,7 @@ class Radial_Stack(om.Group):
 
         # Calculate Resistances
         if geom == 'round':
-            inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:D_od','LW:L_flux','XS:r_i','XS:D_v']
+            inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','LW:L_flux','XS:D_od','XS:r_i','XS:D_v']
         elif geom == 'flat':
             inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:t_w','XS:t_wk']
 
@@ -164,25 +163,15 @@ class Bridge(om.Group):
     """ Bridge between evaporator or condensors """
     def initialize(self):
         self.options.declare('num_nodes', types=int, default=1)  
-        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn = self.options['num_nodes']
-        geom = self.options['geom']
 
         # Compute Resistances
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['k_w', 'k_wk', 'XS:A_w', 'XS:A_wk','LW:L_eff']) 
-
-        if geom == 'round': 
-            inpts = ['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_eff','XS:D_v']
-        elif geom == 'flat':
-            inpts = ['R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_eff', 'W', 'H', 'XS:t_w', 'XS:t_wk']
-
-        self.add_subsystem(name='vapor',
-                           subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
-                           promotes_inputs=inpts)
+                           promotes_inputs=['k_w', 'k_wk', 'XS:A_w', 'XS:A_wk','LW:L_eff',
+                           'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'XS:r_h']) 
 
         # Define Axial Resistors
         self.add_subsystem('Rv', Resistor(num_nodes=nn)) # vapor channel
@@ -190,7 +179,7 @@ class Bridge(om.Group):
         self.add_subsystem('Rwa', Resistor(num_nodes=nn)) # wall 
 
         # connect
-        self.connect('vapor.R_v','Rv.R')
+        self.connect('axial.R_v','Rv.R')
         self.connect('axial.R_aw','Rwa.R')
         self.connect('axial.R_awk', 'Rwka.R')
 
@@ -206,12 +195,9 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
     #                     promotes_inputs=['LW:L_adiabatic',('L1','{}.L_flux'.format(l_name,r_name)],
     #                     promotes_outputs=['L_eff'])
 
-    if geom == 'round': 
-        inpts = ['XS:A_w', 'XS:A_wk', 'LW:L_eff', 'k_w', 'XS:D_v']
-    elif geom =='flat':
-        inpts = ['XS:A_w', 'XS:A_wk', 'LW:L_eff', 'k_w', 'W', 'H']
+    inpts = ['XS:A_w', 'XS:A_wk', 'LW:L_eff', 'k_w', 'XS:r_h']
     
-    model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom), promotes_inputs=inpts)
+    model.add_subsystem(b_name, Bridge(num_nodes=nn), promotes_inputs=inpts)
 
     # model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
     # Link Geometry

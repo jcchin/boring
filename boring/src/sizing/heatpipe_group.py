@@ -47,7 +47,7 @@ class HeatPipeGroup(om.Group):
         for i in np.arange(n):
             # insantiate the radial stacks based on geometry
             if geom == 'round':
-                inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:D_od','LW:L_flux','XS:r_i','XS:D_v']
+                inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','LW:L_flux','XS:D_od','XS:r_i','XS:D_v']
             if geom == 'flat':
                 inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:t_w','XS:t_wk']
             
@@ -60,7 +60,8 @@ class HeatPipeGroup(om.Group):
                                subsys=PCM_Group(num_nodes=nn))
             else:   
                 self.add_subsystem(name='T_rate_cell_{}'.format(i),
-                               subsys=TempRateComp(num_nodes=nn))
+                               subsys=TempRateComp(num_nodes=nn),
+                               promotes_inputs=['c_p','mass'])
 
             # connect external flux
             if pcm_bool:
@@ -80,7 +81,6 @@ class HeatPipeGroup(om.Group):
 
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
-        self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
         if n > 1: # axial bridge only exists if there are 2 or more cells
             self.set_input_defaults('LW:L_eff', 0.05 * np.ones(nn), units='m')
 
@@ -91,10 +91,12 @@ class HeatPipeGroup(om.Group):
         if geom == 'round':
             self.set_input_defaults('XS:D_od', 6. * np.ones(nn), units='mm')
             self.set_input_defaults('XS:D_v', 3.62 * np.ones(nn), units='mm')
+            self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
 
-        elif geom == 'flat':
-            self.set_input_defaults('H', 20. * np.ones(nn), units='mm')
-            self.set_input_defaults('W', 20. * np.ones(nn), units='mm')
+
+        # elif geom == 'flat':
+        #     self.set_input_defaults('XS:W_v', 1. * np.ones(nn), units='mm')
+        #     self.set_input_defaults('XS:H_v', 1. * np.ones(nn), units='mm')
 
         # load_inputs('boring.input.assumptions2', self, nn)
 

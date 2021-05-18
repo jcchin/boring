@@ -11,11 +11,11 @@ class pcmMass(om.ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-        self.add_input('rho_foam', 0.200, units='kg/m**3', desc='density of the conductive foam')
-        self.add_input('rho_pcm', 0.020, units='kg/m**3', desc='density of the phase change material')
-        self.add_input('t_pad', 0.030, units='mm', desc='pcm pad thickness')
-        self.add_input('A_pad', 0.020, units='mm**2', desc='pcm pad area')
-        self.add_input('porosity', 0.5, desc='porosity of the foam, 1 = completely void, 0 = solid')
+        self.add_input('rho_foam', 8960., units='kg/m**3', desc='density of the conductive foam')
+        self.add_input('rho_pcm', 1450., units='kg/m**3', desc='density of the phase change material')
+        self.add_input('t_pad', 0.002, units='m', desc='pcm pad thickness')
+        self.add_input('A_pad', 0.0029, units='m**2', desc='pcm pad area')
+        self.add_input('porosity', 0.97, desc='porosity of the foam, 1 = completely void, 0 = solid')
 
         self.add_output('mass_pcm', .005, units='kg', desc='PCM bulk mass')
 

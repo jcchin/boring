@@ -12,6 +12,8 @@ import numpy as np
 import dymos as dm
 
 from boring.src.sizing.heatpipe_group import HeatPipeGroup  # import the ODE
+from boring.src.sizing.geometry.hp_geom import HPgeom
+
 from boring.util.save_csv import save_csv
 
 from boring.util.load_inputs import load_inputs
@@ -22,7 +24,7 @@ import matplotlib.pyplot as plt
 # solve_segments = <False, forward, backard> method for converging states
 
 def get_hp_phase(transcription='gauss-radau', num_segments=5,
-                 transcription_order=7, compressed=False,
+                 transcription_order=3, compressed=False,
                  solve_segments='forward', num_cells=3, db=(1, 300),
                  pcm=False, geom='round'):
 
@@ -63,24 +65,59 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    traj=dm.Trajectory()
-    p = om.Problem(model=traj)
+    p = om.Problem()
     p.driver = om.ScipyOptimizeDriver()
     p.driver = om.pyOptSparseDriver(optimizer='SNOPT')
-
     p.driver.declare_coloring()
 
     num_cells = [5, 10, 15]
     color = ('C0', 'C1', 'C2', 'C3', 'C4')
 
     i = 0
-
+    nn = 60
     cells = 2
 
+    p.model.add_subsystem(name = 'size',
+                  subsys = HPgeom(num_nodes=nn, geom='round'),
+                  promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
+                  promotes_outputs=['XS:D_od','XS:r_i', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter', 'LW:L_eff','XS:r_h']) 
 
+    traj=dm.Trajectory()
     phase = get_hp_phase(num_cells=cells, db=(10, 10), num_segments=10, solve_segments=False, geom='round')
-
     traj.add_phase('phase', phase)
+    p.model.add_subsystem(name = 'traj', subsys=traj,
+                          promotes_inputs=['*'],
+                          promotes_outputs=['*'])
+
+    # connect sizing outputs to dymos parameters
+    phase.add_parameter('XS:D_od', targets='XS:D_od', units='m')
+    phase.add_parameter('XS:r_i', targets='XS:r_i', units='m')
+    phase.add_parameter('XS:A_w', targets='XS:A_w', units='m**2')
+    phase.add_parameter('XS:A_wk', targets='XS:A_wk', units='m**2')
+    # phase.add_parameter('LW:A_flux', targets='LW:A_flux', units='m**2')
+    phase.add_parameter('LW:A_inter', targets='LW:A_inter', units='m**2')
+    phase.add_parameter('LW:L_eff', targets='LW:L_eff', units='m')
+    phase.add_parameter('XS:r_h', targets='XS:r_h', units='m')
+
+    p.model.connect('XS:D_od', 'phase.parameters:XS:D_od')
+    p.model.connect('XS:r_i', 'phase.parameters:XS:r_i')
+    p.model.connect('XS:A_w', 'phase.parameters:XS:A_w')
+    p.model.connect('XS:A_wk', 'phase.parameters:XS:A_wk')
+    # p.model.connect('LW:A_flux', 'phase.parameters:LW:A_flux')
+    p.model.connect('LW:A_inter', 'phase.parameters:LW:A_inter')
+    p.model.connect('LW:L_eff', 'phase.parameters:LW:L_eff')
+    p.model.connect('XS:r_h', 'phase.parameters:XS:r_h')
+
+    constants = p.model.add_subsystem('constants', om.IndepVarComp(), promotes_outputs=['*'])
+    constants.add_output('c_p', val=1.5, units='kJ/(kg*K)', desc='cell specific heat')
+    constants.add_output('mass', val=0.0316, units='kg', desc='cell mass')
+
+    # connect battery properties
+    phase.add_parameter('c_p', targets='c_p', units='kJ/(kg*K)')
+    p.model.connect('c_p', 'phase.parameters:c_p')
+    phase.add_parameter('mass', targets='mass', units='kg')
+    p.model.connect('mass', 'phase.parameters:mass')
+
 
     phase.add_objective('time', loc='final', ref=1)
 
@@ -100,6 +137,8 @@ if __name__ == '__main__':
     p.model.list_inputs(prom_name=True)
     p.model.list_outputs(prom_name=True)
     time_opt = p.get_val('phase.timeseries.time', units='s')
+    om.view_connections(p)
+    om.n2(p)
 
     for j in np.arange(cells):
 
