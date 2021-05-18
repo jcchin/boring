@@ -19,6 +19,7 @@ class pcmMass(om.ExplicitComponent):
         self.add_input('porosity', 0.97, desc='porosity of the foam, 1 = completely void, 0 = solid')
         self.add_input('batt_l_pcm_scaler', 0.5, desc='sizes the pcm pad as a fraction of the cell length')
 
+        self.add_output('W_pad', .01, units='m', desc='width of the pcm pad')
         self.add_output('A_pad', 0.000020, units='m**2', desc='pcm pad area')
         self.add_output('mass_pcm', .010, units='kg', desc='PCM bulk mass')
 
@@ -75,4 +76,5 @@ if __name__ == "__main__":
     # prob.check_partials(method='cs', compact_print=True)
 
     print('mass pcm: ', prob.get_val('mass_pcm'))
+    print('area of pad: ', prob.get_val('A_pad'))
     

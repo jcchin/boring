@@ -58,7 +58,7 @@ class Build_Pack(om.Group):
             self.add_subsystem(name = 'size',
                               subsys = HPgeom(num_nodes=nn, geom=geom),
                               promotes_inputs=['W_pad', 'W_hp_scaler',  'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_hp'],
-                              promotes_outputs=['LW:L_flux_flat', 'LW:A_flux', 'LW:A_inter']) 
+                              promotes_outputs=['LW:L_flux_flat', 'LW:A_flux', 'LW:A_inter', 'XS:H_hp']) 
         # self.add_subsystem(name='sizeHP',
         #                    subsys = HPgeom(num_nodes=nn, geom=geom),
         #                    promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
@@ -71,12 +71,14 @@ class Build_Pack(om.Group):
         # Calculate total mass
         self.add_subsystem(name='massPCM',
                            subsys = pcmMass(num_nodes=nn),
-                           promotes_inputs=['t_pad','batt_l', 'batt_l_pcm_scaler', 'L_flux', 'porosity', 'LW:L_adiabatic'],
+                           promotes_inputs=['t_pad','batt_l', 'batt_l_pcm_scaler', 'L_flux', 'porosity', 'LW:L_adiabatic', 'XS:H_hp'],
                            promotes_outputs=['mass_pcm', 'W_pad', 'A_pad'])
         self.add_subsystem(name='massInsulation',
                            subsys = insulationMass(num_nodes=nn),
-                           promotes_inputs=['num_cells','batt_l','L_flux','batt_h', 'LW:L_flux_flat'],
-                           promotes_outputs=['ins_mass'])
+                           promotes_inputs=[
+                               'num_cells', 'num_stacks', 'batt_l', 'L_flux', 'batt_cutout_w', 'batt_h', 'ins_density', 
+                               'LW:L_adiabatic', 'A_pad', 'ins_pcm_layer_t', 'LW:L_flux_flat',' XS:H_hp'],
+                           promotes_outputs=['ins_tot_mass'])
         if geom == 'flat':
             self.add_subsystem(name='massHP',
                                subsys = flatHPmass(num_nodes=nn),
