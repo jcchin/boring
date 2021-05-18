@@ -41,12 +41,12 @@ class TestAxialResistance(unittest.TestCase):
         self.prob['axial_thermal.h_fg'] = 2194794.5451510684
 
         # flat
-        self.prob['axial_thermal.r_h'] = 0.004405
+        self.prob['axial_thermal.XS:r_h'] = 0.004405
         self.prob.run_model()
         assert_near_equal(self.prob.get_val('axial_thermal.R_v'), 5.00776632e-06, tolerance=1.0E-5)
 
         # radial
-        self.prob['axial_thermal.r_h'] = 0.00362/2
+        self.prob['axial_thermal.XS:r_h'] = 0.00362/2
         self.prob.run_model()
         assert_near_equal(self.prob.get_val('axial_thermal.R_v')*1000, 0.17567639, tolerance=1.0E-5)
 
