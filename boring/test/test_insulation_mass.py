@@ -21,21 +21,24 @@ class TestInsulationMass(unittest.TestCase):
     def test_ins_mass(self):
         self.prob['ins_mass.num_cells'] = 4
         self.prob['ins_mass.num_stacks'] = 1
-        self.prob['ins_mass.batt_l'] = 106.0
-        self.prob['ins_mass.L_flux'] = 50.0
-        self.prob['ins_mass.batt_h'] = 6.4
-        self.prob['ins_mass.ins_density'] = 1.6e-7
-        self.prob['ins_mass.ins_thickness'] = 2
-        self.prob['ins_mass.batt_side_sep'] = 2
-        self.prob['ins_mass.batt_end_sep'] = 2
+        self.prob['ins_mass.batt_l'] = .10599
+        self.prob['ins_mass.L_flux'] = 0.04902
+        self.prob['ins_mass.batt_cutout_w'] = 0.050038
+        self.prob['ins_mass.batt_h'] = 0.00635
+        self.prob['ins_mass.ins_density'] = 100
+        self.prob['ins_mass.LW:L_adiabatic'] = 0.002
+        self.prob['ins_mass.A_pad'] = 0.00259781
+        self.prob['ins_mass.ins_pcm_layer_t'] = 0.002
+        self.prob['ins_mass.LW:L_flux_flat'] = 0.025
+        self.prob['ins_mass.XS:H_hp'] = 0.005
 
         self.prob.run_model()
 
-        assert_near_equal(self.prob.get_val('ins_mass.ins_backing_area'), 21214., tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('ins_mass.ins_side_sep_area'), 3392., tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('ins_mass.ins_end_sep_area'), 2688., tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('ins_mass.ins_volume'), 54588., tolerance=1.0E-5)
-        assert_near_equal(self.prob.get_val('ins_mass.ins_mass'), 0.00873408, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('ins_mass.ins_cell_tray_mass'), 0.00582975, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('ins_mass.ins_pcm_layer_mass'), 0.00254468, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('ins_mass.ins_hp_layer_mass'), 0.0044652, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('ins_mass.ins_tot_mass'), 0.01283963, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('ins_mass.ins_tot_volume'), 0.0001284, tolerance=2.91E-5)
 
     def test_partials(self):
         data = self.prob.check_partials(out_stream=None, method='cs')

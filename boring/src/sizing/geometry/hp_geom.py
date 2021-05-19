@@ -34,6 +34,7 @@ class HPgeom(om.ExplicitComponent):
         # Geometry specific I/O
         if geom == 'round':
             self.add_input('XS:D_v', 0.56 * np.ones(nn), units='mm', desc='Diameter of the inner HP vapor channel')
+            self.add_input('LW:L_flux_round', 50.8 * np.ones(nn), units='mm', desc='width of thermal contact, fraction of PCM width')
 
             self.add_output('XS:D_od', np.ones(nn), units='mm', desc='Outer diameter of heatpipe')
             self.add_output('XS:r_i', np.ones(nn), units='mm', desc='HP wall inner radius, needed for radial resistance calculations')
@@ -42,16 +43,19 @@ class HPgeom(om.ExplicitComponent):
         elif geom == 'flat':
             self.add_input('XS:W_v', 0.56*np.ones(nn), units='mm', desc='width of the inner heat pipe vapor core')
             self.add_input('XS:H_v', 0.56*np.ones(nn), units='mm', desc='height of the inner heat pipe vapor core')
+            self.add_input('W_pad', 5*np.ones(nn), units='mm', desc='width of the pcm pad')
+            self.add_input('W_hp_scaler', 0.75, desc='width of the HP scaler based on a fraction of the width of the PCM')
 
-
+            self.add_output('LW:L_flux_flat', 50.8 * np.ones(nn), units='mm', desc='width of thermal contact, fraction of PCM width')
             self.add_output('XS:W_hp', np.ones(nn), units='mm', desc='outer width of the heat pipe')
             self.add_output('XS:H_hp', np.ones(nn), units='mm', desc='outer height of the heat pipe')
 
         # Common Inputs
-        self.add_input('LW:L_flux', 50.8 * np.ones(nn), units='mm', desc='length of thermal contact (battery width)')
+        
         self.add_input('LW:L_adiabatic', 3 * np.ones(nn), units='mm', desc='adiabatic length (spacing between cells)')
         self.add_input('XS:t_wk', 0.69*np.ones(nn), units='mm', desc='wick thickness')
         self.add_input('XS:t_w', 0.5*np.ones(nn), units='mm', desc='wall thickness')
+        
         # Common Outputs
         self.add_output('XS:r_h', np.ones(nn), units='m', desc='hydraulic radius (half hydraulic diameter), for resistance associated with vapor pressure drop')
         self.add_output('XS:A_w', np.ones(nn), units='mm**2', desc='cross sectional area of the heat pipe wall, needed for axial bridge and mass calcs')
@@ -90,14 +94,17 @@ class HPgeom(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         geom = self.options['geom']
-        L_flux = inputs['LW:L_flux']
+        # 
         L_adiabatic = inputs['LW:L_adiabatic']
         # num_cells = inputs['num_cells']
         t_wk = inputs['XS:t_wk']
         t_w = inputs['XS:t_w']
+        
 
         if geom == 'round':
             D_v = inputs['XS:D_v']
+            L_flux = inputs['LW:L_flux_round']
+
             
             outputs['LW:L_eff'] = L_flux + L_adiabatic  # (L_flux*num_cells) + (L_adiabatic*(num_cells+1))
             outputs['XS:r_i'] = (D_v / 2 + t_wk)
@@ -111,12 +118,17 @@ class HPgeom(om.ExplicitComponent):
         elif geom == 'flat':
             W_v = inputs['XS:W_v']
             H_v = inputs['XS:H_v']
+            W_pad = inputs['W_pad']
+            W_hp_scaler = inputs['W_hp_scaler']
 
-            outputs['LW:L_eff'] = L_flux + L_adiabatic # (L_flux*num_cells) + (L_adiabatic*(num_cells-1)) # How to handle this for >2 battery cases?
+            outputs['LW:L_flux_flat'] = W_pad * W_hp_scaler
+            outputs['LW:L_eff'] = outputs['LW:L_flux_flat'] + L_adiabatic # (outputs['LW:L_flux_flat']*num_cells) + (L_adiabatic*(num_cells-1)) # How to handle this for >2 battery cases?
+            #outputs['W_wk']
+            #outputs['H_wk']
             outputs['XS:W_hp'] = W_v + 2*t_wk + 2*t_w
             outputs['XS:H_hp'] = H_v + 2*t_wk + 2*t_w
-            outputs['LW:A_flux'] = outputs['XS:W_hp'] * L_flux
-            outputs['LW:A_inter'] = W_v * L_flux
+            outputs['LW:A_flux'] = outputs['XS:W_hp'] * outputs['LW:L_flux_flat']
+            outputs['LW:A_inter'] = W_v * outputs['LW:L_flux_flat']
             outputs['XS:A_wk'] = 4*t_wk**2 + 2*H_v*t_wk + 2*W_v*t_wk  # simplified from ((H_v+2*t_wk)*(W_v+2*t_wk)) - (H_v*W_v)
             outputs['XS:A_w'] = 4*t_w**2 + 2*H_v*t_w+ 2*W_v*t_w + 8*t_wk*t_w  # simplified from ((H_v+2*t_wk+2*t_w)(W_v+2*t_wk+2*t_w))-((H_v+2*t_wk)*(W_v+2*t_wk))
             outputs['XS:r_h'] = (H_v*W_v)/(2*H_v+2*W_v)
