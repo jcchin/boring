@@ -43,7 +43,7 @@ def get_hp_phase(transcription='gauss-radau', num_segments=5,
             #                 lower=250, upper=400, fix_initial=True, fix_final=False, solve_segments=solve_segments)
             # create pcm temp states, connect T_in to external resistance Rex
             phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_pcm_{}.Tdot'.format(i), targets=['cell_{}.Rex.T_in'.format(i), 'T_rate_pcm_{}.T'.format(i)], units='K',
-                            lower=250, upper=600, fix_initial=True, fix_final=False)#, solve_segments=solve_segments)
+                            lower=250, upper=1500, fix_initial=True, fix_final=False, solve_segments=solve_segments)
 
             #phase.add_parameter('cell_{}.LW:L_flux'.format(i), val=0.02, units='m', targets='cell_{}.LW:L_flux'.format(i), include_timeseries=False, opt=False)
             phase.add_parameter('cell_{}.R'.format(i), val=0.0001, units='K/W', targets='cell_{}.Rex.R'.format(i), include_timeseries=False, opt=False)
@@ -51,7 +51,7 @@ def get_hp_phase(transcription='gauss-radau', num_segments=5,
         else:
             # since there is no pcm, connect cell T_in directly to external resistance Rex
             phase.add_state('T_cell_{}'.format(i), rate_source='T_rate_cell_{}.Tdot'.format(i), targets='cell_{}.Rex.T_in'.format(i), units='K',
-                            lower=250, upper=600, fix_initial=True, fix_final=False)#, solve_segments=solve_segments)
+                            lower=250, upper=1500, fix_initial=True, fix_final=False, solve_segments=solve_segments)
 
             #phase.add_parameter('cell_{}.LW:L_flux'.format(i), val=0.02, units='m', targets='cell_{}.LW:L_flux'.format(i), include_timeseries=False, opt=False)
             phase.add_parameter('cell_{}.R'.format(i), val=0.0001, units='K/W', targets='cell_{}.Rex.R'.format(i), include_timeseries=False, opt=False)
@@ -67,7 +67,6 @@ if __name__ == '__main__':
 
     traj=dm.Trajectory()
     p = om.Problem(model=traj)
-    p.driver = om.ScipyOptimizeDriver()
     p.driver = om.pyOptSparseDriver(optimizer='SNOPT')
 
     p.driver.declare_coloring()
@@ -80,7 +79,7 @@ if __name__ == '__main__':
     cells = 2
 
 
-    phase = get_hp_phase(num_cells=cells, db=(10, 10), num_segments=30, solve_segments=False, geom='round')
+    phase = get_hp_phase(num_cells=cells, db=(10, 10), num_segments=30, solve_segments=False, geom='flat')
 
     traj.add_phase('phase', phase)
 

@@ -74,24 +74,38 @@ class HeatPipeGroup(om.Group):
 
         self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(n-1))
 
+        # self.set_input_defaults('T_hp', 300 * np.ones(nn), units='K')
+
+        # self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
+        # self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
+        # self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
+        # self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
+
         self.set_input_defaults('T_hp', 300 * np.ones(nn), units='K')
-
+        self.set_input_defaults('XS:t_w', 0.0005 * np.ones(nn), units='m')
+        self.set_input_defaults('XS:t_wk', 0.00069 * np.ones(nn), units='m')
+        self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
+        self.set_input_defaults('LW:A_inter', 0.0004 * np.ones(nn), units='m**2')
+        self.set_input_defaults('alpha', 1 * np.ones(nn), units=None)
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
-        self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
-        self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
+        self.set_input_defaults('XS:A_w', 1E-5 * np.ones(nn), units='m**2')
+        self.set_input_defaults('XS:A_wk', 1.38E-5 * np.ones(nn), units='m**2')
+        self.set_input_defaults('LW:L_flux', .02 * np.ones(nn), units='m')
+        self.set_input_defaults('LW:L_adiabatic', .03 * np.ones(nn), units='m')
+        self.set_input_defaults('H', .02 * np.ones(nn), units='m')
 
-        if pcm_bool: # manually set mass for debugging
-            self.set_input_defaults('T_rate_pcm_1.mass', 0.003*np.ones(nn), units='kg')
-            self.set_input_defaults('T_rate_pcm_0.mass', 0.003*np.ones(nn), units='kg')
+        # if pcm_bool: # manually set mass for debugging
+        #     self.set_input_defaults('T_rate_pcm_1.mass', 0.003*np.ones(nn), units='kg')
+        #     self.set_input_defaults('T_rate_pcm_0.mass', 0.003*np.ones(nn), units='kg')
 
-        if geom == 'round':
-            self.set_input_defaults('XS:D_od', 6. * np.ones(nn), units='mm')
-            self.set_input_defaults('XS:D_v', 3.62 * np.ones(nn), units='mm')
+        # if geom == 'round':
+        #     self.set_input_defaults('XS:D_od', 6. * np.ones(nn), units='mm')
+        #     self.set_input_defaults('XS:D_v', 3.62 * np.ones(nn), units='mm')
 
-        elif geom == 'flat':
-            self.set_input_defaults('H', 20. * np.ones(nn), units='mm')
-            self.set_input_defaults('W', 20. * np.ones(nn), units='mm')
+        # elif geom == 'flat':
+        #     self.set_input_defaults('H', 20. * np.ones(nn), units='mm')
+        #     self.set_input_defaults('W', 20. * np.ones(nn), units='mm')
 
         # load_inputs('boring.input.assumptions2', self, nn)
 
@@ -110,7 +124,7 @@ if __name__ == "__main__":
 
 
     p.model.add_subsystem(name='hp',
-                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='round'),
+                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='flat'),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
 

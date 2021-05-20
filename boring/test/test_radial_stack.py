@@ -38,13 +38,13 @@ class TestRadialStack(unittest.TestCase):
 		p['k_w'] = 11.4
 		p['LW:A_inter'] = 0.0004
 		p['alpha'] = 1
-		p['cond_bridge.epsilon'] = 0.46
-		p['cond_bridge.XS:A_w'] = 1E-5
-		p['cond_bridge.XS:A_wk'] = 1.38E-5
-		p['cond_bridge.LW:L_flux'] = .02
-		p['cond_bridge.LW:L_adiabatic'] = .03
-		p['cond_bridge.H'] = .02
-		p['cond_bridge.W'] = .02
+		p['epsilon'] = 0.46
+		p['XS:A_w'] = 1E-5
+		p['XS:A_wk'] = 1.38E-5
+		p['LW:L_flux'] = .02
+		p['LW:L_adiabatic'] = .03
+		p['H'] = .02
+		p['W'] = .02
 
 		p.run_model()
 
