@@ -27,10 +27,10 @@ from boring.src.sizing.pcm_transient import PCM_transient
 
 class Build_Pack(om.Group):
     def initialize(self):
-        self.options.declare('num_nodes', types=int)
-        self.options.declare('num_cells', types=int, default=3)
-        self.options.declare('pcm_bool', types=bool, default=False)
-        self.options.declare('geom', values=['round', 'flat'], default='flat')
+        self.options.declare('num_nodes', types=int)  # number of dymos nodes
+        self.options.declare('num_cells', types=int, default=3)  # number of cells in the stack
+        self.options.declare('pcm_bool', types=bool, default=False)  # boolean for including phase change material 
+        self.options.declare('geom', values=['round', 'flat'], default='flat')   # heat pipe geometry
 
 
     def setup(self):
@@ -39,13 +39,15 @@ class Build_Pack(om.Group):
         num_cells = self.options['num_cells']
         pcm_bool = self.options['pcm_bool']
 
+        # common design variables
         design_inpts = ['pcm_thickness','pcm_porosity','XS:t_w','XS:t_wk', 'hp_porosity']
-
+        # geometry specific heatpipe variables
         if geom == 'round':
             design_inpts += ['XS:D_v']
         if geom == 'flat':
             design_inpts += ['XS:W_v','XS:H_v']
        
+        # Compute all geometry and mass calculations that don't change during a transient
         self.add_subsystem(name='static',
                            subsys= StaticSizing(),
                            promotes_inputs=design_inpts,

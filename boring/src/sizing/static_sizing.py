@@ -27,7 +27,7 @@ class StaticSizing(om.Group):
         pcm_bool = self.options['pcm_bool']
 
 
-        # Size the pack components
+        # Set inputs/outputs based on geometry
         if geom == 'round':
             inpts = ['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v']
             outpts = ['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter']
@@ -35,6 +35,7 @@ class StaticSizing(om.Group):
             inpts = ['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk']
             outpts = ['LW:A_flux', 'LW:A_inter', 'XS:W_hp']
         
+        # Size the pack components
         self.add_subsystem(name = 'size',
                            subsys = HPgeom(num_nodes=nn, geom=geom),
                            promotes_inputs=inpts,
