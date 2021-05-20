@@ -21,7 +21,7 @@ class roundHPmass(om.ExplicitComponent):
         self.add_input('liq_density', val=1000*np.ones(nn), desc='density of the heat pipe liquid', units='kg/m**3')
         self.add_input('fill_liq', val=0.85*np.ones(nn), desc='fill factor for liquid inside heat pipe')
 
-        self.add_output('mass_heatpipe', val=1.0 * np.ones(nn), desc='mass of the heat pipe', units='kg')
+        self.add_output('mass_hp', val=1.0 * np.ones(nn), desc='mass of the heat pipe', units='kg')
         self.add_output('mass_wick', val=1.0 * np.ones(nn), desc='mass of the heat pipe', units='kg')
         self.add_output('mass_liquid', val=1.0 * np.ones(nn), desc='mass of the heat pipe', units='kg')
 
@@ -36,7 +36,7 @@ class roundHPmass(om.ExplicitComponent):
         liq_density = i['liq_density']
         fill_liq = i['fill_liq']
 
-        o['mass_heatpipe'] = L_heatpipe*cu_density* np.pi*( (D_od/2)**2 - (D_od/2 - t_w)**2 )
+        o['mass_hp'] = L_heatpipe*cu_density* np.pi*( (D_od/2)**2 - (D_od/2 - t_w)**2 )
         o['mass_liquid'] = L_heatpipe*liq_density*fill_liq* np.pi/4*( D_v**2 )
         o['mass_wick'] = L_heatpipe*cu_density*fill_wk* np.pi*( (D_v/2+t_wk)**2 - (D_v/2)**2 ) # this can also be defined as fun(D_od, t_w)
 
@@ -44,7 +44,7 @@ class roundHPmass(om.ExplicitComponent):
         nn=self.options['num_nodes']
         ar = np.arange(nn) 
 
-        self.declare_partials('mass_heatpipe', ['L_heatpipe', 'XS:D_od', 'XS:t_w', 'cu_density'], rows=ar, cols=ar)
+        self.declare_partials('mass_hp', ['L_heatpipe', 'XS:D_od', 'XS:t_w', 'cu_density'], rows=ar, cols=ar)
         self.declare_partials('mass_liquid',['L_heatpipe', 'liq_density', 'fill_liq', 'XS:D_v'], rows=ar, cols=ar)
         self.declare_partials('mass_wick', ['L_heatpipe', 'XS:t_wk', 'cu_density', 'fill_wk', 'XS:D_v'], rows=ar, cols=ar)
 
@@ -59,10 +59,10 @@ class roundHPmass(om.ExplicitComponent):
         liq_density = i['liq_density']
         fill_liq = i['fill_liq']
 
-        J['mass_heatpipe', 'L_heatpipe'] = cu_density* np.pi*( (D_od/2)**2 - (D_od/2 - t_w)**2 )
-        J['mass_heatpipe', 'XS:D_od'] =L_heatpipe*cu_density* np.pi*( (D_od/2) - (D_od/2 - t_w) )
-        J['mass_heatpipe', 'XS:t_w'] =L_heatpipe*cu_density* (2)*np.pi* ( D_od/2 - t_w )
-        J['mass_heatpipe', 'cu_density'] =L_heatpipe* np.pi*( (D_od/2)**2 - (D_od/2 - t_w)**2 )
+        J['mass_hp', 'L_heatpipe'] = cu_density* np.pi*( (D_od/2)**2 - (D_od/2 - t_w)**2 )
+        J['mass_hp', 'XS:D_od'] =L_heatpipe*cu_density* np.pi*( (D_od/2) - (D_od/2 - t_w) )
+        J['mass_hp', 'XS:t_w'] =L_heatpipe*cu_density* (2)*np.pi* ( D_od/2 - t_w )
+        J['mass_hp', 'cu_density'] =L_heatpipe* np.pi*( (D_od/2)**2 - (D_od/2 - t_w)**2 )
 
         J['mass_liquid', 'L_heatpipe'] =liq_density*fill_liq* np.pi/4*( D_v**2 )
         J['mass_liquid', 'XS:D_v'] =L_heatpipe*liq_density*fill_liq* np.pi/2*( D_v )
@@ -91,6 +91,6 @@ if __name__ == "__main__":
     prob.check_partials(method='cs', compact_print=True)
 
 
-    print('mass_heatpipe = ', prob.get_val('hp_mass.mass_heatpipe'))
+    print('mass_hp = ', prob.get_val('hp_mass.mass_hp'))
     print('mass_liquid = ', prob.get_val('hp_mass.mass_liquid'))
     print('mass_wick = ', prob.get_val('hp_mass.mass_wick'))

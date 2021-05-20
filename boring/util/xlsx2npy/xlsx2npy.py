@@ -121,7 +121,12 @@ import pickle
 # from test2 import t_data # Verification data
 
 
+<<<<<<< HEAD
 ### Settings ###
+=======
+num_param = 3 #Required because there is no way to programatically differentiate 
+# between parameters and timeseries portions
+>>>>>>> Jeff/dev
 
 num_param = 2 # How many parameter columns are there?
 # Required because there is no way for script to differentiate between parameters and timeseries portions
@@ -133,7 +138,11 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 
 def getFiles():
     
+<<<<<<< HEAD
     files = glob.glob(os.path.join(cwd,'inputs','*.xlsx'))
+=======
+    files = glob.glob(os.path.join(cwd,'inputs','mass_hny_hole_h100.xlsx'))
+>>>>>>> Jeff/dev
     
     
     #Check there are >0 files, and that they are all xlsx
