@@ -1,5 +1,27 @@
 """
 Author: Jeff Chin
+
+http://www.aerogeltechnologies.com/airloy/airloy-product-selection-guide/
+T = High Thermal Limit
+H = Hydrophobic
+ 
+110 = Polyimide (300C)
+120 = Polyamide (250C)
+ 
+Density classes
+L = 0.1 g/cc (light, but easy to break)
+M = 0.2 g/cc (difficult to break) <-- this seems like the sweet spot
+H = 0.4 g/cc (heavy but not brittle)
+ 
+Airloy T116-L looks good except it's rigid/breakable
+22 mW/m-K
+0.1 g/cc
+stability up to 400C (withstand flames 3000+F)
+easy to machine
+
+$90 per 2.5″ x 3″ x 0.4″ tile, or $490 per 12x12x0.4" panel (for reference our cells are 2.25" x 2" x 0.25")
+http://www.buyaerogel.com/product/airloy-x116-large-panels/
+(it can also be purchased as a flexible thin wrap)
 """
 
 from scipy.integrate import odeint
@@ -23,27 +45,21 @@ class tempODE(om.ExplicitComponent):
 
         # Inputs
         self.add_input('K', val=0.03*np.ones(nn), desc='insulation conductivity', units='W/m*K')
-        self.add_input('A', val=.102*.0003*np.ones(nn), desc='area', units='m**2')
+        self.add_input('A', val=.102*.0003*np.ones(nn), desc='battery side area', units='m**2')
         self.add_input('d', val=0.03*np.ones(nn), desc='insulation thickness', units='m')
         self.add_input('m', val=0.06*np.ones(nn), desc='cell mass', units='kg')
-        self.add_input('Cp', val=3.56*np.ones(nn), desc='specific heat capacity', units='kJ/kg*K')
-        self.add_input('Th', val=773.*np.ones(nn), desc='hot side temp', units='K')
-        self.add_input('T', val=373.*np.ones(nn), desc='cold side temp', units='K')
+        self.add_input('Cp', val=3.56*np.ones(nn), desc='cell specific heat capacity', units='kJ/kg*K')
+        self.add_input('Th', val=773.*np.ones(nn), desc='hot battery side temp', units='K')
+        self.add_input('T', val=373.*np.ones(nn), desc='cold battery side temp', units='K')
 
         # Outputs
         self.add_output('Tdot', val=np.zeros(nn), desc='temp rate of change', units='K/s')
 
-        # Setup partials
+    def setup_partials(self):
         arange = np.arange(self.options['num_nodes'])
         c = np.zeros(self.options['num_nodes'])
-        self.declare_partials(of='Tdot', wrt='K', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='A', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='m', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='Cp', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='Th', rows=arange, cols=arange) 
-        self.declare_partials(of='Tdot', wrt='d', rows=arange, cols=arange)
-        self.declare_partials(of='Tdot', wrt='T', rows=arange, cols=arange)
-        #self.declare_partials(of='*', wrt='*', method='cs') # use this if you don't provide derivatives
+        self.declare_partials('Tdot', ['K','A','d','m','Cp','Th','T'], rows=arange, cols=arange)
+        # self.declare_partials(of='*', wrt='*', method='cs') # use this if you don't provide derivatives
 
     def compute(self, i, o):
 

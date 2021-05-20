@@ -4,16 +4,15 @@ import numpy as np
 import dymos as dm
 
 from boring.src.sizing.mass.mass import packMass
-# from boring.src.sizing.heat_pipe import OHP
-from boring.src.sizing.pack_design import packSize, pcmSize, SizingGroup
-from boring.src.sizing.structure import tempODE
+# from boring.src.sizing.pack_design import packSize, pcmSize, SizingGroup
+from boring.src.sizing.geometry.insulation_props import tempODE
 
 """
 Author(s): Jeff Chin
 """
 
 
-class Build_Pack():
+class calcThickness():
     """
     Use Dymos to minimize the thickness of the insulator,
     while still maintaining a temperature below 100degC after a 45 second transient
@@ -39,7 +38,7 @@ class Build_Pack():
 
     phase = traj.add_phase('phase0',
                            dm.Phase(ode_class=tempODE,
-                                    transcription=dm.GaussLobatto(num_segments=20, order=3, compressed=False)))
+                                    transcription=dm.GaussLobatto(num_segments=20, order=3, solve_segments='forward', compressed=False)))
 
     phase.set_time_options(fix_initial=True, fix_duration=True)
 
@@ -50,10 +49,10 @@ class Build_Pack():
     phase.add_parameter('d', opt=True, lower=0.001, upper=0.5, val=0.001, units='m', ref0=0, ref=1)
     phase.add_objective('d', loc='final', ref=1)
 
-    model.add_subsystem('sizing', SizingGroup(num_nodes=nn), promotes=['*'])
+    #model.add_subsystem('sizing', SizingGroup(num_nodes=nn), promotes=['*'])
 
-    p.model.connect('traj.phase0.timeseries.parameters:d', 'cell_s_w',
-                    src_indices=[-1])  # connect final value of d with cell_s_w
+    # p.model.connect('traj.phase0.timeseries.parameters:d', 'cell_s_w',
+    #                 src_indices=[-1])  # connect final value of d with cell_s_w
     # model.add_design_var('sizing.L', lower=-1, upper=1)
     # model.add_objective('OD1.Eff')
     p.model.linear_solver = om.DirectSolver()
@@ -64,8 +63,6 @@ class Build_Pack():
     p['traj.phase0.states:T'] = phase.interpolate(ys=[293.15, 333.15], nodes='state_input')
     p['traj.phase0.parameters:d'] = 0.001
 
-    # p.set_val('DESIGN.rot_ir' , 60)
-
     p.run_model()
     # cpd = p.check_partials(method='cs', compact_print=True) #check partial derivatives
     # assert_check_partials(cpd)
@@ -74,7 +71,6 @@ class Build_Pack():
     dm.run_problem(p)
 
     # p.record('final') #trigger problem record (or call run_driver if it's attached to the driver)
-
     # p.run_driver()
     # p.cleanup()
 
@@ -82,19 +78,21 @@ class Build_Pack():
     model.list_outputs(prom_name=True)
     # p.check_partials(compact_print=True, method='cs')
 
-    print("num of cells: ", p['n_cells'])
-    print("flux: ", p['flux'])
-    print("PCM mass: ", p['PCM_tot_mass'])
-    print("PCM thickness (mm): ", p['t_PCM'])
-    print("OHP mass: ", p['mass_OHP'])
-    print("packaging mass: ", p['p_mass'])
-    print("total mass: ", p['tot_mass'])
-    print("package mass fraction: ", p['mass_frac'])
-    print("pack energy density: ", p['energy'] / (p['tot_mass']))
-    print("cell energy density: ", (p['q_max'] * p['v_n_c']) / (p['cell_mass']))
-    print("pack energy (kWh): ", p['energy'] / 1000.)
-    print("pack cost ($K): ", p['n_cells'] * 0.4)
+    print("thickness: ", p['traj.phase0.parameters:d'], " (m)")
+
+    # print("num of cells: ", p['n_cells'])
+    # print("flux: ", p['flux'])
+    # print("PCM mass: ", p['PCM_tot_mass'])
+    # print("PCM thickness (mm): ", p['t_PCM'])
+    # print("OHP mass: ", p['mass_OHP'])
+    # print("packaging mass: ", p['p_mass'])
+    # print("total mass: ", p['tot_mass'])
+    # print("package mass fraction: ", p['mass_frac'])
+    # print("pack energy density: ", p['energy'] / (p['tot_mass']))
+    # print("cell energy density: ", (p['q_max'] * p['v_n_c']) / (p['cell_mass']))
+    # print("pack energy (kWh): ", p['energy'] / 1000.)
+    # print("pack cost ($K): ", p['n_cells'] * 0.4)
 
 
 if __name__ == "__main__":
-    Build_Pack()
+    calcThickness()

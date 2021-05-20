@@ -9,16 +9,16 @@ from boring.util.spec_test import assert_match_spec
 from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
 
 
-class TestRadialResistance(unittest.TestCase):
+class TestRoundRadialResistance(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('cond_thermal', subsys=RadialThermalResistance(num_nodes=40), promotes=['*'])
+        p1.model.add_subsystem('cond_thermal', subsys=RadialThermalResistance(num_nodes=40, geom='round'), promotes=['*'])
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
-    def test_cond_outputs(self):
+    def test_round_cond_outputs(self):
         use_poly = True
 
         if not use_poly:  # use thermo package
@@ -144,18 +144,18 @@ class TestRadialResistance(unittest.TestCase):
             R_interc_array.append(R_interc)
 
         self.prob.set_val('alpha', alpha_array)
-        self.prob.set_val('L_flux', L_cond_array)
+        self.prob.set_val('LW:L_flux', L_cond_array)
         self.prob.set_val('h_fg', h_fg_array)
         self.prob.set_val('T_hp', T_hp_array)
         self.prob.set_val('v_fg', v_fg_array)
         self.prob.set_val('R_g', R_g_array)
         self.prob.set_val('P_v', P_v_array)
-        self.prob.set_val('D_od', D_od_array)
-        self.prob.set_val('r_i', r_i_array)
+        self.prob.set_val('XS:D_od', D_od_array)
+        self.prob.set_val('XS:r_i', r_i_array)
         self.prob.set_val('k_w', k_w_array)
-        self.prob.set_val('D_v', D_v_array)
+        self.prob.set_val('XS:D_v', D_v_array)
         self.prob.set_val('k_wk', k_wk_array)
-        self.prob.set_val('A_inter', A_interc_array)
+        self.prob.set_val('LW:A_inter', A_interc_array)
         self.prob.run_model()
 
         assert_near_equal(self.prob.get_val('h_inter'), h_interc_array, tolerance=1.0E-5)

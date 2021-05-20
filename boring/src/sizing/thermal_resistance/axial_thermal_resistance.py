@@ -9,65 +9,79 @@ import numpy as np
 class AxialThermalResistance(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn=self.options['num_nodes']
 
         self.add_input('epsilon', 0.46*np.ones(nn), desc='wick porosity')
         self.add_input('k_w', 11.4*np.ones(nn), units='W/(m*K)', desc='copper conductivity')
-        self.add_input('k_l', 3*np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
-        self.add_input('L_eff', 4*np.ones(nn), units='m', desc='Effective Length') # Effective, not Adiabatic!
-        self.add_input('A_w', 5*np.ones(nn), units='m**2', desc='Wall Area')
-        self.add_input('A_wk', 6*np.ones(nn), units='m**2', desc='Wick Area')
+        self.add_input('k_l', np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
+        self.add_input('LW:L_flux', np.ones(nn), units='m', desc='flux length')
+        self.add_input('LW:L_adiabatic', np.ones(nn), units='m', desc='Effective Length')
+        self.add_input('XS:A_w', np.ones(nn), units='m**2', desc='Wall Area')
+        self.add_input('XS:A_wk', np.ones(nn), units='m**2', desc='Wick Area')
 
-        self.add_output('k_wk', val=1.0*np.ones(nn), units='W/(m*K)', desc='Wick Conductivity')
-        self.add_output('R_aw', val=1.0*np.ones(nn), units='K/W', desc='Wall Axial Resistance')
-        self.add_output('R_awk', val=1.0*np.ones(nn), units='K/W', desc='Wick Axial Resistance')
+        self.add_output('k_wk', val=np.ones(nn), units='W/(m*K)', desc='Wick Conductivity')
+        self.add_output('R_aw', val=np.ones(nn), units='K/W', desc='Wall Axial Resistance')
+        self.add_output('R_awk', val=np.ones(nn), units='K/W', desc='Wick Axial Resistance')
 
     def setup_partials(self):
         nn=self.options['num_nodes']
         ar = np.arange(nn) 
 
         self.declare_partials('k_wk', ['epsilon', 'k_w', 'k_l'], rows=ar, cols=ar)
-        self.declare_partials('R_aw', ['L_eff', 'A_w', 'k_w'], rows=ar, cols=ar)
-        self.declare_partials('R_awk', ['L_eff', 'A_wk', 'epsilon', 'k_w', 'k_l'], rows=ar, cols=ar)
+        self.declare_partials('R_aw', ['LW:L_flux', 'LW:L_adiabatic', 'XS:A_w', 'k_w'], rows=ar, cols=ar, val=0.)
+        self.declare_partials('R_awk', ['LW:L_flux', 'LW:L_adiabatic', 'XS:A_wk', 'epsilon', 'k_w', 'k_l'], rows=ar, cols=ar, val=0)
 
     def compute(self, inputs, outputs):
 
+        geom = self.options['geom']
+
         epsilon = inputs['epsilon']
         k_w = inputs['k_w']
         k_l = inputs['k_l']
-        L_eff = inputs['L_eff']
-        A_w = inputs['A_w']
+        L_flux = inputs['LW:L_flux']
+        L_adiabatic = inputs['LW:L_adiabatic']
+        A_w = inputs['XS:A_w']
         k_w = inputs['k_w']
-        A_wk = inputs['A_wk']
+        A_wk = inputs['XS:A_wk']
 
-        outputs['k_wk']=(1-epsilon)*k_w+epsilon*k_l
-        outputs['R_aw']=L_eff/(A_w*k_w)
-        outputs['R_awk']=L_eff/(A_wk*outputs['k_wk'])
+        L_eff = L_flux + L_adiabatic
+
+        outputs['k_wk'] = (1-epsilon)*k_w+epsilon*k_l
+        outputs['R_aw'] = L_eff/(A_w*k_w)
+        outputs['R_awk'] = L_eff/(A_wk*outputs['k_wk'])
 
     def compute_partials(self, inputs, J):
 
+        geom = self.options['geom']
+
         epsilon = inputs['epsilon']
         k_w = inputs['k_w']
         k_l = inputs['k_l']
-        L_eff = inputs['L_eff']
-        A_w = inputs['A_w']
+        L_flux = inputs['LW:L_flux']
+        L_adiabatic = inputs['LW:L_adiabatic']
+        A_w = inputs['XS:A_w']
         k_w = inputs['k_w']
-        A_wk = inputs['A_wk']
-
+        A_wk = inputs['XS:A_wk']
         d_k_wk__d_epsilon = -k_w + k_l
+
+        L_eff = L_flux + L_adiabatic
+
+        J['R_awk', 'LW:L_flux'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
+        J['R_aw', 'LW:L_flux'] = 1/(A_w*k_w)
 
         J['k_wk', 'epsilon'] = -k_w + k_l
         J['k_wk', 'k_w'] = (1 - epsilon)
         J['k_wk', 'k_l'] = epsilon
 
-        J['R_aw', 'L_eff'] = 1/(A_w*k_w) 
-        J['R_aw', 'A_w'] = -L_eff/(A_w**2*k_w)
+        J['R_aw', 'LW:L_adiabatic'] = 1/(A_w*k_w)
+        J['R_aw', 'XS:A_w'] = -L_eff/(A_w**2*k_w)
         J['R_aw', 'k_w'] = -L_eff/(A_w*k_w**2)
 
-        J['R_awk', 'L_eff'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
-        J['R_awk', 'A_wk'] = -L_eff/(A_wk**2*((1-epsilon)*k_w+epsilon*k_l))
+        J['R_awk', 'LW:L_adiabatic'] = 1/(A_wk*((1-epsilon)*k_w+epsilon*k_l))
+        J['R_awk', 'XS:A_wk'] = -L_eff/(A_wk**2*((1-epsilon)*k_w+epsilon*k_l))
         J['R_awk', 'epsilon'] = -L_eff/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (-k_w + k_l)
         J['R_awk', 'k_w'] = -L_eff/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * (1-epsilon)
         J['R_awk', 'k_l'] = -L_eff/(A_wk*((1-epsilon)*k_w+epsilon*k_l)**2) * epsilon

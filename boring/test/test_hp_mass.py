@@ -7,24 +7,24 @@ from openmdao.api import Problem, Group
 from openmdao.utils.assert_utils import assert_check_partials, assert_near_equal
 
 from boring.util.spec_test import assert_match_spec
-from boring.src.sizing.mass.mass import heatPipeMass
+from boring.src.sizing.mass.round_hp_mass import roundHPmass
 
 
 class TestHeatPipeMass(unittest.TestCase):
 
     def setUp(self):
         p1 = self.prob = Problem(model=Group())
-        p1.model.add_subsystem('hp_mass', subsys=heatPipeMass(num_nodes=1))
+        p1.model.add_subsystem('hp_mass', subsys=roundHPmass(num_nodes=1))
 
         p1.setup(force_alloc_complex=True)
         p1.run_model()
 
     def test_hp_mass(self):
-        self.prob['hp_mass.D_od'] = 0.03
-        self.prob['hp_mass.D_v'] = 0.03
+        self.prob['hp_mass.XS:D_od'] = 0.03
+        self.prob['hp_mass.XS:D_v'] = 0.03
         self.prob['hp_mass.L_heatpipe'] = 0.3
-        self.prob['hp_mass.t_w'] = .0005
-        self.prob['hp_mass.t_wk'] = 0.0005
+        self.prob['hp_mass.XS:t_w'] = .0005
+        self.prob['hp_mass.XS:t_wk'] = 0.0005
         self.prob['hp_mass.cu_density'] = 8960
         self.prob['hp_mass.fill_wk'] = 0.10
         self.prob['hp_mass.liq_density'] = 1000

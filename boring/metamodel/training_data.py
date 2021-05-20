@@ -1,47 +1,101 @@
 '''
 Training data recieved from the COMSOL model
-
+OpenMDAO viewer for the metamodel data. Run the command:
+<openmdao view_mm training_data.py -m temp.meta_temp2_data>
+Then open a browser and navigate to 
+<localhost:5007>
 Author: Dustin Hall, Jeff Chin
 '''
-
 import numpy as np
 import openmdao.api as om
-
+import pickle
 ## File containing the COMSOL temperature data from xlsx2npy.py script
-t_data = np.load('../util/xlsx2np/outputs/test3.npy')
-
-
-# For loop to pick off the highest temp
-t_max_intermediate = []
-for i in t_data:
-    t_max_intermediate.append(np.max(i, axis=1, keepdims=True))
-
-# This is passed into the MetaTempGroup class
-t_max_data = np.array(t_max_intermediate)
-
-
+#t_data = np.load('../util/xlsx2np/outputs/test3.npy')
+# t_data2 = np.load('cell2_16_32kj_exra.npy')
+# t_data3 = np.load('cell3_16_32kj_exra.npy')
+t_data2 = np.load('cell2_2_24.npy')  # Al grid
+t_data3 = np.load('cell3_2_24.npy')  # Al grid
+# t_data2 = np.load('cell2_hny.npy')  # Al honeycomb
+# t_data3 = np.load('cell3_hny.npy')  # Al honeycomb
+m_data = np.squeeze(np.load('mass.npy'))
+# print(m_data.shape)
+# print(t_data2)
+# t_data2 = np.load('cell2_pcm.npy')
+# t_data3 = np.load('cell3_pcm.npy')
+t_data2[t_data2 == 0] = 2400.  # replace broken cases with a (doubly) high value (for ratio calc =2 for invalid cases)
+t_data3[t_data3 == 0] = 1200.  # replace broken cases with a high value
+# bp = pickle.load( open( "cell2.pickle", "rb" ) )
+# print(bp)
+# # For loop to pick off the highest temp
+# t_max_intermediate = []
+# for i in t_data:
+#     t_max_intermediate.append(np.max(i, axis=1, keepdims=True))
+# # This is passed into the MetaTempGroup class
+# t_max_data = np.array(t_max_intermediate)
 class MetaTempGroup(om.Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-
+        self.options.declare('config', types=str, default='')
     def setup(self):
         nn = self.options['num_nodes']
+        config = self.options['config']
 
-        temp_interp = om.MetaModelStructuredComp(method='scipy_cubic')
+        temp2_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
+        temp3_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
+        if (config != 'honeycomb'):
+            energy_bp = np.linspace(16.,32.,5)
+            extra_bp = np.linspace(1.,2.0,6)
+            ratio_bp = np.linspace(0.2,1.0,5)
+        else:
+            energy_bp = np.linspace(16.,32.,5)
+            extra_bp = np.linspace(1.,1.5,6)
+        #res_bp = np.linspace(0.006, 0.006, 1)
+        temp2_interp.add_input('energy', val=16, training_data=energy_bp, units='kJ')         
+        temp2_interp.add_input('extra', val=1, training_data=extra_bp, units='mm')
+        #temp2_interp.add_input('resistance', val=0.006, training_data=res_bp, units='degK*mm**2/W')
+        #temp2_interp.add_input('time', val=0, training_data= time_bp, units='s')
+        temp3_interp.add_input('energy', val=16, training_data=energy_bp, units='kJ')
+        temp3_interp.add_input('extra', val=1, training_data=extra_bp, units='mm')
+        #temp3_interp.add_input('resistance', val=0.006, training_data=res_bp, units='degK*mm**2/W')
+        #temp3_interp.add_input('time', val=0, training_data= time_bp, units='s')
 
-        time_data = np.linspace(0,0,1)
-        extra_data = np.linspace(1.,1.5,6)
-        ratio_data = np.linspace(0.5,2.0,7)
-         
-        temp_interp.add_input('extra', val=1, training_data=extra_data, units='mm')
-        temp_interp.add_input('ratio', val=1, training_data=ratio_data)
-        temp_interp.add_input('time', val=0, training_data= time_data, units='s')
-        
+        if (config != 'honeycomb'):
+            temp2_interp.add_input('ratio', val=1, training_data=ratio_bp)
+            temp3_interp.add_input('ratio', val=1, training_data=ratio_bp)
 
-        temp_interp.add_output('temp_data', val=300*np.ones(nn), training_data=t_max_data, units='C')
+            inpts = ['energy','extra', 'ratio']
+        else:
+            inpts = ['energy','extra']
 
+        temp2_interp.add_output('temp2_data', val=300*np.ones(nn), training_data=t_data2, units='degK')
+        temp3_interp.add_output('temp3_data', val=300*np.ones(nn), training_data=t_data3, units='degK') 
+        self.add_subsystem('meta_temp2_data', temp2_interp,
+                            promotes_inputs=inpts,
+                            promotes_outputs=['temp2_data'])
+        self.add_subsystem('meta_temp3_data', temp3_interp,                         
+                            promotes_inputs=inpts,     # comment out to view_mm
+                            promotes_outputs=['temp3_data'])                            
 
+        if (config == 'honeycomb'):
+            # if mass is computed by COMSOL
+            mass_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
+            mass_interp.add_input('energy', val=16, training_data=energy_bp, units='kJ')         
+            mass_interp.add_input('extra', val=1, training_data=extra_bp, units='mm')
+            mass_interp.add_output('mass', val=0.5*np.ones(nn), training_data=m_data, units='kg')
+            self.add_subsystem('meta_mass_data', mass_interp,
+                                promotes_inputs=['energy','extra'],
+                                promotes_outputs=['mass'])
 
-        self.add_subsystem('meta_temp_data', temp_interp,
-            promotes_inputs=['extra', 'ratio'],
-            promotes_outputs=['temp_data'])
+if __name__ == '__main__':
+    prob = om.Problem()
+    nn=1
+    # mm = prob.model.add_subsystem(name='temp',
+    #                        subsys=MetaTempGroup(num_nodes=nn),
+    #                        promotes_inputs=['energy','extra', 'ratio'],
+    #                        promotes_outputs=['temp2_data','temp3_data'])     
+    mm = prob.model.add_subsystem(name='temp',
+                       subsys=MetaTempGroup(num_nodes=nn, config='honeycomb'),
+                       promotes_inputs=['energy','extra'],
+                       promotes_outputs=['temp2_data','temp3_data','mass'])     
+    prob.setup()
+    prob.final_setup()

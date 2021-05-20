@@ -11,8 +11,9 @@ setup(name='boring_battery',
         'matplotlib',
         'scipy',
         'pandas',
-        'lcapy',
+        'pyspice',
         'testflo',
         'openpyxl',
+        'more_itertools',
       ]
 )

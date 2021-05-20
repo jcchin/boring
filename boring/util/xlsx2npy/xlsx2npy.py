@@ -23,19 +23,20 @@ Author: Karsten Look (GRC-LTE0)
 
 # Details
     Will search for all .xlsx files in the ./inputs folder (nonrecursive), ignoring everything else 
+    Assumes all files in the input folder are of the same search grid
+    Assumes files contain only numerical data, and there is no header or blank rows at top
     
     Load order and file name scheme does not matter, all content will be sorted by the first column first, 
       then the second, and so on for all given parameters
       
     output file is put into ./outputs folder, named like <name of first input file>_<number of files>-combined.npy"
     
-    outputs are:
+ outputs are:
         1. A .npy file (the pickled numpy array)
         2. A .pickle file (a python list of dict vars) that translates indices to the given input parameter values
 
-
     Example mapping file:
-        index value : parameter value
+        index value : entry value
         
         human readable:
         # index 1
@@ -67,6 +68,12 @@ Author: Karsten Look (GRC-LTE0)
 
 
 # Assumptions
+- All layers of the numpy array are of the same dimensions
+- The elements are floats or ints
+- The first column differentiates layers, but is not saved in output
+- The second column is ignored (and also not saved in output)
+
+
     - If one file of a set fails to import, all files will similarly fail
     
     - All files in the input folder cover the same parameter sweep set
@@ -77,7 +84,7 @@ Author: Karsten Look (GRC-LTE0)
     - The user correctly identifies the number of parametersr in the input file
 
 # Compatibility
-    Anaconda environment file is provided in ./envr folder. A human-friendly version is also provided
+Anaconda environment file is provided in this folder as _env-spec-file.txt_ a human-friendly version is saved as _env_ref-spec-file.txt_
 
     
 ===
@@ -116,7 +123,7 @@ import pickle
 
 ### Settings ###
 
-num_param = 4 # How many parameter columns are there?
+num_param = 2 # How many parameter columns are there?
 # Required because there is no way for script to differentiate between parameters and timeseries portions
 
 ################
@@ -214,6 +221,17 @@ def export(name_, np_arr_):
     print("\n.npy file saved to {}".format(name_))
 
 
+# move to git test
+# def veriftest2(np_arr_):
+#     np_arr = np_arr_    
+#     #Verification test
+#     diff = np_arr - t_data
+#     maxdiff_loc = np.unravel_index(np.argmax(abs(diff)),(6,7,61))
+#     maxdiff = np.max(abs(diff))
+#     print("\n### Verification test (for test2.xlsx only) ### : The maximum difference is {}, at location {}".format(maxdiff,maxdiff_loc))
+
+
+    
 ### Main ###
 files = getFiles()
 [df, df_raw] = loadFiles(files)
@@ -231,6 +249,8 @@ with open(mapfilename, "wb") as mapfile:
     pickle.dump(mapping, mapfile)
 
 print("Saved mapping file to {}".format(mapfilename))
-         
+    # load the mapping file into another script with:
+    # with open("test.txt", "rb") as fp:   # Unpickling
+    # ...   b = pickle.load(fp)      
     
 
