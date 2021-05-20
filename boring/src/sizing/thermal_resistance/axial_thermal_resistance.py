@@ -14,8 +14,8 @@ class AxialThermalResistance(om.ExplicitComponent):
         nn=self.options['num_nodes']
 
         # Wall and Wick
-        self.add_input('k_w', np.ones(nn), units='W/(m*K)', desc='copper conductivity')
-        self.add_input('k_wk', np.ones(nn), units='W/(m*K)', desc='Wick Conductivity')
+        self.add_input('k_w', np.ones(nn), units='W/(m*K)', desc='wall thermal conductivity')
+        self.add_input('k_wk', np.ones(nn), units='W/(m*K)', desc='wick thermal conductivity')
         self.add_input('LW:L_eff', np.ones(nn), units='m', desc='Effective Length')
         self.add_input('XS:A_w', np.ones(nn), units='m**2', desc='Wall Area')
         self.add_input('XS:A_wk', np.ones(nn), units='m**2', desc='Wick Area')
