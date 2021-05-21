@@ -22,6 +22,7 @@ Modified for OpenMDAO compatibility by Karsten Look
 #################################################################################
 
 '''
+#TODO where should these go in a test? Where are the results to check against?
 # Validation Parameters (Nemec et al, 2013, "Mathemtatical model for heat transfer limitations of heat pipe")
 r_i=0.0065
 r_hv=0.005
@@ -59,37 +60,38 @@ class HeatPipeLimitsComp(om.ExplicitComponent):
         nn = self.options['num_nodes']
 
         #TODO
-        self.add_input('A_v', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('A_w', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
+        #Untabbed need to verify exist in model
+            #Tabbed known to exist in model from lookin at fluid_properties.py
+        self.add_input('A_v', val=1.0*np.ones(nn), units='m**2', desc='Cross sectional area of vapor core')
+        self.add_input('A_w', val=1.0*np.ones(nn), units='m**2', desc='Wick cross sectional area')
                 self.add_input('cp_v', val=1.0 * np.ones(nn), desc='vapor specific heat')
-        self.add_input('epsilon', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('g', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('gamma', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-                self.add_input('h_fg', val=1.0 * np.ones(nn), units='J/kg', desc='latent heat')
-        self.add_input('K', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-                self.add_input('k_l', val=1.0 * np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
-        self.add_input('k_s', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('L_eff', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('L_t', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
+        self.add_input('epsilon', val=1.0*np.ones(nn), units='ul', desc='Porosity (unitless) of sintered capillary structure')
+        self.add_input('g', val=1.0*np.ones(nn), units='m/s**2', desc='Acceleration due to gravity')
+                self.add_input('h_fg', val=1.0 * np.ones(nn), units='J/kg', desc='latent heat') #called l_v in paper
+        self.add_input('K', val=1.0*np.ones(nn), units='m**2', desc='Wick permeability')
+                self.add_input('k_l', val=1.0 * np.ones(nn), units='W/(m*K)', desc='liquid conductivity') #Is this equivalent to lambda_m in the paper (thermal conductivity of the heat pipe material) #TODO
+        self.add_input('k_s', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD') #Is this equivalent to lambda_l in the paper (thermal conductivity of liquid)? #TODO
+        self.add_input('L_eff', val=1.0*np.ones(nn), units='m', desc='effective length of the heat pipe')
+        self.add_input('L_t', val=1.0*np.ones(nn), units='m', desc='total length of heat pipe')
                 self.add_input('mu_l', val=1.0 * np.ones(nn), units='N*s/m**2', desc='liquid viscosity')
                 self.add_input('mu_v', val=1.0 * np.ones(nn), units='N*s/m**2', desc='vapor viscosity')
                 self.add_input('P_v', val=1.0 * np.ones(nn), units='Pa', desc='pressure')
-        self.add_input('phi', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('r_ce', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
+        self.add_input('phi', val=1.0*np.ones(nn), units='deg', desc='Angle of heat pipe wrt vertical 0 degrees being condenser on bottom')
+        self.add_input('r_ce', val=1.0*np.ones(nn), units='m', desc='Wick capillary radius in the evaporator') #called r_eff in paper
                 self.add_input('R_g', val=1.0 * np.ones(nn), units='J/kg/K', desc='gas constant of the vapor')
-        self.add_input('r_hv', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('r_i', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('r_n', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
-        self.add_input('r_p', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD')
+        self.add_input('r_hv', val=1.0*np.ones(nn), units='m', desc='vapor core radius') #called r_v in paper
+        self.add_input('r_i', val=1.0*np.ones(nn), units='m', desc='inner container radius')
+        self.add_input('r_n', val=1.0*np.ones(nn), units='m', desc='nucleation radius')
+        self.add_input('r_p', val=1.0*np.ones(nn), units='m', desc='Average capillary radius of the wick')  #called r_c,ave in paper "can often be approximated by r_eff"
                 self.add_input('rho_l', val=1.0 * np.ones(nn), units='kg/m**3', desc='density of liquid')
                 self.add_input('rho_v', val=1.0 * np.ones(nn), units='kg/m**3', desc='density of vapor')
-                self.add_input('sigma_l', val=1.0 * np.ones(nn), units='N/m**3', desc='surface tension')
+                self.add_input('sigma_l', val=1.0 * np.ones(nn), units='N/m**3', desc='surface tension') #TODO shouldn't this be N/m?
                 self.add_input('T_hp', val=1.0 * np.ones(nn), units='degC', desc='vapor temperature')
-        self.add_output('q_boiling', val=1.0*np.ones(nn), units='<enter units here>', desc='heat pipe boiling limit')
-        self.add_output('q_sonic', val=1.0*np.ones(nn), units='<enter units here>', desc='heat pipe sonic limit')
-        self.add_output('q_ent', val=1.0*np.ones(nn), units='<enter units here>', desc='heat pipe entrainment limit')
-        self.add_output('q_vis', val=1.0*np.ones(nn), units='<enter units here>', desc='heat pipe viscous limit')
-        self.add_output('q_cap', val=1.0*np.ones(nn), units='<enter units here>', desc='heat pipe capillary limit')
+        self.add_output('q_boiling', val=1.0*np.ones(nn), units='W', desc='heat pipe boiling limit')
+        self.add_output('q_sonic', val=1.0*np.ones(nn), units='W', desc='heat pipe sonic limit')
+        self.add_output('q_ent', val=1.0*np.ones(nn), units='W', desc='heat pipe entrainment limit')
+        self.add_output('q_vis', val=1.0*np.ones(nn), units='W', desc='heat pipe viscous limit')
+        self.add_output('q_cap', val=1.0*np.ones(nn), units='W', desc='heat pipe capillary limit')
 
 
 
@@ -105,9 +107,10 @@ class HeatPipeLimitsComp(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         # v_fg = 1/rho_v-1/rho_l
-        R_g=inputs['P_v']/(inputs['T_hp']*inputs['rho_v'])
-        cv_v=inputs['cp_v']-R_g
-        gamma=inputs['cp_v']/cv_v
+        R_g=inputs['P_v']/(inputs['T_hp']*inputs['rho_v']) #TODO what does this represent?
+        cv_v=inputs['cp_v']-R_g #TODO what does this represent?
+        gamma=inputs['cp_v']/cv_v #TODO what does this represent?
+        #Is k_eff equivalent to lambda_eff in paper? Was not able to algabraically reduce to match paper's equation #TODO
         k_eff = inputs['k_s']*(2+inputs['k_l']/inputs['k_s']-2*inputs['epsilon']*(1-inputs['k_l']/inputs['k_s']))/(2+inputs['k_l']/inputs['k_s']+inputs['epsilon']*(1-inputs['k_l']/inputs['k_s']))
         outputs['q_boiling'] = 4*np.pi*inputs['L_eff']*k_eff*inputs['T_hp']*inputs['sigma_l']/(inputs['h_fg']*inputs['rho_v']*np.log(inputs['r_i']/inputs['r_hv']))*(1/inputs['r_n']-1/inputs['r_ce'])
         outputs['q_sonic'] = inputs['A_v']*inputs['rho_v']*inputs['h_fg']*np.sqrt(gamma*R_g*inputs['T_hp'])*np.sqrt(1+gamma)/(2+gamma)
