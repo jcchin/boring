@@ -104,8 +104,8 @@ class Radial_Stack(om.Group):
         # Calculate Fluid Properties
         self.add_subsystem(name = 'fluids',
                            subsys = FluidPropertiesComp(num_nodes=nn),
-                           promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
-                           promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg','v_fg','k_l'])
+                           promotes_inputs=['T_hp'],
+                           promotes_outputs=['R_g', 'P_v', 'rho_v', 'mu_v', 'h_fg','v_fg','k_l'])
 
         # Calculate Resistances
         if geom == 'round':
@@ -117,6 +117,9 @@ class Radial_Stack(om.Group):
                            subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
                            promotes_inputs=inpts,
                            promotes_outputs=['R_w','R_wk','R_inter'])
+
+
+        self.set_input_defaults('T_hp', 300 * np.ones(nn), units='K')
 
         # Define Resistors
         self.add_subsystem('Rex', Resistor(num_nodes=nn))
@@ -210,7 +213,7 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
     model.connect('{}.h_fg'.format(r_name),'{}.h_fg'.format(b_name))
     model.connect('{}.rho_v'.format(r_name),'{}.rho_v'.format(b_name))
     # model.connect('{}.radial.k_wk'.format(r_name),'{}.k_wk'.format(b_name))
-    model.connect('{}.T_hp'.format(r_name),'{}.T_hp'.format(b_name))
+    # model.connect('{}.T_hp'.format(r_name),'{}.T_hp'.format(b_name))
 
 
 

@@ -54,7 +54,7 @@ p.model.add_subsystem(name = 'size',
 # pcm = True, use Phase Change material pad (connected in thermal_network.py)
 traj=dm.Trajectory()
 # phase = get_hp_phase(num_cells=num_cells, db=(10, 10), num_segments=1, geom='round', pcm=True)
-phase = get_hp_phase(num_cells=num_cells, db=(10, 10), num_segments=1, geom='flat', pcm=True)
+phase = get_hp_phase(num_cells=num_cells, db=(300, 300), num_segments=20, transcription_order=3, geom='flat', pcm=True, solve_segments=False)
 traj.add_phase('phase', phase)
 p.model.add_subsystem(name = 'traj', subsys=traj,
                       promotes_inputs=['*'],
@@ -106,18 +106,18 @@ phase.add_objective('time', loc='final', ref=1)
 
 p.model.linear_solver = om.DirectSolver()
 p.setup(force_alloc_complex=True)
-p.final_setup()
+# p.final_setup()
 
 
 p['phase.t_initial'] = 0.0
-p['phase.t_duration'] = 10.
+p['phase.t_duration'] = 300.
 
 # set intial temperature profile for all cells
 for cell in np.arange(num_cells):  
     p['phase.states:T_cell_{}'.format(cell)] = phase.interpolate(ys=[293.15, 350.0], nodes='state_input')
 
 # Override cell 2 to be initialized hot
-p['phase.states:T_cell_0'] = phase.interpolate(ys=[500, 330], nodes='state_input')
+p['phase.states:T_cell_0'] = phase.interpolate(ys=[400., 330], nodes='state_input')
 
 p.run_driver()
 p.model.list_inputs(prom_name=True)
@@ -135,22 +135,23 @@ import matplotlib.pyplot as plt
 
 time_opt = p.get_val('phase.timeseries.time', units='s')
 
-fig, ax = plt.subplots(2,1, sharex=True)
+fig, ax = plt.subplots(3,1, sharex=True)
 
+T_cell_0 = p.get_val('phase.timeseries.states:T_cell_0', units='K')
+T_cell_1 = p.get_val('phase.timeseries.states:T_cell_1', units='K')
+Cp_pcm = p.get_val('phase.timeseries.cp_bulk')
 
-for j in np.arange(num_cells):
+ax[1].plot(time_opt, T_cell_0, label='cell {}')
+ax[2].plot(time_opt, T_cell_1, label='cell {}')
+ax[0].plot(time_opt, Cp_pcm, label='cp {}')
 
-    T_cell = p.get_val('phase.timeseries.states:T_cell_{}'.format(j), units='K')
-    Cp_pcm = p.get_val('phase.timeseries.cp_bulk')
-
-    ax[1].plot(time_opt, T_cell, label='cell {}'.format(j))
-    ax[0].plot(time_opt, Cp_pcm, label='cp {}'.format(j))
-
-ax[1].set_xlabel('time, s')
-ax[1].set_ylabel('T_cell, K')
+ax[2].set_xlabel('time, s')
+ax[1].set_ylabel('T Runaway, K')
+ax[2].set_ylabel('T Neighbor, K')
+ax[0].set_ylabel('Bulk c_p, kJ/kg/K')
 #ax[1].legend()
-ax[1].axhline(y=333, color='r', linestyle='-')
-ax[1].axhline(y=338, color='r', linestyle='-')
+ax[2].axhline(y=333, color='r', linestyle='-')
+ax[2].axhline(y=338, color='r', linestyle='-')
 print("--- elapsed time: %s seconds ---" % (time.time() - start))
 
 plt.show()

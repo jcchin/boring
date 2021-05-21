@@ -81,6 +81,19 @@ class HeatPipeGroup(om.Group):
 
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
+        self.set_input_defaults('T_hp', 300 * np.ones(nn), units='K')
+        self.set_input_defaults('XS:t_w', 0.0005 * np.ones(nn), units='m')
+        self.set_input_defaults('XS:t_wk', 0.00069 * np.ones(nn), units='m')
+        self.set_input_defaults('LW:A_inter', 0.0004 * np.ones(nn), units='m**2')
+        self.set_input_defaults('alpha', 1 * np.ones(nn), units=None)
+        self.set_input_defaults('XS:A_w', 1E-5 * np.ones(nn), units='m**2')
+        self.set_input_defaults('XS:A_wk', 1.38E-5 * np.ones(nn), units='m**2')
+        # self.set_input_defaults('LW:L_flux', .02 * np.ones(nn), units='m')
+        # self.set_input_defaults('LW:L_adiabatic', .03 * np.ones(nn), units='m')
+        
+        # self.set_input_defaults('H', .02 * np.ones(nn), units='m')
+        # self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
+
         if n > 1: # axial bridge only exists if there are 2 or more cells
             self.set_input_defaults('LW:L_eff', 0.05 * np.ones(nn), units='m')
 
@@ -95,8 +108,8 @@ class HeatPipeGroup(om.Group):
 
 
         # elif geom == 'flat':
-        #     self.set_input_defaults('XS:W_v', 1. * np.ones(nn), units='mm')
-        #     self.set_input_defaults('XS:H_v', 1. * np.ones(nn), units='mm')
+        #     self.set_input_defaults('XS:W_v', 0.01762 * np.ones(nn), units='m')
+        #     self.set_input_defaults('XS:H_v', 0.01762 * np.ones(nn), units='m')
 
         # load_inputs('boring.input.assumptions2', self, nn)
 
@@ -108,14 +121,17 @@ if __name__ == "__main__":
     num_cells_tot = 2
 
 
+    # p.model.add_subsystem(name = 'size',
+    #                   subsys = HPgeom(num_nodes=nn, geom='round'),
+    #                   promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
+    #                   promotes_outputs=['XS:D_od','XS:r_i', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter']) 
     p.model.add_subsystem(name = 'size',
-                      subsys = HPgeom(num_nodes=nn, geom='round'),
-                      promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
-                      promotes_outputs=['XS:D_od','XS:r_i', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter']) 
-
+                        subsys = HPgeom(num_nodes=nn, geom='flat'),
+                        promotes_inputs=['LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_v', 'XS:H_v'],
+                        promotes_outputs=['XS:W_hp','XS:H_hp', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter']) 
 
     p.model.add_subsystem(name='hp',
-                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='round'),
+                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='flat'),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
 
@@ -127,7 +143,7 @@ if __name__ == "__main__":
 
     for x in np.arange(num_cells_tot):
         p['cell_{}.Rex.T_in'.format(x)] = T_in[x]
-        p['size.LW:L_flux'.format(x)] = 0.02
+        # p['size.LW:L_flux'.format(x)] = 0.02
         p['cell_{}.Rex.R'.format(x)] = [0.0001],
 
     p.run_model()
