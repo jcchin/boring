@@ -62,26 +62,26 @@ class HeatPipeLimitsComp(om.ExplicitComponent):
         #TODO
         #Untabbed need to verify exist in model
             #Tabbed known to exist in model from lookin at fluid_properties.py
-        self.add_input('A_v', val=1.0*np.ones(nn), units='m**2', desc='Cross sectional area of vapor core')
-        self.add_input('A_w', val=1.0*np.ones(nn), units='m**2', desc='Wick cross sectional area')
+        self.add_input('A_v', val=1.0*np.ones(nn), units='m**2', desc='Cross sectional area of vapor core')  # doesn't yet exist, but should be calculated in hp_geom.py as (XS:A_v)
+        self.add_input('A_w', val=1.0*np.ones(nn), units='m**2', desc='Wick cross sectional area')           # exists, calculated in hp_geom (XS:A_w)
                 self.add_input('cp_v', val=1.0 * np.ones(nn), desc='vapor specific heat')
-        self.add_input('epsilon', val=1.0*np.ones(nn), units='ul', desc='Porosity (unitless) of sintered capillary structure')
-        self.add_input('g', val=1.0*np.ones(nn), units='m/s**2', desc='Acceleration due to gravity')
+        self.add_input('epsilon', val=1.0*np.ones(nn), units='ul', desc='Porosity (unitless) of sintered capillary structure') # exists, top level design var
+        self.add_input('g', val=1.0*np.ones(nn), units='m/s**2', desc='Acceleration due to gravity')         # just set as a constant
                 self.add_input('h_fg', val=1.0 * np.ones(nn), units='J/kg', desc='latent heat') #called l_v in paper
-        self.add_input('K', val=1.0*np.ones(nn), units='m**2', desc='Wick permeability')
+        self.add_input('K', val=1.0*np.ones(nn), units='m**2', desc='Wick permeability')                     # doesn't exist
                 self.add_input('k_l', val=1.0 * np.ones(nn), units='W/(m*K)', desc='liquid conductivity') #Is this equivalent to lambda_m in the paper (thermal conductivity of the heat pipe material) #TODO
         self.add_input('k_s', val=1.0*np.ones(nn), units='<enter units here>', desc='TBD') #Is this equivalent to lambda_l in the paper (thermal conductivity of liquid)? #TODO
-        self.add_input('L_eff', val=1.0*np.ones(nn), units='m', desc='effective length of the heat pipe')
-        self.add_input('L_t', val=1.0*np.ones(nn), units='m', desc='total length of heat pipe')
+        self.add_input('L_eff', val=1.0*np.ones(nn), units='m', desc='effective length of the heat pipe')    # exists, calculated in hp_geom (LW:L_eff) 
+        self.add_input('L_t', val=1.0*np.ones(nn), units='m', desc='total length of heat pipe')              # exists, (length_hp)
                 self.add_input('mu_l', val=1.0 * np.ones(nn), units='N*s/m**2', desc='liquid viscosity')
                 self.add_input('mu_v', val=1.0 * np.ones(nn), units='N*s/m**2', desc='vapor viscosity')
                 self.add_input('P_v', val=1.0 * np.ones(nn), units='Pa', desc='pressure')
-        self.add_input('phi', val=1.0*np.ones(nn), units='deg', desc='Angle of heat pipe wrt vertical 0 degrees being condenser on bottom')
-        self.add_input('r_ce', val=1.0*np.ones(nn), units='m', desc='Wick capillary radius in the evaporator') #called r_eff in paper
+        self.add_input('phi', val=1.0*np.ones(nn), units='deg', desc='Angle of heat pipe wrt vertical 0 degrees being condenser on bottom')  # doesn't exist
+        self.add_input('r_ce', val=1.0*np.ones(nn), units='m', desc='Wick capillary radius in the evaporator') #called r_eff in paper        # doesn't exist
                 self.add_input('R_g', val=1.0 * np.ones(nn), units='J/kg/K', desc='gas constant of the vapor')
-        self.add_input('r_hv', val=1.0*np.ones(nn), units='m', desc='vapor core radius') #called r_v in paper
-        self.add_input('r_i', val=1.0*np.ones(nn), units='m', desc='inner container radius')
-        self.add_input('r_n', val=1.0*np.ones(nn), units='m', desc='nucleation radius')
+        self.add_input('r_hv', val=1.0*np.ones(nn), units='m', desc='vapor core radius') #called r_v in paper    # exists as a diameter in hp_geom (XS:D_v), need a flat version!
+        self.add_input('r_i', val=1.0*np.ones(nn), units='m', desc='inner container radius')                     # exists, calculated in hp_geom (XS:r_i)
+        self.add_input('r_n', val=1.0*np.ones(nn), units='m', desc='nucleation radius')                          # ???
         self.add_input('r_p', val=1.0*np.ones(nn), units='m', desc='Average capillary radius of the wick')  #called r_c,ave in paper "can often be approximated by r_eff"
                 self.add_input('rho_l', val=1.0 * np.ones(nn), units='kg/m**3', desc='density of liquid')
                 self.add_input('rho_v', val=1.0 * np.ones(nn), units='kg/m**3', desc='density of vapor')
