@@ -35,7 +35,7 @@ class HPgeom(om.ExplicitComponent):
 
             self.add_output('XS:D_od', np.ones(nn), units='mm', desc='Outer diameter of heatpipe')
             self.add_output('XS:r_i', np.ones(nn), units='mm', desc='HP wall inner radius, needed for radial resistance calculations')
-
+            self.add_output('XS:A_v', np.ones(nn), units='mm**2', desc ='Cross sectional area of vapor core')            
 
         elif geom == 'flat':
             self.add_input('XS:W_v', 0.56*np.ones(nn), units='mm', desc='width of the inner heat pipe vapor core')
@@ -44,6 +44,7 @@ class HPgeom(om.ExplicitComponent):
 
             self.add_output('XS:W_hp', np.ones(nn), units='mm', desc='outer width of the heat pipe')
             self.add_output('XS:H_hp', np.ones(nn), units='mm', desc='outer height of the heat pipe')
+            self.add_output('XS:A_v', np.ones(nn),units='mm**2', desc='Cross sectional area of vapor core')
 
         # Common Inputs
         self.add_input('LW:L_flux', 50.8 * np.ones(nn), units='mm', desc='length of thermal contact (battery width)')
@@ -105,6 +106,7 @@ class HPgeom(om.ExplicitComponent):
             outputs['XS:A_wk'] = np.pi*t_wk**2 + np.pi*t_wk*D_v  # simplified from pi*((Dv/2+t_wk))^2 - pi*((Dv/2))^2
             outputs['XS:A_w'] = np.pi*t_w**2 + np.pi*t_w*D_v + 2*np.pi*t_wk*t_w # simplified from pi*((Dv/2+t_wk+t_w))^2 - pi*((Dv/2+t_k))^2
             outputs['XS:r_h'] = D_v / 2
+            outputs['XS:A_v'] = np.pi/4*D_v**2
 
         elif geom == 'flat':
             W_v = inputs['XS:W_v']
@@ -118,6 +120,7 @@ class HPgeom(om.ExplicitComponent):
             outputs['XS:A_wk'] = 4*t_wk**2 + 2*H_v*t_wk + 2*W_v*t_wk  # simplified from ((H_v+2*t_wk)*(W_v+2*t_wk)) - (H_v*W_v)
             outputs['XS:A_w'] = 4*t_w**2 + 2*H_v*t_w+ 2*W_v*t_w + 8*t_wk*t_w  # simplified from ((H_v+2*t_wk+2*t_w)(W_v+2*t_wk+2*t_w))-((H_v+2*t_wk)*(W_v+2*t_wk))
             outputs['XS:r_h'] = (H_v*W_v)/(2*H_v+2*W_v)
+            outputs['XS:A_v'] = W_v*H_v
 
     # def compute_partials(self, inputs, J):
 
