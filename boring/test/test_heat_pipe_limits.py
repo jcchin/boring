@@ -12,63 +12,7 @@ from boring.src.sizing.material_properties.heat_pipe_limitations import HeatPipe
 
 class TestSize(unittest.TestCase):
 
-    # def setUp(self):
-        # p1 = self.prob = Problem(model=Group())
-        # p1.model.add_subsystem('round', subsys=HeatPipeLimitsComp(num_nodes=1, geom='round'), 
-        #                     promotes_inputs=['*'])
-        # # p1.model.add_subsystem('flat', subsys=HeatPipeLimitsComp(num_nodes=1, geom='flat'), 
-        # #                     promotes_inputs=['*'])
-        # # We don't have flat values yet #TODO
-
-        # p1.setup(force_alloc_complex=True)
-
-
-        # # Validation Parameters (Nemec et al, 2013, "Mathemtatical model for heat transfer limitations of heat pipe")
-
-        # L_e=0.15
-        # L_a=0.2
-        # L_c=0.15
-        # r_hv=0.005
-        
-        # #Geometric variables
-        # self.prob['XS:A_v'] = np.pi*r_hv**2
-        # self.prob['XS:A_w'] = 0.000054 
-        # self.prob['LW:L_eff'] = 0.5*L_e+L_a+0.5*L_c
-        # self.prob['length_hp'] = 0.5
-        # self.prob['XS:D_v'] = 0.005*2  # defines r_hv
-        # self.prob['phi'] = 180
-
-        # #Heat pipe material props
-        # self.prob['epsilon'] = 0.65
-        # self.prob['k_s'] = 393
-        # self.prob['r_n'] = 25e-6
-        # self.prob['r_p'] = 0.0001/2
-        # self.prob['r_ce'] = 0.0001/2 
-        # # r_ce=r_p #Fair approximation for most cases
-
-        # # Round inputs
-        # self.prob['XS:r_i'] = 0.0065
-
-        # Flat inputs
-        # A_s #TODO
-        # self.prob['XS:t_wk'] = #value 
-            
-
-        # p1.run_model()
-        # p1.model.list_outputs(values=True, prom_name=True)
-
-
-    def test_round_geometry_outputs(self): # calculation regression test
-        #Have to figure out how to run test for an array of cases
-        
-        #example: assert_near_equal(self.prob.get_val('round.XS:A_w'), 3.83274304, tolerance=1.0E-5) 
-        #example: assert_near_equal(self.prob.get_val('round.XS:A_wk'), 2.70962366, tolerance=1.0E-5)
-        #example: assert_near_equal(self.prob.get_val('round.LW:A_inter'), 89.37202781, tolerance=1.0E-5)
-
-        #example: assert_near_equal(self.prob.get_val('round.XS:r_i'), 0.97, tolerance=1.0E-5)
-        #example: assert_near_equal(self.prob.get_val('round.LW:A_flux'), 469.203146, tolerance=1.0E-5)
-        #example: #assert_near_equal(self.prob.get_val('round.L_eff'), 5.51, tolerance=1.0E-5) #this calc will no longer be an output of this component
-
+    def setUp(self):
         p1 = self.prob = Problem(model=Group())
         p1.model.add_subsystem('round', subsys=HeatPipeLimitsComp(num_nodes=1, geom='round'), 
                             promotes_inputs=['*'])
@@ -105,6 +49,17 @@ class TestSize(unittest.TestCase):
         # Round inputs
         self.prob['XS:r_i'] = 0.0065
 
+
+        # Flat inputs
+        # A_s #TODO
+        # self.prob['XS:t_wk'] = #value 
+            
+
+        # p1.run_model()
+        # p1.model.list_outputs(values=True, prom_name=True)
+
+
+    def test_round_geometry_outputs(self):                
         def f(T,a_0,a_1,a_2,a_3,a_4,a_5):
             poly=np.exp(a_0+a_1*T+a_2*T**2+a_3*T**3+a_4*T**4+a_5*T**5)
             return poly
@@ -134,9 +89,7 @@ class TestSize(unittest.TestCase):
             self.prob['rho_v'] = rho_v
             self.prob['sigma_l'] = h(T_hpfp,24.419,-8.1477e-2,-1.1450e-4,8.6540e-7,-7.6432e-9,1.9148e-11)/1e3
             
-            cp_v = f(T_hpfp,2.9255e-1,1.2271e-3,8.0938e-5,-1.8513e-6,1.6850e-8,-5.3880e-11)*1e3
             self.prob['cp_v'] = f(T_hpfp,2.9255e-1,1.2271e-3,8.0938e-5,-1.8513e-6,1.6850e-8,-5.3880e-11)*1e3
-                #print("cp_v = {}".format(cp_v))
             self.prob['h_fg'] = h(T_hpfp,1048.6,-1.0921,1.0651e-2,-2.0693e-4,1.1231e-6,-2.4928e-9)*1e3
             self.prob['k_l'] = f(T_hpfp,-1.6976,-1.2505e-3,7.5291e-7,5.2361e-8,-3.4986e-10,6.4599e-13)
             self.prob['mu_l'] = f(T_hpfp,5.8942e-1,-2.2540e-2,1.0283e-4,-8.8574e-7,4.7884e-9,-9.7493e-12)/1e3
@@ -147,14 +100,16 @@ class TestSize(unittest.TestCase):
             
             R_g = P_v/(T_hp*rho_v)
             self.prob['R_g'] = P_v/(T_hp*rho_v) 
-                #print("R_g = {}".format(R_g))
             
-            cv_v=cp_v-R_g #Specific heat at constant volume for the vapor
-                #print("cv_v = {}".format(cv_v)) 
 
-            p1.run_model()
+            self.prob.run_model()
             # print("q_boiling[idx={}] = {}".format(idx, q_boiling[idx]))
+            
             assert_near_equal(self.prob.get_val('round.q_boiling'), q_boiling[idx], 1e-14)
+            assert_near_equal(self.prob.get_val('round.q_cap'), q_cap[idx], 1e-14) #Look at this one
+            assert_near_equal(self.prob.get_val('round.q_ent'), q_ent[idx], 1e-14)
+            assert_near_equal(self.prob.get_val('round.q_sonic'), q_sonic[idx], 1e-14)
+            assert_near_equal(self.prob.get_val('round.q_vis'), q_vis[idx], 1e-14)
 
             
     def test_flat_geometry_outputs(self): # calculation regression test
