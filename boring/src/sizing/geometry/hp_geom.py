@@ -40,6 +40,7 @@ class HPgeom(om.ExplicitComponent):
         elif geom == 'flat':
             self.add_input('XS:W_v', 0.56*np.ones(nn), units='mm', desc='width of the inner heat pipe vapor core')
             self.add_input('XS:H_v', 0.56*np.ones(nn), units='mm', desc='height of the inner heat pipe vapor core')
+            self.add_input('num_hp',1,  np.ones(nn), desc='number of parallel heatpipes')
 
 
             self.add_output('XS:W_hp', np.ones(nn), units='mm', desc='outer width of the heat pipe')
@@ -109,12 +110,13 @@ class HPgeom(om.ExplicitComponent):
         elif geom == 'flat':
             W_v = inputs['XS:W_v']
             H_v = inputs['XS:H_v']
+            num_hp = inputs['num_hp']
 
             outputs['LW:L_eff'] = L_flux + L_adiabatic # (L_flux*num_cells) + (L_adiabatic*(num_cells-1)) # How to handle this for >2 battery cases?
-            outputs['XS:W_hp'] = W_v + 2*t_wk + 2*t_w
+            outputs['XS:W_hp'] = (W_v + 2*t_wk + 2*t_w) * num_hp
             outputs['XS:H_hp'] = H_v + 2*t_wk + 2*t_w
             outputs['LW:A_flux'] = outputs['XS:W_hp'] * L_flux
-            outputs['LW:A_inter'] = W_v * L_flux
+            outputs['LW:A_inter'] = (W_v * L_flux) 
             outputs['XS:A_wk'] = 4*t_wk**2 + 2*H_v*t_wk + 2*W_v*t_wk  # simplified from ((H_v+2*t_wk)*(W_v+2*t_wk)) - (H_v*W_v)
             outputs['XS:A_w'] = 4*t_w**2 + 2*H_v*t_w+ 2*W_v*t_w + 8*t_wk*t_w  # simplified from ((H_v+2*t_wk+2*t_w)(W_v+2*t_wk+2*t_w))-((H_v+2*t_wk)*(W_v+2*t_wk))
             outputs['XS:r_h'] = (H_v*W_v)/(2*H_v+2*W_v)

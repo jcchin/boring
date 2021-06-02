@@ -3,6 +3,7 @@ Author: Jeff Chin
 
 """
 import openmdao.api as om
+import numpy as np
 
 class pcmMass(om.ExplicitComponent):
 
@@ -17,7 +18,9 @@ class pcmMass(om.ExplicitComponent):
         self.add_input('batt_l', .10599, units='m', desc='cell length (105.99mm for Large Amprius)')
         self.add_input('L_flux', 0.04902, units='m', desc='cell width, excluding lip material (49.02mm for Large Amprius')
         self.add_input('porosity', 0.97, desc='porosity of the foam, 1 = completely void, 0 = solid')
-        self.add_input('batt_l_pcm_scaler', 0.5, desc='sizes the pcm pad as a fraction of the cell length')
+        self.add_input('XS:W_hp', 0.01,  units='m', desc='outer width of the heat pipe')
+        self.add_input('pcm_l_scaler',0.5,   desc='length scaler of pcm, 0=hp width, 1 = batt length')
+        self.add_input('num_hp',1,   desc='number of parallel heatpipes')
 
         self.add_output('W_pad', .01, units='m', desc='width of the pcm pad')
         self.add_output('A_pad', 0.000020, units='m**2', desc='pcm pad area')
@@ -31,18 +34,20 @@ class pcmMass(om.ExplicitComponent):
     def compute(self, inputs, outputs):
         rho_f    =  inputs['rho_foam']
         rho_p    =  inputs['rho_pcm']
-        t        =  inputs['t_pad']
+        t_pad        =  inputs['t_pad']
         batt_l   =  inputs['batt_l']
         L_flux   =  inputs['L_flux']
         porosity =  inputs['porosity']
-        l_scaler = inputs['batt_l_pcm_scaler']
+        W_hp = inputs['XS:W_hp']
+        pcm_l_scaler = inputs['pcm_l_scaler']
+        num_hp = inputs['num_hp']
         
         rho_bulk = 1. / (porosity / rho_p + (1 - porosity) / rho_f)
         # print('bulk density: ', rho_bulk)
 
-        outputs['W_pad'] = (batt_l*l_scaler)
+        outputs['W_pad'] = (num_hp*W_hp) + (batt_l-num_hp*W_hp)*pcm_l_scaler
         outputs['A_pad'] = outputs['W_pad']  * L_flux
-        outputs['mass_pcm'] = rho_bulk*t*outputs['A_pad']
+        outputs['mass_pcm'] = rho_bulk * t_pad * outputs['A_pad']
 
 
     # def compute_partials(self, inputs, J):

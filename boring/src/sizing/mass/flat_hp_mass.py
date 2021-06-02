@@ -15,7 +15,9 @@ class flatHPmass(om.ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-
+        self.add_input('XS:W_hp', np.ones(nn), units='mm', desc='outer width of the heat pipe')
+        self.add_input('XS:H_hp', np.ones(nn), units='mm', desc='outer height of the heat pipe')
+        
         self.add_input('length_hp', 0.200 * np.ones(nn), units='m', desc='length of the hp')
         self.add_input('width_hp', 0.030 * np.ones(nn), units='m', desc='width of the hp, battery contact surface')
         self.add_input('height_hp', 0.020 * np.ones(nn), units='m', desc='height of the hp')
@@ -51,7 +53,7 @@ class flatHPmass(om.ExplicitComponent):
         wick_density =  inputs['wick_density']
         wick_porosity = inputs['wick_porosity']
         fluid_density = inputs['fluid_density']
-        fluid_fill = inputs['fluid_fill']
+        fluid_fill =    inputs['fluid_fill']
 
         outputs['volume_wall'] = ( (width_hp*height_hp) - ((width_hp-2*wall_t)*(height_hp-2*wall_t)) ) * (length_hp)
         outputs['volume_wick'] = ((((width_hp-2*wall_t)*(height_hp-2*wall_t)) - \

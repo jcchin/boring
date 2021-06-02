@@ -28,9 +28,10 @@ class TestInsulationMass(unittest.TestCase):
         self.prob['ins_mass.ins_density'] = 100
         self.prob['ins_mass.LW:L_adiabatic'] = 0.002
         self.prob['ins_mass.A_pad'] = 0.00259781
-        self.prob['ins_mass.ins_pcm_layer_t'] = 0.002
-        self.prob['ins_mass.LW:L_flux_flat'] = 0.025
+        self.prob['ins_mass.t_pad'] = 0.002
+        self.prob['ins_mass.XS:W_hp'] = 0.025
         self.prob['ins_mass.XS:H_hp'] = 0.005
+        self.prob['ins_mass.num_hp'] = 1
 
         self.prob.run_model()
 
