@@ -52,7 +52,7 @@ class HeatPipeLimitsComp(om.ExplicitComponent):
 
         elif geom == 'flat':
             #inputs specific to flat heat pipes
-            A_s #TODO
+            self.add_input('LW:A_s', val=597.408*np.ones(nn), units='mm**2', desc='wick thickness') # Default based on default values in hp_geom.py
             self.add_input('XS:t_wk', val=0.69*np.ones(nn), units='mm', desc='wick thickness')
             
 
@@ -133,7 +133,7 @@ class HeatPipeLimitsComp(om.ExplicitComponent):
             outputs['q_boiling'] = 4*np.pi*inputs['LW:L_eff']*k_eff*inputs['T_hp']*inputs['sigma_l']/(inputs['h_fg']*inputs['rho_v']*np.log(inputs['XS:r_i']/r_hv))*(1/inputs['r_n']-1/inputs['r_ce'])
 
         if geom == 'flat': #Rectangular
-            outputs['q_boiling'] = (2*A_s*inputs['sigma_l']*k_eff*inputs['T_hp'])/(inputs['h_fg']*inputs['rho_v']*inputs['XS:t_wk'])*(1/inputs['r_n']-1/inputs['r_p'])
+            outputs['q_boiling'] = (2*inputs['A_s']*inputs['sigma_l']*k_eff*inputs['T_hp'])/(inputs['h_fg']*inputs['rho_v']*inputs['XS:t_wk'])*(1/inputs['r_n']-1/inputs['r_p'])
 
         ################################ Heat pipe Calculations ################################ 
         # Original equations

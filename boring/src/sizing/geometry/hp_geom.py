@@ -45,6 +45,7 @@ class HPgeom(om.ExplicitComponent):
             self.add_output('XS:W_hp', np.ones(nn), units='mm', desc='outer width of the heat pipe')
             self.add_output('XS:H_hp', np.ones(nn), units='mm', desc='outer height of the heat pipe')
             self.add_output('XS:A_v', np.ones(nn),units='mm**2', desc='Cross sectional area of vapor core')
+            self.add_output('LW:A_s', np.ones(nn), units='mm**2', desc='External surface area of evaporator (outside of pipe)')
 
         # Common Inputs
         self.add_input('LW:L_flux', 50.8 * np.ones(nn), units='mm', desc='length of thermal contact (battery width)')
@@ -121,6 +122,10 @@ class HPgeom(om.ExplicitComponent):
             outputs['XS:A_w'] = 4*t_w**2 + 2*H_v*t_w+ 2*W_v*t_w + 8*t_wk*t_w  # simplified from ((H_v+2*t_wk+2*t_w)(W_v+2*t_wk+2*t_w))-((H_v+2*t_wk)*(W_v+2*t_wk))
             outputs['XS:r_h'] = (H_v*W_v)/(2*H_v+2*W_v)
             outputs['XS:A_v'] = W_v*H_v
+
+            W_hp = W_v + 2*t_wk + 2*t_w #copied from above
+            H_hp = H_v + 2*t_wk + 2*t_w #copied from above
+            outputs['LW:A_s'] = (2*W_hp + 2*H_hp)*L_flux 
 
     # def compute_partials(self, inputs, J):
 

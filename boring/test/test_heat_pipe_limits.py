@@ -51,9 +51,9 @@ class TestSize(unittest.TestCase):
 
 
         # Flat inputs
-        # A_s #TODO
+        # self.prob['LW:A_s'] = #some value
         # self.prob['XS:t_wk'] = #value 
-            
+
 
         # p1.run_model()
         # p1.model.list_outputs(values=True, prom_name=True)
