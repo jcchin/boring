@@ -97,13 +97,13 @@ if __name__ == "__main__":
     # (DV-ref0)/ref
 
 
-    p.model.add_design_var('extra', lower=1.1, upper=2.0, ref=1e3)
-    p.model.add_design_var('ratio', lower=0.1, upper=0.9, ref=1e-1) 
+    p.model.add_design_var('extra', lower=1.01, upper=1.41, ref=1e3) #ref=1e3) 
+    p.model.add_design_var('ratio', lower=0.2, upper=0.7, ref=1e-4) #ref=1e-2) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
-    # p.model.add_objective('obj', ref=1e-2)
+    #p.model.add_objective('obj', ref=1e-2)
     p.model.add_objective('mass', ref=1e-2)
     # p.model.add_objective('side', ref=1)
-    p.model.add_constraint('temp2_data', upper=340, ref=1e2)
+    p.model.add_constraint('temp2_data', upper=330, ref=1e2)
     p.model.add_constraint('temp_ratio', upper=1.1)
     # p.model.add_constraint('side', upper=120, ref=1e2) # 
     # p.model.add_constraint('solid_area', lower=6000)
@@ -118,14 +118,15 @@ if __name__ == "__main__":
     #p.set_val('cell_rad', 9, units='mm')
     #p.set_val('resistance', 0.003)
     # p.set_val('extra', 1.4)
-    p.set_val('ratio', 0.7)
-    p.set_val('energy',16., units='kJ')
+    # p.set_val('ratio', 0.7)
+    # p.set_val('energy',16., units='kJ')
     #p.set_val('length', 65.0, units='mm')
     #p.set_val('al_density', 2.7e-6, units='kg/mm**3')
     #p.set_val('n',4)
 
     x = 30
-    nrg_list = np.linspace(16.,32.,x) #np.linspace(1.,48.,x)
+    # nrg_list = np.linspace(1.,48.,x)
+    nrg_list = np.linspace(16.,32.,x)
     # ------- or ---------------------
     # nrg_list = np.array([24,])
     # x = len(nrg_list)
@@ -148,8 +149,9 @@ if __name__ == "__main__":
         print('current energy: ',nrg_list[i], " (running between 16 - 32)" )
 
         p.set_val('extra', 1.3)  # 1.3
-        p.set_val('ratio', 0.2)# - nrg_list[i]/100)  # .75
-
+        # p.set_val('ratio', 0.7 - nrg_list[i]/50)  # h10
+        # p.set_val('ratio', 0.7 - nrg_list[i]/50)    # h100
+        p.set_val('ratio', 0.7)    # h250
         p.run_driver()
         p.run_model()
         # p.check_totals(method='cs')
@@ -173,13 +175,14 @@ if __name__ == "__main__":
 
     #p.run_driver()
 
-    #225 Wh/kg
-    #150 Wh/kg
+    #Wh/kg = 225 Wh/kg * kJ * 2 Wh/3 kJ / 12Wh (normalized around samsung cell assuming 4V)
+    #Pack = 150 Wh/kg
 
-
+    # 4V * 3Ah = 12 Wh
     # 128 Wh pack
     # n = 128/Wh
 
+    # 20kJ/Ah * 3 Ah * 0.3 = 18 kJ
     # 12 Wh -> 18 kJ
     # 16 Wh -> 24 kJ
 
@@ -220,7 +223,8 @@ if __name__ == "__main__":
                     'success': opt_success
                     })
 
-    ofile = 'hny_h100_opt.csv'
+    ofile = 'test_250.csv'
+    #ofile = 'hny_h250_opt2.csv'
     df.to_csv(ofile,index=False)
 
     opt_plots([ofile],x)

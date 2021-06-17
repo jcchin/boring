@@ -19,39 +19,39 @@ x = XDSM()
 x.add_system('Sweep', solver, ['Sweep'], spec_name=False)
 x.add_system('Optimizer', opt, ['Optimizer'], spec_name=False)
 x.add_system('Geometry', func, ['Geometry'])
-x.add_system('Thermal', func, ['Thermal'])
+x.add_system('Thermal', func, ['Thermal (Transient)'])
 x.add_system('Structural', func, ['Structural'])
 
 
 # Optimizer
 x.add_input('Optimizer','constraints_{temp,stress}')
-x.connect('Optimizer','Geometry', ['extra','ratio','cell_d'])
+x.connect('Optimizer','Geometry', ['spacing','ratio'])
 
 
 # Geometry
-# x.add_input('pack_design', ['L_{pack}', 'W_{pack}','L_{cell}', 'W_{cell}', 'H_{cell}',
-#             'mass_{cell}','voltage_{low,cell}','voltage_{nom,cell}','dischargeRate_{cell}','Q_{max}','V_{batt}'])
+x.add_input('Geometry', ['D_{cell}', 'Core_{props}'])
 x.connect('Geometry', 'Thermal', ['dimensions'])
 x.connect('Geometry', 'Structural','dimensions')
 x.connect('Geometry', 'Optimizer','mass')
 # x.add_output('pack_design', ['n_{series}','n_{parallel}'], side='right')
 
 # Thermal
+x.add_input('Thermal', ['h_{boundary}','R_{contact}'])
 x.connect('Thermal', 'Optimizer','temp')
 
 # Geometry
 # x.add_input('heat_pipe', ['d_{init}','rho_{HP}', 'L_{pack}'])
 x.connect('Geometry', 'Structural', 'mesh')
 x.connect('Geometry', 'Thermal', 'mesh')
-x.connect('Geometry', 'Sweep', r'\frac{Wh}{kg}')
+x.connect('Geometry', 'Sweep', r'pack \frac{Wh}{kg}')
 
 # Structural
-x.add_input('Structural','Loads')
+x.add_input('Structural','loads_{mech}')
 x.connect('Structural', 'Optimizer', 'stress')
 
 # Sweep
-x.connect('Sweep','Geometry','properties')
-x.connect('Sweep','Thermal','energy')
+# x.connect('Sweep','Geometry','properties')
+x.connect('Sweep','Thermal',r'load_{heat}=f(cell \frac{Wh}{kg})')
 # x.add_output('Struct', ['mass_{battery}'], side='right')
 
 

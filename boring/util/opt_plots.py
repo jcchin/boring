@@ -74,9 +74,9 @@ def opt_plots(filename, x):
         ax[1,2].plot(nrg_list[z],opt_side[z])
         ax[1,2].set_ylabel('side (mm)')
         ax[2,2].plot(cell_dens[z],pack_dens[z])
-        # ax[2,2].plot(cell_dens[z],cell_dens[z]*slope[z]+intercept[z]) # *0.412+80
-        # ax[2,2].plot(cell_dens[z], (170/233)*cell_dens[z])#func(cell_dens[z], *popt[z]), 'r-',
-         # label='fit: a=%5.3f, b=%5.3f, c=%5.3f, d=%5.3f' % tuple(popt[z]))
+        ax[2,2].plot(cell_dens[z],cell_dens[z]*slope[z]+intercept[z]) # *0.412+80
+        # ax[2,2].plot(cell_dens[z], (170/233)*cell_dens[z],'g--')
+        # ax[2,2].plot(cell_dens[z], func(cell_dens[z], *popt[z]), 'b-', label='fit: a=%5.3f, b=%5.3f, c=%5.3f, d=%5.3f' % tuple(popt[z]))
         ax[2,2].set_ylabel('Wh/kg pack')
         s_label = s_label + '\n pack = {:.2f}*cell + {:2.1f} (R = {:.2f})'.format(slope[z],intercept[z],r_value[z])
         ax[2,2].set_xlabel(s_label)
@@ -110,5 +110,18 @@ if __name__ == '__main__':
     # opt_plots(['../metamodel/pcm_opt.csv'],30) 
     # opt_plots(['../metamodel/al_opt.csv'],30)
     # opt_plots(['../metamodel/hny_opt2.csv'],30)
+    opt_plots(['../metamodel/al_opt.csv','../metamodel/pcm_opt.csv','../metamodel/hny_opt2.csv'],30)
     # opt_plots(['../metamodel/hny_hole_opt.csv'],30) '../metamodel/grid_48_opt.csv', '../metamodel/hny_hole_opt.csv', 
-    opt_plots(['../metamodel/hny_opt2.csv','../metamodel/hny_h100_opt.csv'],30)
+    # opt_plots(['../metamodel/hny_hole_opt.csv','../metamodel/hny_h100_opt.csv','../metamodel/hny_h250_opt.csv'],30)
+    #opt_plots(['../metamodel/test_10.csv','../metamodel/test_100.csv','../metamodel/test_250.csv'],30)
+
+
+    # Scaling chart
+        #ax[2,2].plot(cell_dens[z], (170/233)*cell_dens[z])
+
+        # MetaOpt
+        # p.set_val('extra', 1.3)  # 1.3
+        # p.set_val('ratio', 0.75)
+        # p.model.add_design_var('extra', lower=1.0, upper=1.5, ref=1e3) #ref=1e3) 
+        # p.model.add_design_var('ratio', lower=0.7, upper=0.8, ref=1e-2) #ref=1e-2) 
+

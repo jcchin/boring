@@ -95,7 +95,7 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 
 def getFiles():
     
-    files = glob.glob(os.path.join(cwd,'inputs','mass_hny_hole_h100.xlsx'))
+    files = glob.glob(os.path.join(cwd,'inputs','mass_hny_hole_h250.xlsx'))
     
     
     #Check there are >0 files, and that they are all xlsx
@@ -201,10 +201,10 @@ files = getFiles()
 np_arr = df2npy(idx_df,mapping)
 
 first_file = os.path.split(files[0])[1]
-outfile = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'_{}.npy'.format(len(files)))
+outfile = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'.npy')
 export(outfile,np_arr)
 
-mapfilename = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'_{}.pickle'.format(len(files)))
+mapfilename = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'.pickle')
 
 with open(mapfilename, "wb") as mapfile:
     pickle.dump(mapping, mapfile)

@@ -23,10 +23,16 @@ import pickle
 # t_data3 = np.load('cell3_hny_hole.npy')  # Al honeycomb with holes
 # t_data2 = np.load('cell2_48kj_h10.npy')  # Al grid 8-48kj
 # t_data3 = np.load('cell3_48kj_h10.npy')  # Al grid 8-48kj
-t_data2 = np.load('cell2_hny_hole_h100.npy')  # Al grid 8-48kj
-t_data3 = np.load('cell3_hny_hole_h100.npy')  # Al grid 8-48kj
+# t_data2 = np.load('cell2_hny_hole_h100.npy')  # Al hny with holes htc 100 w/m2k
+# t_data3 = np.load('cell3_hny_hole_h100.npy')  # Al hny with holes htc 100 w/m2k
+t_data2 = np.load('cell2_hny_hole_h250.npy')  # Al hny with holes htc 250 w/m2k
+t_data3 = np.load('cell3_hny_hole_h250.npy')  # Al hny with holes htc 250 w/m2k
+# t_data2 = np.load('cell2_hny_hole_h250m.npy')  # Al hny with holes htc 250 w/m2k middle trigger cell
+# t_data3 = np.load('cell3_hny_hole_h250m.npy')  # Al hny with holes htc 250 w/m2k middle trigger cell
 
-m_data = np.squeeze(np.load('mass_hny_hole_h100.npy'))
+#m_data = np.squeeze(np.load('mass_hny_hole.npy'))
+#m_data = np.squeeze(np.load('mass_hny_hole_h100.npy'))
+m_data = np.squeeze(np.load('mass_hny_hole_h250.npy'))
 # print(m_data.shape)
 # print(t_data2)
 
@@ -51,9 +57,26 @@ class MetaTempGroup(om.Group):
         temp2_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
         temp3_interp = om.MetaModelStructuredComp(method='lagrange2', extrapolate=True)
 
-        energy_bp = np.linspace(16.,32.,5) #np.array([0.1, 8,16,24,32,40,48]) 
-        extra_bp = np.linspace(1.1,1.5,5)
-        ratio_bp = np.linspace(0.1,0.9,5)  # <--
+        # #grid, honeycomb, pcm
+        # energy_bp = np.linspace(16,32,5) 
+        # extra_bp = np.linspace(1.,2.,6) 
+        # ratio_bp = np.linspace(0.2,1.,5) 
+        # # 48kj sweep
+        # energy_bp = np.array([0.1, 8,16,24,32,40,48]) 
+        # extra_bp = np.linspace(1.0,1.6,4)
+        # ratio_bp = np.linspace(0.2,0.8,4) 
+        # # cooling hny hole sweep 10
+        # energy_bp = np.linspace(16.,32.,5)
+        # extra_bp = np.linspace(1.0,1.5,6)
+        # ratio_bp = np.linspace(0.1,0.9,5)
+        # # cooling hny hole sweep 100
+        # energy_bp = np.linspace(16.,32.,5)
+        # extra_bp = np.linspace(1.1,1.5,5)
+        # ratio_bp = np.linspace(0.1,0.9,5)
+        # # cooling hny hole sweep 250
+        energy_bp = np.linspace(16.,32.,5)
+        extra_bp = np.linspace(1.01,1.41,5)
+        ratio_bp = np.linspace(0.1,0.9,5)
 
         #res_bp = np.linspace(0.006, 0.006, 1)
         temp2_interp.add_input('energy', val=16, training_data=energy_bp, units='kJ')         
