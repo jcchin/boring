@@ -1,0 +1,4 @@
+boring script: add date/time, automatic logging
+warning for too many/too few parameters set
+
+"princess and the pea" test - one file hasn't been resaved, but everything else has
