@@ -47,7 +47,7 @@ class HPgeom(om.ExplicitComponent):
             self.add_output('XS:H_hp', np.ones(nn), units='mm', desc='outer height of the heat pipe')
 
         # Common Inputs
-        self.add_input('LW:L_flux', 50.8 * np.ones(nn), units='mm', desc='length of thermal contact (battery width)')
+        self.add_input('LW:L_flux', 50.8 * np.ones(nn), units='mm', desc='length of thermal contact (battery width)') # This should be PCM width (same value though)
         self.add_input('LW:L_adiabatic', 3 * np.ones(nn), units='mm', desc='adiabatic length (spacing between cells)')
         self.add_input('XS:t_wk', 0.69*np.ones(nn), units='mm', desc='wick thickness')
         self.add_input('XS:t_w', 0.5*np.ones(nn), units='mm', desc='wall thickness')
