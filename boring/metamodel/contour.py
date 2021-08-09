@@ -32,7 +32,7 @@ p.setup()
 xx = 16
 yy = 11
 
-extra_bp = np.linspace(1.01,1.81,xx)
+extra_bp = np.linspace(1.01,1.41,xx)
 ratio_bp = np.linspace(0.1,0.9,yy)
 
 MASS = np.zeros((xx,yy))
@@ -42,7 +42,7 @@ RATIO = np.zeros((xx,yy))
 
 filenames = []
 
-gif = False
+gif = True
 nrg_list = np.linspace(16,32,9)
 
 for nrg in nrg_list:
@@ -81,35 +81,45 @@ for nrg in nrg_list:
     ratio_range = np.linspace(1.0,1.1,20)
 
 
-    # Plotting
-    fig, ax = plt.subplots(2,3)
+    # # Plotting
+    # fig, ax = plt.subplots(2,3)
     # fig.suptitle('Energy = {} kJ'.format(nrg), fontsize=16)
-    ax[0,1].contour(ratio_bp, extra_bp, MASS, 20, cmap='Greens');
-    ax[0,1].set_title('Mass')
-    ax[0,1].set_ylabel('Spacing')
+    # ax[0,1].contour(ratio_bp, extra_bp, MASS, 20, cmap='Greens');
+    # ax[0,1].set_title('Mass')
+    # ax[0,1].set_ylabel('Spacing')
 
-    # ax[1,1].contour(ratio_bp, extra_bp, SIDE, levels=side_range, cmap='Greys');
-    ax[1,1].contour(ratio_bp, extra_bp, MASS, 20, cmap='Greens');
-    ax[1,1].contour(ratio_bp, extra_bp, TEMP, levels=temp_range, cmap='Reds');
-    ax[1,1].contour(ratio_bp, extra_bp, RATIO, levels=ratio_range, cmap='Blues');
-    # ax[1,1].set_title('Combined')
-    ax[1,1].set_xlabel('Hole Ratio')
-    ax[1,1].plot(ratio[error<3],spacing[error<3],"x")  # converged cases
-    ax[1,1].plot(ratio[error>3],spacing[error>3],"o")  # failed cases
-    # ax[2,1].contour(ratio_bp, extra_bp, SIDE, levels=side_range, cmap='Greys');
-    # ax[2,1].set_title('side')
-    t = ax[1,2].contour(ratio_bp, extra_bp, TEMP, levels=temp_range, cmap='Reds');
-    #ax[1,2].clabel(t, inline=True, fontsize=10)
-    ax[1,2].set_title('Temp')
-    ax[1,0].contour(ratio_bp, extra_bp, RATIO, levels=ratio_range, cmap='Blues');
-    ax[1,0].set_title('Temp Ratio')
-    ax[1,0].set_ylabel('Spacing')
+    # # ax[1,1].contour(ratio_bp, extra_bp, SIDE, levels=side_range, cmap='Greys');
+    # ax[1,1].contour(ratio_bp, extra_bp, MASS, 20, cmap='Greens');
+    # ax[1,1].contour(ratio_bp, extra_bp, TEMP, levels=temp_range, cmap='Reds');
+    # ax[1,1].contour(ratio_bp, extra_bp, RATIO, levels=ratio_range, cmap='Blues');
+    # # ax[1,1].set_title('Combined')
+    # ax[1,1].set_xlabel('Hole Ratio')
+    # # ax[1,1].plot(ratio[error<3],spacing[error<3],"x")  # converged cases
+    # # ax[1,1].plot(ratio[error>3],spacing[error>3],"o")  # failed cases
+    # # ax[2,1].contour(ratio_bp, extra_bp, SIDE, levels=side_range, cmap='Greys');
+    # # ax[2,1].set_title('side')
+    # t = ax[1,2].contour(ratio_bp, extra_bp, TEMP, levels=temp_range, cmap='Reds');
+    # #ax[1,2].clabel(t, inline=True, fontsize=10)
+    # ax[1,2].set_title('Temp')
+    # ax[1,0].contour(ratio_bp, extra_bp, RATIO, levels=ratio_range, cmap='Blues');
+    # ax[1,0].set_title('Temp Ratio')
+    # ax[1,0].set_ylabel('Spacing')
 
-    # plt.colorbar()
-    fig.delaxes(ax[0][0])
-    fig.delaxes(ax[0][2])
-    # fig.delaxes(ax[2][0])
-    # fig.delaxes(ax[2][2])
+    # # plt.colorbar()
+    # fig.delaxes(ax[0][0])
+    # fig.delaxes(ax[0][2])
+    # # fig.delaxes(ax[2][0])
+    # # fig.delaxes(ax[2][2])
+
+
+    plt.title('Energy = {} kJ'.format(nrg), fontsize=16)
+    plt.ylabel('Spacing')
+
+    plt.contour(ratio_bp, extra_bp, MASS, 20, cmap='Greens');
+    plt.contour(ratio_bp, extra_bp, TEMP, levels=temp_range, cmap='Reds');
+    plt.contour(ratio_bp, extra_bp, RATIO, levels=ratio_range, cmap='Blues');
+    plt.xlabel('Hole Ratio')
+
 
     if gif:
         plt.savefig(filename)
@@ -118,7 +128,7 @@ for nrg in nrg_list:
 
 if gif:
     # build gif
-    with imageio.get_writer('mygif.gif', mode='I') as writer:
+    with imageio.get_writer('mygif_pres.gif', mode='I',duration=0.75) as writer:
         for filename in filenames:
             image = imageio.imread(filename)
             writer.append_data(image)
