@@ -16,7 +16,7 @@ class FluidPropertiesComp(om.ExplicitComponent):
         self.add_output('mu_v', val=1.0 * np.ones(nn), units='N*s/m**2', desc='vapor viscosity')
         self.add_output('k_l', val=1.0 * np.ones(nn), units='W/(m*K)', desc='liquid conductivity')
         self.add_output('k_v', val=1.0 * np.ones(nn), units='W/(m*K)', desc='vapor conductivity')
-        self.add_output('sigma_l', val=1.0 * np.ones(nn), units='N/m**3', desc='surface tension')
+        self.add_output('sigma_l', val=1.0 * np.ones(nn), units='N/m', desc='surface tension')
         self.add_output('cp_l', val=1.0 * np.ones(nn), desc='liquid specific heat')
         self.add_output('cp_v', val=1.0 * np.ones(nn), desc='vapor specific heat')
         self.add_output('v_fg', val=1.0 * np.ones(nn), units='m**3/kg', desc='specific volume')

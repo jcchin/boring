@@ -4,9 +4,24 @@
 Script: xlsx2npy.py
 Function: Converts files from xlsx to numpy array (.npy)
 
+Created: 1/15/21
 Author: Karsten Look (GRC-LTE0)
 
 # Usage
+    + FIRST enter the number of parameter columns into the variable num_param in this script
+    + Place desired files in input folder
+    + Run script
+    + Check output folder
+
+### !NOTICE ###::
+    There is a known bug in openpyxl that in some cases pandas fails to import xlsx files due to a change in the xlsx file format in 2019
+    Workaround: open the file, do not change anything, and save it again. Script should then finish successfully
+
+    More info:
+        https://stackoverflow.com/questions/64126185/openpyxl-cant-read-xlsx-file-but-if-i-save-the-file-it-opens
+        https://foss.heptapod.net/openpyxl/openpyxl/-/issues/1071
+
+# Details
     Will search for all .xlsx files in the ./inputs folder (nonrecursive), ignoring everything else 
     Assumes all files in the input folder are of the same search grid
     Assumes files contain only numerical data, and there is no header or blank rows at top
@@ -14,8 +29,11 @@ Author: Karsten Look (GRC-LTE0)
     Load order and file name scheme does not matter, all content will be sorted by the first column first, 
       then the second, and so on for all given parameters
       
-    output file is put into outputs folder, named like <name of first input file>_<number of files>-combined.npy"
-
+    output file is put into ./outputs folder, named like <name of first input file>_<number of files>-combined.npy"
+    
+ outputs are:
+        1. A .npy file (the pickled numpy array)
+        2. A .pickle file (a python list of dict vars) that translates indices to the given input parameter values
 
     Example mapping file:
         index value : entry value
@@ -36,17 +54,18 @@ Author: Karsten Look (GRC-LTE0)
         0 : 5
         1 : 6
         
-        saved a a pickled list
+        saved as a pickled list
         [dict for idx 1, dict for idx 2, ....]
                 
         ...
 
 # Example Output Usage
+    import numpy as np
+    arr = np.load("output_filename.npy")
 
-arr = np.load("output_filename.npy")
+    with open("output_filename_mapping.pickle", "rb") as file:   # Unpickling
+        mapping = pickle.load(file) 
 
-!NOTICE::
-For some very strange reason, pandas will sometimes not read the xlsx file unless you open it, do not change anything, and save it again
 
 # Assumptions
 - All layers of the numpy array are of the same dimensions
@@ -54,18 +73,38 @@ For some very strange reason, pandas will sometimes not read the xlsx file unles
 - The first column differentiates layers, but is not saved in output
 - The second column is ignored (and also not saved in output)
 
+
+    - If one file of a set fails to import, all files will similarly fail
+    
+    - All files in the input folder cover the same parameter sweep set
+        Missing parameter values are saved as NaN
+    
+    - Files contain only numerical data, and there is no header or blank rows at top
+    
+    - The user correctly identifies the number of parametersr in the input file
+
 # Compatibility
 Anaconda environment file is provided in this folder as _env-spec-file.txt_ a human-friendly version is saved as _env_ref-spec-file.txt_
 
     
 ===
 Further Development
-Backlog:
+
+Backlog (May or may not implement):
+    + Add check - Does the number of params seems right? (How close are values
+  last parameter to the values in the first time series relative to the time series columns)
+    + Find fix to openpyxl excel read errors -> Other library, auto open and save, etc.
+    + add verification that imported files contain data (if multiple sets and only some fail)
     + Move verification testing into a git automated panel of tests
 
-Working:
+Planned:    
+ 
+In Progress:
+    test if missing parameter values save as NaN
+    test against 2 parameters
+    test against 4 parameters
+    test against two separate parameter files
     
-
 Done:
     + Add feature extensibility for more parameter columns
     + Condense time series to only max value
@@ -81,6 +120,7 @@ import glob
 import pickle
 # from test2 import t_data # Verification data
 
+
 ### Settings ###
 
 num_param = 3 #Required because there is no way to programatically differentiate 
@@ -91,11 +131,12 @@ num_param = 3 #Required because there is no way to programatically differentiate
 
 ################
 
+
 cwd = os.path.dirname(os.path.realpath(__file__))
 
 def getFiles():
     
-    files = glob.glob(os.path.join(cwd,'inputs','mass_hny_hole_h100.xlsx'))
+    files = glob.glob(os.path.join(cwd,'inputs','mass_hny_hole_h250.xlsx'))
     
     
     #Check there are >0 files, and that they are all xlsx
@@ -125,7 +166,9 @@ def loadFiles(files_):
     for file in files:
         df = df.append(pd.read_excel(file, engine='openpyxl',header=None))
     
-    
+    if(df.shape == (1,1)):
+        sys.exit("xlsx2npy: Import error; no data returned from file")
+        
     df = df.sort_values([_ for _ in range(num_param)],'index') # Sorts by first col first, second second, etc.
     df = df.reset_index(drop=True)
     
@@ -178,8 +221,6 @@ def df2npy(idx_df_,mapping_):
 
 def export(name_, np_arr_):
     np.save(name_,np_arr_) #Save to numpy binary 
-    
-    #open the file in another script with: arr = np.load("test3.npy")
     print("\n.npy file saved to {}".format(name_))
 
 
@@ -201,10 +242,10 @@ files = getFiles()
 np_arr = df2npy(idx_df,mapping)
 
 first_file = os.path.split(files[0])[1]
-outfile = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'_{}.npy'.format(len(files)))
+outfile = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'.npy')
 export(outfile,np_arr)
 
-mapfilename = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'_{}.pickle'.format(len(files)))
+mapfilename = os.path.join(cwd,'outputs',os.path.splitext(first_file)[0]+'.pickle')
 
 with open(mapfilename, "wb") as mapfile:
     pickle.dump(mapping, mapfile)
