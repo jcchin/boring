@@ -6,10 +6,20 @@ from tmr import TMR, TopOptUtils
 from tacs import TACS, elements, constitutive, functions
 
 # TODO:
-# - add functions to evaluate max temperature in different domains
-# - make batteries a different material
 # - add air gap resistance
-# - initial conditions?
+# - initial conditions
+
+def get_elems_and_surfs(names):
+    # Get the element numbers and faces for a list of names
+    elems = []
+    surfs = []
+    for n in names:
+        quads = forest.getQuadsWithName(n)
+        for q in quads:
+            elems.append(q.tag)
+            surfs.append(q.info)
+
+    return elems, surfs
 
 def create_forest(comm, depth, htarget):
     '''
@@ -59,6 +69,7 @@ def create_forest(comm, depth, htarget):
     faces[5].setName('battery')
     faces[6].setName('battery')
     faces[9].setName('battery')
+    faces[0].setName('aluminum')
 
     # Create the mesh object
     mesh = TMR.Mesh(comm, geo)
@@ -69,7 +80,7 @@ def create_forest(comm, depth, htarget):
 
     # Mesh the geometry with the given target size
     mesh.mesh(htarget, opts=opts)
-    mesh.writeToVTK('battery_mesh.vtk')
+    # mesh.writeToVTK('battery_mesh.vtk')
 
     # Create a model from the mesh
     model = mesh.createModelFromMesh()
@@ -93,21 +104,15 @@ class CreateMe(TMR.QuadCreator):
         Create an element for the entire mesh
         """
 
-        thickness = 0.065
-        rho = 2700.0*thickness
-        E = 72.4e9
-        nu = 0.33
-        ys = 345e6
-        aT = 24e-6
-        c = 883.0
-        kcond = 204.0
-        props = constitutive.MaterialProperties(rho=rho, E=E, nu=nu,
-                                                ys=ys, alpha=aT, kappa=kcond,
-                                                specific_heat=c)
-        stiff = constitutive.PlaneStressConstitutive(props)
+        if quad.tag in alum_tags:
+            stiff = constitutive.PlaneStressConstitutive(alum_props)
+        elif quad.tag in battery_tags:
+            stiff = constitutive.PlaneStressConstitutive(battery_props)
+        else:
+            print("quad not defined")
 
         # Create the model
-        model = elements.HeatConduction2D(stiff)
+        model = elements.LinearThermoelasticity2D(stiff)
 
         # Set the basis functions and create the element
         if order == 2:
@@ -153,7 +158,7 @@ def qdot_in_func(t):
     '''
     Overshoot heat flux function with steady state
     '''
-    qmax = 6000.0
+    qmax = 6000.0*thickness
 
     qdot_in = 0.0
     if t <= 2.0:
@@ -170,9 +175,11 @@ def update_force(forest, assembler, qdot_in=0.0):
 
     # Add the heat flux traction on the clamped end
     tractions = []
+    trac = [0.0]*vpn
+    trac[-1] = -qdot_in
     for findex in range(4):
         tractions.append(elements.Traction2D(vpn, findex,
-                                             basis, [-qdot_in]))
+                                             basis, trac))
 
     force = TopOptUtils.computeTractionLoad('battery_0',
                                             forest,
@@ -200,11 +207,28 @@ def integrate(assembler, forest, tfinal=30.0,
                 TACS.OUTPUT_DISPLACEMENTS |
                 TACS.OUTPUT_EXTRAS)
         f5 = TACS.ToFH5(assembler,
-                        TACS.SCALAR_2D_ELEMENT,
+                        TACS.PLANE_STRESS_ELEMENT,
                         flag)
         bdf.setFH5(f5)
         bdf.setOutputFrequency(1)
         bdf.setOutputPrefix('time_history/')
+
+    # Define the functions of interest
+    temp0 = functions.KSTemperature(assembler, 50.0)
+    temp0.setKSTemperatureType('discrete')
+    elems, _ = get_elems_and_surfs(['battery_0'])
+    temp0.setDomain(elems)
+    temp1 = functions.KSTemperature(assembler, 50.0)
+    temp1.setKSTemperatureType('discrete')
+    elems, _ = get_elems_and_surfs(['battery_1'])
+    temp1.setDomain(elems)
+    temp2 = functions.KSTemperature(assembler, 50.0)
+    temp2.setKSTemperatureType('discrete')
+    elems, _ = get_elems_and_surfs(['battery_2'])
+    temp2.setDomain(elems)
+
+    # Set the functions into the integrator class
+    bdf.setFunctions([temp0, temp1, temp2])
 
     # Create a vector that will store the instantaneous traction
     # load at any point in time
@@ -230,6 +254,15 @@ def integrate(assembler, forest, tfinal=30.0,
         # Iterate forward in time for one time step
         bdf.iterate(i, forces=forces)
 
+    # Compute the nodal sensitivities
+    fvals = bdf.evalFunctions([temp0, temp1, temp2])
+    bdf.integrateAdjoint()
+    df0dXpt = bdf.getXptGradient(0)
+    df1dXpt = bdf.getXptGradient(1)
+    df2dXpt = bdf.getXptGradient(2)
+    dfdXpt = [df0dXpt, df1dXpt, df2dXpt]
+
+    # Extract the time history
     qvals = np.zeros(nsteps+1)
     tvals = np.zeros(nsteps+1)
     for time_step in range(nsteps+1):
@@ -240,7 +273,23 @@ def integrate(assembler, forest, tfinal=30.0,
         qvals[time_step] = np.amax(qarray)
         tvals[time_step] = time
 
-    return tvals, qvals
+    # Evaluate the functions at every time step
+    temp0_vals = np.zeros(nsteps+1)
+    temp1_vals = np.zeros(nsteps+1)
+    temp2_vals = np.zeros(nsteps+1)
+    for time_step in range(nsteps+1):
+        # Extract vectors
+        _, q , qdot, qddot = bdf.getStates(time_step)
+        # Compute the function values
+        assembler.setVariables(q)
+        fvals = assembler.evalFunctions([temp0, temp1, temp2])
+        temp0_vals[time_step] = fvals[0]
+        temp1_vals[time_step] = fvals[1]
+        temp2_vals[time_step] = fvals[2]
+
+    fvals = [temp0_vals, temp1_vals, temp2_vals]
+
+    return tvals, qvals, fvals, dfdXpt
 
 # Create the communicator
 comm = MPI.COMM_WORLD
@@ -251,6 +300,24 @@ forest.setMeshOrder(2, TMR.GAUSS_LOBATTO_POINTS)
 
 # Set the boudnary conditions (None)
 bcs = TMR.BoundaryConditions()
+
+alum_tags = []
+for quad in forest.getQuadsWithName('aluminum'):
+    alum_tags.append(quad.tag)
+
+battery_tags = []
+for n in ['battery_0', 'battery_1', 'battery_2', 'battery']:
+    for quad in forest.getQuadsWithName(n):
+        battery_tags.append(quad.tag)
+
+thickness = 0.065
+alum_rho = 2700.0*thickness
+battery_rho = 1460.0*thickness
+alum_props = constitutive.MaterialProperties(rho=alum_rho, E=72.4e9, nu=0.33,
+                                             ys=345e6, alpha=24e-6, kappa=204.0,
+                                             specific_heat=883.0)
+battery_props = constitutive.MaterialProperties(rho=battery_rho, kappa=1.3,
+                                                specific_heat=880.0)
 
 # Allocate the creator class
 creator = CreateMe(bcs)
@@ -271,13 +338,51 @@ assembler.setDesignVars(dv_vec)
 # Perform the numerical integration
 tfinal = 5.0
 nsteps = 50
-t, u = integrate(assembler, forest, nsteps=nsteps,
-                 tfinal=tfinal, output=True)
+t, u, fvals, dfdXpt = integrate(assembler, forest, nsteps=nsteps,
+                                tfinal=tfinal, output=True)
+
+flag = (TACS.OUTPUT_CONNECTIVITY |
+        TACS.OUTPUT_NODES |
+        TACS.OUTPUT_DISPLACEMENTS |
+        TACS.OUTPUT_EXTRAS)
+
+assembler.setVariables(dfdXpt[0])
+f5 = TACS.ToFH5(assembler,
+                TACS.PLANE_STRESS_ELEMENT,
+                flag)
+f5.writeToFile('Xpt0.f5')
+
+assembler.setVariables(dfdXpt[1])
+f5 = TACS.ToFH5(assembler,
+                TACS.PLANE_STRESS_ELEMENT,
+                flag)
+f5.writeToFile('Xpt1.f5')
+
+assembler.setVariables(dfdXpt[2])
+f5 = TACS.ToFH5(assembler,
+                TACS.PLANE_STRESS_ELEMENT,
+                flag)
+f5.writeToFile('Xpt2.f5')
 
 # Plot the maximum temperature over time
+i0 = np.argmax(fvals[0])
+i1 = np.argmax(fvals[1])
+i2 = np.argmax(fvals[2])
+
 plt.style.use('mark')
 fig, ax = plt.subplots(1, 1, figsize=(10, 6), constrained_layout=True)
-ax.plot(t, u)
+ax.plot(t, fvals[0], label='Corner cell')
+ax.plot(t, fvals[1], label='Adjacent cell')
+ax.plot(t, fvals[2], label='Diagonal cell')
+ax.scatter(t[i0], fvals[0][i0], color='C0', zorder=10, s=30, edgecolors='white', linewidths=1.5)
+ax.scatter(t[i1], fvals[1][i1], color='C1', zorder=10, s=30, edgecolors='white', linewidths=1.5)
+ax.scatter(t[i2], fvals[2][i2], color='C2', zorder=10, s=30, edgecolors='white', linewidths=1.5)
+
+ax.set_xticks([0.0, t[i0], t[i2], 5.0])
+ax.set_yticks([0.0, fvals[0][i0], fvals[1][i1], fvals[2][i2]])
+ax.set_yticklabels(['0.0', '{0:.1f}'.format(fvals[0][i0]), '{0:.1f}'.format(fvals[1][i1]), '{0:.1f}'.format(fvals[2][i2])])
+
 ax.set_xlabel(r"Time (s)")
-ax.set_ylabel(r"$\theta_{max}(t)$")
+ax.set_ylabel(r"$\Delta$T$_{max}(t)$ ($^\circ$C)")
+ax.legend()
 plt.savefig('time_response.pdf', transparent=False)
