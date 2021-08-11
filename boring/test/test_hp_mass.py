@@ -32,7 +32,7 @@ class TestHeatPipeMass(unittest.TestCase):
 
         self.prob.run_model()
 
-        assert_near_equal(self.prob.get_val('hp_mass.mass_heatpipe'), 0.12455787, tolerance=1.0E-5)
+        assert_near_equal(self.prob.get_val('hp_mass.mass_hp'), 0.12455787, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('hp_mass.mass_liquid'), 0.14844025, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('hp_mass.mass_wick'), 0.01287802, tolerance=1.0E-5)
 

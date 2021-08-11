@@ -24,7 +24,6 @@ class TestSize(unittest.TestCase):
 
         self.prob['LW:L_flux'] = 50.8
         self.prob['LW:L_adiabatic'] = 3.
-        self.prob['num_cells'] = 1
         self.prob['XS:t_w'] = 0.5
         self.prob['XS:t_wk'] = 0.69
 

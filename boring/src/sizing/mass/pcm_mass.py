@@ -11,46 +11,57 @@ class pcmMass(om.ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-        self.add_input('rho_foam', 0.200, units='kg/m**3', desc='density of the conductive foam')
-        self.add_input('rho_pcm', 0.020, units='kg/m**3', desc='density of the phase change material')
-        self.add_input('t_pad', 0.030, units='mm', desc='pcm pad thickness')
-        self.add_input('A_pad', 0.020, units='mm**2', desc='pcm pad area')
-        self.add_input('porosity', 0.5, desc='porosity of the foam, 1 = completely void, 0 = solid')
+        self.add_input('rho_foam', 8960, units='kg/m**3', desc='density of the conductive foam')
+        self.add_input('rho_pcm', 1450, units='kg/m**3', desc='density of the phase change material')
+        self.add_input('t_pad', 0.020, units='m', desc='pcm pad thickness')
+        self.add_input('batt_l', .10599, units='m', desc='cell length (105.99mm for Large Amprius)')
+        self.add_input('L_flux', 0.04902, units='m', desc='cell width, excluding lip material (49.02mm for Large Amprius')
+        self.add_input('porosity', 0.97, desc='porosity of the foam, 1 = completely void, 0 = solid')
+        self.add_input('batt_l_pcm_scaler', 0.5, desc='sizes the pcm pad as a fraction of the cell length')
 
-        self.add_output('mass_pcm', .005, units='kg', desc='PCM bulk mass')
+        self.add_output('W_pad', .01, units='m', desc='width of the pcm pad')
+        self.add_output('A_pad', 0.000020, units='m**2', desc='pcm pad area')
+        self.add_output('mass_pcm', .010, units='kg', desc='PCM bulk mass')
 
-    def setup_partials(self):
-        self.declare_partials('mass_pcm', ['rho_pcm', 'rho_foam', 't_pad', 'A_pad','porosity'])
+        self.declare_partials('*', '*', method='cs')
+
+    # def setup_partials(self):
+    #     self.declare_partials('mass_pcm', ['rho_pcm', 'rho_foam', 't_pad', 'A_pad','porosity'])
 
     def compute(self, inputs, outputs):
         rho_f    =  inputs['rho_foam']
         rho_p    =  inputs['rho_pcm']
         t        =  inputs['t_pad']
-        A        =  inputs['A_pad']
+        batt_l   =  inputs['batt_l']
+        L_flux   =  inputs['L_flux']
         porosity =  inputs['porosity']
+        l_scaler = inputs['batt_l_pcm_scaler']
         
         rho_bulk = 1. / (porosity / rho_p + (1 - porosity) / rho_f)
+        # print('bulk density: ', rho_bulk)
 
-        outputs['mass_pcm'] = rho_bulk*t*A
+        outputs['W_pad'] = (batt_l*l_scaler)
+        outputs['A_pad'] = outputs['W_pad']  * L_flux
+        outputs['mass_pcm'] = rho_bulk*t*outputs['A_pad']
 
 
-    def compute_partials(self, inputs, J):
-        rho_f    =  inputs['rho_foam']
-        rho_p    =  inputs['rho_pcm']
-        t        =  inputs['t_pad']
-        A        =  inputs['A_pad']
-        porosity =  inputs['porosity']
+    # def compute_partials(self, inputs, J):
+    #     rho_f    =  inputs['rho_foam']
+    #     rho_p    =  inputs['rho_pcm']
+    #     t        =  inputs['t_pad']
+    #     A        =  inputs['A_pad']
+    #     porosity =  inputs['porosity']
 
-        d_porosity = -rho_f * rho_p * (rho_f - rho_p) / (
-                    rho_p * (porosity - 1.) - rho_f * porosity) ** 2
-        d_pcm = rho_f ** 2 * porosity / (rho_p * (porosity - 1.) - rho_f * porosity) ** 2
-        d_foam = -rho_p ** 2 * (porosity - 1.) / (rho_p * (porosity - 1.) - rho_f * porosity) ** 2
+    #     d_porosity = -rho_f * rho_p * (rho_f - rho_p) / (
+    #                 rho_p * (porosity - 1.) - rho_f * porosity) ** 2
+    #     d_pcm = rho_f ** 2 * porosity / (rho_p * (porosity - 1.) - rho_f * porosity) ** 2
+    #     d_foam = -rho_p ** 2 * (porosity - 1.) / (rho_p * (porosity - 1.) - rho_f * porosity) ** 2
 
-        J['mass_pcm', 'porosity'] = d_porosity * A * t
-        J['mass_pcm', 'rho_foam'] = d_foam * A * t
-        J['mass_pcm', 'rho_pcm']  = d_pcm * A * t
-        J['mass_pcm', 't_pad']    = A / (porosity / rho_p + (1 - porosity) / rho_f)
-        J['mass_pcm', 'A_pad']    = t / (porosity / rho_p + (1 - porosity) / rho_f)
+    #     J['mass_pcm', 'porosity'] = d_porosity * A * t
+    #     J['mass_pcm', 'rho_foam'] = d_foam * A * t
+    #     J['mass_pcm', 'rho_pcm']  = d_pcm * A * t
+    #     J['mass_pcm', 't_pad']    = A / (porosity / rho_p + (1 - porosity) / rho_f)
+    #     J['mass_pcm', 'A_pad']    = t / (porosity / rho_p + (1 - porosity) / rho_f)
 
 
 
@@ -62,6 +73,8 @@ if __name__ == "__main__":
 
     prob.setup(force_alloc_complex=True)
     prob.run_model()
-    prob.check_partials(method='cs', compact_print=True)
+    # prob.check_partials(method='cs', compact_print=True)
 
     print('mass pcm: ', prob.get_val('mass_pcm'))
+    print('area of pad: ', prob.get_val('A_pad'))
+    

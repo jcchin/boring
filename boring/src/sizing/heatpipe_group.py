@@ -47,18 +47,21 @@ class HeatPipeGroup(om.Group):
         for i in np.arange(n):
             # insantiate the radial stacks based on geometry
             if geom == 'round':
-                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['XS:D_od', 'XS:r_i', 'k_w', 'XS:D_v', 'LW:A_inter', 'LW:L_flux', 'alpha'])
+                inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','LW:L_flux','XS:D_od','XS:r_i','XS:D_v']
             if geom == 'flat':
-                self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
-                                                        promotes_inputs=['W', 'XS:t_wk', 'XS:t_w', 'k_w', 'LW:A_inter', 'LW:L_flux', 'alpha'])
+                inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:t_w','XS:t_wk']
+            
+            self.add_subsystem('cell_{}'.format(i), Radial_Stack(n_in=int(n_in[i]), n_out=int(n_out[i]), num_nodes=nn, geom=geom),
+                                                        promotes_inputs=inpts)
+            
             # add temp rate comps
             if pcm_bool:
                 self.add_subsystem(name='T_rate_pcm_{}'.format(i),
                                subsys=PCM_Group(num_nodes=nn))
             else:   
                 self.add_subsystem(name='T_rate_cell_{}'.format(i),
-                               subsys=TempRateComp(num_nodes=nn))
+                               subsys=TempRateComp(num_nodes=nn),
+                               promotes_inputs=['c_p','mass'])
 
             # connect external flux
             if pcm_bool:
@@ -70,16 +73,29 @@ class HeatPipeGroup(om.Group):
 
             thermal_link(self, 'cell_{}'.format(j), 'cell_{}'.format(j+1), num_nodes=nn, geom=geom)
 
-            self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(j))
+            self.connect('cell_0.radial.k_wk', 'cell_{}_bridge.k_wk'.format(j))
 
-        self.connect('cell_0_bridge.k_wk', 'cell_{}.k_wk'.format(n-1))
+        #self.connect('cell_0.radial.k_wk', 'cell_bridge_{}.k_wk'.format(n-1))
 
         
 
         self.set_input_defaults('k_w', 11.4 * np.ones(nn), units='W/(m*K)')
         self.set_input_defaults('epsilon', 0.46 * np.ones(nn), units=None)
-        self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
-        self.set_input_defaults('LW:L_adiabatic', 0.03 * np.ones(nn), units='m')
+        self.set_input_defaults('T_hp', 300 * np.ones(nn), units='K')
+        self.set_input_defaults('XS:t_w', 0.0005 * np.ones(nn), units='m')
+        self.set_input_defaults('XS:t_wk', 0.00069 * np.ones(nn), units='m')
+        self.set_input_defaults('LW:A_inter', 0.0004 * np.ones(nn), units='m**2')
+        self.set_input_defaults('alpha', 1 * np.ones(nn), units=None)
+        self.set_input_defaults('XS:A_w', 1E-5 * np.ones(nn), units='m**2')
+        self.set_input_defaults('XS:A_wk', 1.38E-5 * np.ones(nn), units='m**2')
+        # self.set_input_defaults('LW:L_flux', .02 * np.ones(nn), units='m')
+        # self.set_input_defaults('LW:L_adiabatic', .03 * np.ones(nn), units='m')
+        
+        # self.set_input_defaults('H', .02 * np.ones(nn), units='m')
+        # self.set_input_defaults('W', 0.02 * np.ones(nn), units='m')
+
+        if n > 1: # axial bridge only exists if there are 2 or more cells
+            self.set_input_defaults('LW:L_eff', 0.05 * np.ones(nn), units='m')
 
         if pcm_bool: # manually set mass for debugging
             self.set_input_defaults('T_rate_pcm_1.mass', 0.003*np.ones(nn), units='kg')
@@ -88,10 +104,12 @@ class HeatPipeGroup(om.Group):
         if geom == 'round':
             self.set_input_defaults('XS:D_od', 6. * np.ones(nn), units='mm')
             self.set_input_defaults('XS:D_v', 3.62 * np.ones(nn), units='mm')
+            self.set_input_defaults('LW:L_flux', 0.02 * np.ones(nn), units='m')
 
-        elif geom == 'flat':
-            self.set_input_defaults('H', 20. * np.ones(nn), units='mm')
-            self.set_input_defaults('W', 20. * np.ones(nn), units='mm')
+
+        # elif geom == 'flat':
+        #     self.set_input_defaults('XS:W_v', 0.01762 * np.ones(nn), units='m')
+        #     self.set_input_defaults('XS:H_v', 0.01762 * np.ones(nn), units='m')
 
         # load_inputs('boring.input.assumptions2', self, nn)
 
@@ -103,26 +121,29 @@ if __name__ == "__main__":
     num_cells_tot = 2
 
 
+    # p.model.add_subsystem(name = 'size',
+    #                   subsys = HPgeom(num_nodes=nn, geom='round'),
+    #                   promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
+    #                   promotes_outputs=['XS:D_od','XS:r_i', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter']) 
     p.model.add_subsystem(name = 'size',
-                      subsys = HPgeom(num_nodes=nn, geom='round'),
-                      promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
-                      promotes_outputs=['XS:D_od','XS:r_i', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter']) 
-
+                        subsys = HPgeom(num_nodes=nn, geom='flat'),
+                        promotes_inputs=['LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_v', 'XS:H_v'],
+                        promotes_outputs=['XS:W_hp','XS:H_hp', 'XS:A_w', 'XS:A_wk', 'LW:A_flux', 'LW:A_inter']) 
 
     p.model.add_subsystem(name='hp',
-                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='round'),
+                          subsys=HeatPipeGroup(num_nodes=nn, num_cells=num_cells_tot, pcm_bool=False, geom='flat'),
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
 
     p.setup(force_alloc_complex=True)
 
     T_in = 20 * np.ones(num_cells_tot)
-    T_in[1] = 100
+    T_in[num_cells_tot-1] = 100
     p.model.list_inputs()
 
     for x in np.arange(num_cells_tot):
         p['cell_{}.Rex.T_in'.format(x)] = T_in[x]
-        p['size.LW:L_flux'.format(x)] = 0.02
+        # p['size.LW:L_flux'.format(x)] = 0.02
         p['cell_{}.Rex.R'.format(x)] = [0.0001],
 
     p.run_model()

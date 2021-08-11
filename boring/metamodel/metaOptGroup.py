@@ -26,12 +26,10 @@ class MetaOptimize(om.Group):
         nn = self.options['num_nodes']
         config = self.options['config']
 
-        # self.add_subsystem('xform', om.ExecComp('extra=exp(xtra)', units='mm'), promotes=['*'])
-
         if (config == 'honeycomb'):
-            inpts = ['energy','extra']
+            inpts = ['energy','extra','ratio']
             outpts = ['temp2_data','temp3_data','mass']
-        else:
+        else: # use manual mass calculations
             self.add_subsystem(name='size',
                                subsys = MetaPackSizeComp(num_nodes=nn),
                                promotes_inputs=['cell_rad', 'extra', 'ratio', 'length','al_density','n'],
@@ -40,26 +38,36 @@ class MetaOptimize(om.Group):
             outpts = ['temp2_data','temp3_data']
 
 
-        # self.add_subsystem(name='temp',
-        #                    subsys=MetaTempGroup(num_nodes=nn,config=config),
-        #                    promotes_inputs=inpts,
-        #                    promotes_outputs=outpts)
-        self.add_subsystem(name='baseline_temp',
-                           subsys=FenicsBaseline(num_nodes=nn),
+        self.add_subsystem(name='temp',
+                           subsys=MetaTempGroup(num_nodes=nn,config=config),
                            promotes_inputs=inpts,
                            promotes_outputs=outpts)
 
+        # # use FENICS
+        # self.add_subsystem(name='baseline_temp',
+        #                    subsys=FenicsBaseline(num_nodes=nn),
+        #                    promotes_inputs=inpts,
+        #                    promotes_outputs=outpts)
+
 
         self.add_subsystem(name='temp_ratio',
-                                subsys=om.ExecComp('temp_ratio = temp2_data/temp3_data'),
-                                promotes_inputs=['temp2_data','temp3_data'],
-                                promotes_outputs=['temp_ratio'])
+                           subsys=om.ExecComp('temp_ratio = temp2_data/temp3_data'),
+                           promotes_inputs=['temp2_data','temp3_data'],
+                           promotes_outputs=['temp_ratio'])
 
         if (config != 'honeycomb'):
             self.add_subsystem(name='obj',
-                                    subsys=om.ExecComp('obj = mass + side/80'),
-                                    promotes_inputs=['mass','side'],
-                                    promotes_outputs=['obj'])
+                               subsys=om.ExecComp('obj = mass + side/80'),
+                               promotes_inputs=['mass','side'],
+                               promotes_outputs=['obj'])
+            self.set_input_defaults('extra',1)
+            self.set_input_defaults('ratio',1)
+        # else:
+        #     self.add_subsystem(name='obj',
+        #                        subsys=om.ExecComp('obj = mass + extra'),
+        #                        promotes_inputs=['mass','extra'],
+        #                        promotes_outputs=['obj'])
+
 
 if __name__ == "__main__":
     p = om.Problem()
@@ -68,7 +76,7 @@ if __name__ == "__main__":
 
 
     p.model.add_subsystem(name='meta_optimize',
-                          subsys=MetaOptimize(num_nodes=nn), #,config='honeycomb'
+                          subsys=MetaOptimize(num_nodes=nn, config='honeycomb'), #,config='honeycomb'
                           promotes_inputs=['*'],
                           promotes_outputs=['*'])
     
@@ -89,9 +97,8 @@ if __name__ == "__main__":
     # (DV-ref0)/ref
 
 
-    p.model.add_design_var('extra', lower=1.0, upper=2.02, ref=2e-3)
-
-    p.model.add_design_var('ratio', lower=0.25, upper=1.0, ref=1) 
+    p.model.add_design_var('extra', lower=1.1, upper=2.0, ref=1e3)
+    p.model.add_design_var('ratio', lower=0.1, upper=0.9, ref=1e-1) 
     # p.model.add_design_var('resistance', lower=0.003, upper=0.009)
     # p.model.add_objective('obj', ref=1e-2)
     p.model.add_objective('mass', ref=1e-2)
@@ -104,21 +111,24 @@ if __name__ == "__main__":
 
     p.model.linear_solver = om.DirectSolver()
 
+
     p.setup(force_alloc_complex=True)
+    # p.final_setup()
+    # om.n2(p)
     #p.set_val('cell_rad', 9, units='mm')
     #p.set_val('resistance', 0.003)
     # p.set_val('extra', 1.4)
-    # p.set_val('ratio', 0.4)
+    p.set_val('ratio', 0.7)
     p.set_val('energy',16., units='kJ')
     #p.set_val('length', 65.0, units='mm')
     #p.set_val('al_density', 2.7e-6, units='kg/mm**3')
     #p.set_val('n',4)
 
-    # x = 30
-    # nrg_list = np.linspace(16.,32.,x)
-
-    nrg_list = np.array([24,])
-    x = len(nrg_list)
+    x = 30
+    nrg_list = np.linspace(16.,32.,x) #np.linspace(1.,48.,x)
+    # ------- or ---------------------
+    # nrg_list = np.array([24,])
+    # x = len(nrg_list)
 
 
     opt_mass = np.zeros(x)
@@ -138,7 +148,7 @@ if __name__ == "__main__":
         print('current energy: ',nrg_list[i], " (running between 16 - 32)" )
 
         p.set_val('extra', 1.3)  # 1.3
-        p.set_val('ratio', 0.4)  # .75
+        p.set_val('ratio', 0.2)# - nrg_list[i]/100)  # .75
 
         p.run_driver()
         p.run_model()
@@ -147,7 +157,7 @@ if __name__ == "__main__":
         opt_success[i]=p.driver.pyopt_solution.optInform['value']
         print(p.driver.pyopt_solution.optInform)  # print out the convergence success (SNOPT only)
         opt_mass[i]=p.get_val('mass')
-        #opt_ratio[i]=p.get_val('ratio')
+        opt_ratio[i]=p.get_val('ratio')
         opt_spacing[i]=p.get_val('extra')
         opt_t_ratio[i]=p.get_val('temp_ratio')
         # opt_res[i]=p.get_val('resistance')
@@ -157,7 +167,9 @@ if __name__ == "__main__":
 
     
     cell_dens = 225*((nrg_list*2/3)/12)
+
     pack_dens = (16*nrg_list*2/3)/(.048*16 + opt_mass)
+    #16 cells, 48g each
 
     #p.run_driver()
 
@@ -207,6 +219,8 @@ if __name__ == "__main__":
                     'pack_dens': pack_dens,
                     'success': opt_success
                     })
-    df.to_csv('opt_out.csv',index=False)
 
-    # opt_plots(['opt_out.csv'],x)
+    ofile = 'hny_h100_opt.csv'
+    df.to_csv(ofile,index=False)
+
+    opt_plots([ofile],x)

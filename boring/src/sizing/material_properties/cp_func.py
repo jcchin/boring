@@ -43,7 +43,7 @@ class PCM_Cp(om.ExplicitComponent):
         T_lo = 333.
         T_hi = 338.
         Cp_lo = 1.5
-        Cp_hi = 50
+        Cp_hi = 6.5
         a = 3  # sigma smoothing function
 
         outputs['cp_pcm'] = cp_sigmoid(T, T_lo, T_hi, Cp_lo, Cp_hi, a)
@@ -53,7 +53,7 @@ class PCM_Cp(om.ExplicitComponent):
         T_lo = 333.
         T_hi = 338.
         Cp_lo = 1.5
-        Cp_hi = 50
+        Cp_hi = 6.5
         a = 3  # sigma smoothing function
 
         partials['cp_pcm', 'T'] = cp_sigmoid_deriv(T, T_lo, T_hi, Cp_lo, Cp_hi, a)

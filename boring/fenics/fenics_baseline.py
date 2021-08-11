@@ -169,7 +169,7 @@ class FenicsBaseline(om.ExplicitComponent):
             terms = rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx -dt*q*v*dx(1)
             lhs = []
             for i in range(n_cells**2):
-              lhs.append(dt*R*u('+')*v('+')*dS(i+1) - dt*R*u1*v('+')*dS(i+1))
+              lhs.append(dt*R*u('+')*v('+')*dS(i+1) - dt*R*u('-')*v('-')*dS(i+1))
             a = terms + sum(lhs)
             # a = rho*cp*u*v*dx + dt*inner(k*grad(u), grad(v))*dx - rho*cp*u0*v*dx - dt*q*v*dx(1) + dt*R*u('+')*v('+')*dS(1) - dt*R*u1*v('+')*dS(1)
             # + dt*R*u('+')*v('+')*dS(2) - dt*R*u1*v('+')*dS(2) + dt*R*u('+')*v('+')*dS(3) - dt*R*u1*v('+')*dS(3) + dt*R*u('+')*v('+')*dS(4) - dt*R*u1*v('+')*dS(4)

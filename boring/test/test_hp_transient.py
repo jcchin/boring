@@ -18,7 +18,7 @@ class TestHPtransient(unittest.TestCase):
 
         # check final values
         Tf = p.get_val('traj.phase.timeseries.states:T_cell_2')[-1]
-        assert_near_equal(Tf, 324.32626399, tolerance=1.E-5)
+        assert_near_equal(Tf, 354.20626139, tolerance=1.E-5)
 
     def test_get_hp_phase(self):
 

@@ -23,7 +23,7 @@ class TestFlatRadialResistance(unittest.TestCase):
         k_w=11.4
         epsilon=0.46
         ######################################## Overall Geometry ########################################################
-        L_evap=0.01
+        L_evap=0.02
         L_cond=0.02
         L_adiabatic=0.03
         L_eff=(L_evap+L_cond)/2+L_adiabatic
@@ -62,7 +62,8 @@ class TestFlatRadialResistance(unittest.TestCase):
         A_interc_array = []
         t_w_array = []
         t_wk_array = []
-
+        k_l_array = []
+        epsilon_array = []
         h_interc_array = []
         R_wc_array = []
         R_wkc_array = []
@@ -113,12 +114,15 @@ class TestFlatRadialResistance(unittest.TestCase):
             A_interc_array.append(A_interc)
             t_w_array.append(t_w)
             t_wk_array.append(t_wk)
+            k_l_array.append(k_l)
+            epsilon_array.append(epsilon)
 
             h_interc_array.append(h_interc)
             R_wc_array.append(R_wc)
             R_wkc_array.append(R_wkc)
             R_interc_array.append(R_interc)
 
+        #self.prob['axial_thermal.epsilon'] = 0.46
         self.prob.set_val('alpha', alpha_array)
         self.prob.set_val('h_fg', h_fg_array)
         self.prob.set_val('T_hp', T_hp_array)
@@ -130,8 +134,11 @@ class TestFlatRadialResistance(unittest.TestCase):
         self.prob.set_val('LW:A_inter', A_interc_array)
         self.prob.set_val('XS:t_w', t_w_array)
         self.prob.set_val('XS:t_wk', t_wk_array)
+        self.prob.set_val('k_l', k_l_array)
+        self.prob.set_val('epsilon', epsilon_array)
         self.prob.run_model()
 
+        # assert_near_equal(self.prob.get_val('axial_thermal.k_wk'), 6.442931876303132, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('h_inter'), h_interc_array, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('R_w'), R_wc_array, tolerance=1.0E-5)
         assert_near_equal(self.prob.get_val('R_wk'), R_wkc_array, tolerance=1.0E-5)

@@ -19,26 +19,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import time
-# Boring Imports
-# Geometry Imports
-from boring.src.sizing.geometry.pcm_mass import pcmMass
-from boring.src.sizing.geometry.insulation_geom import calcThickness
-from boring.src.sizing.geometry.hp_geom import HPgeom
-# Mass Imports
-from boring.src.sizing.mass.pcm_mass import pcmMass
-from boring.src.sizing.mass.insulation_mass import insulationMass
-from boring.src.sizing.mass.flat_hp_mass import flatHPmass
-from boring.src.sizing.mass.round_hp_mass import roundHPmass
+# Static Imports
+from boring.src.sizing.static_sizing import StaticSizing
 # Transient Imports
 from boring.src.sizing.pcm_transient import PCM_transient
 
 
 class Build_Pack(om.Group):
     def initialize(self):
-        self.options.declare('num_nodes', types=int)
-        self.options.declare('num_cells', types=int, default=3)
-        self.options.declare('pcm_bool', types=bool, default=False)
-        self.options.declare('geom', values=['round', 'flat'], default='flat')
+        self.options.declare('num_nodes', types=int)  # number of dymos nodes
+        self.options.declare('num_cells', types=int, default=3)  # number of cells in the stack
+        self.options.declare('pcm_bool', types=bool, default=False)  # boolean for including phase change material 
+        self.options.declare('geom', values=['round', 'flat'], default='flat')   # heat pipe geometry
 
 
     def setup(self):
@@ -47,54 +39,20 @@ class Build_Pack(om.Group):
         num_cells = self.options['num_cells']
         pcm_bool = self.options['pcm_bool']
 
-
-        # Size the pack components
+        # common design variables
+        design_inpts = ['pcm_thickness','pcm_porosity','XS:t_w','XS:t_wk', 'hp_porosity']
+        # geometry specific heatpipe variables
         if geom == 'round':
-            self.add_subsystem(name = 'size',
-                              subsys = HPgeom(num_nodes=nn, geom=geom),
-                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
-                              promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter']) 
-        elif geom == 'flat':
-            self.add_subsystem(name = 'size',
-                              subsys = HPgeom(num_nodes=nn, geom=geom),
-                              promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:W_hp'],
-                              promotes_outputs=['LW:A_flux', 'LW:A_inter']) 
-        # self.add_subsystem(name='sizeHP',
-        #                    subsys = HPgeom(num_nodes=nn, geom=geom),
-        #                    promotes_inputs=['LW:L_flux', 'LW:L_adiabatic', 'XS:t_w', 'XS:t_wk', 'XS:D_v'],
-        #                    promotes_outputs=['XS:D_od','XS:r_i', 'LW:A_flux', 'LW:A_inter'])
-        self.add_subsystem(name='sizeInsulation',
-                           subsys= calcThickness(),
-                           promotes_inputs=['temp_limit'],
-                           promotes_outputs=['ins_thickness'])
-
-        # Calculate total mass
-        self.add_subsystem(name='massPCM',
-                           subsys = pcmMass(num_nodes=nn),
-                           promotes_inputs=['t_pad', 'A_pad', 'porosity'],
-                           promotes_outputs=['mass_pcm'])
-        self.add_subsystem(name='massInsulation',
-                           subsys = insulationMass(num_nodes=nn),
-                           promotes_inputs=['num_cells','batt_l','L_flux','batt_h',],
-                           promotes_outputs=['ins_mass'])
+            design_inpts += ['XS:D_v']
         if geom == 'flat':
-            self.add_subsystem(name='massHP',
-                               subsys = flatHPmass(num_nodes=nn),
-                               promotes_inputs=['length_hp', 'width_hp', 'wick_t', 'wall_t','wick_porosity'],
-                               promotes_outputs=['mass_hp'])
-        if geom == 'round':
-            self.add_subsystem(name='massHP',
-                               subsys = roundHPmass(num_nodes=nn),
-                               promotes_inputs=['D_od_hp', 'wick_t', 'wall_t','wick_porosity'],
-                               promotes_outputs=['mass_hp'])
-        adder = om.AddSubtractComp()
-        adder.add_equation('mass_total',
-                           input_names=['mass_pcm','mass_hp','ins_mass','mass_battery'],
-                           vec_size=nn, length=2, units='kg')
-        self.add_subsystem(name='mass_comp',
-                           subsys = adder,
-                           promotes_inputs=['mass_pcm','mass_hp','ins_mass','mass_battery'],
+            design_inpts += ['XS:W_v','XS:H_v']
+       
+        # Compute all geometry and mass calculations that don't change during a transient
+        self.add_subsystem(name='static',
+                           subsys= StaticSizing(),
+                           promotes_inputs=design_inpts,
                            promotes_outputs=['mass_total'])
+
 
         # Run dymos transient, return neighboring temperatures
         self.add_subsystem(name='temp',
@@ -135,12 +93,12 @@ if __name__ == "__main__":
     p.model.add_design_var('pcm_thickness', lower=1.0, upper=2.02, ref=2e-3)
     p.model.add_design_var('pcm_porosity', lower=0.1, upper=1.0, ref=1)  # porosity of the foam, 1 = completely void, 0 = solid
     if geom == 'flat':
-        p.model.add_design_var('hp_height', lower=0.003, upper=0.009)
-        p.model.add_design_var('hp_width', lower=0.003, upper=0.009)
+        p.model.add_design_var('XS:H_v', lower=0.003, upper=0.009)
+        p.model.add_design_var('XS:W_v', lower=0.003, upper=0.009)
     if geom == 'round':
-        p.model.add_design_var('hp_D_od', lower=0.003, upper=0.009)
-    p.model.add_design_var('hp_t_w', lower=0.003, upper=0.009)
-    p.model.add_design_var('hp_t_wk', lower=0.003, upper=0.009)
+        p.model.add_design_var('XS:D_v', lower=0.003, upper=0.009)
+    p.model.add_design_var('XS:t_w', lower=0.003, upper=0.009)
+    p.model.add_design_var('XS:t_wk', lower=0.003, upper=0.009)
     p.model.add_design_var('hp_porosity', lower=0.01, upper=1.0)
 
 

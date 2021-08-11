@@ -10,7 +10,6 @@ import numpy as np
 from boring.src.sizing.material_properties.fluid_properties import FluidPropertiesComp
 from boring.src.sizing.thermal_resistance.radial_thermal_resistance import RadialThermalResistance
 from boring.src.sizing.thermal_resistance.axial_thermal_resistance import AxialThermalResistance
-from boring.src.sizing.thermal_resistance.vapor_thermal_resistance import VaporThermalResistance
 from boring.src.sizing.geometry.hp_geom import HPgeom
 
 
@@ -105,22 +104,22 @@ class Radial_Stack(om.Group):
         # Calculate Fluid Properties
         self.add_subsystem(name = 'fluids',
                            subsys = FluidPropertiesComp(num_nodes=nn),
-                           promotes_inputs=['Q_hp', 'A_cond', 'h_c', 'T_coolant'],
-                           promotes_outputs=['R_g', 'P_v', 'T_hp', 'rho_v', 'mu_v', 'h_fg','v_fg','k_l'])
+                           promotes_inputs=['T_hp'],
+                           promotes_outputs=['R_g', 'P_v', 'rho_v', 'mu_v', 'h_fg','v_fg','k_l'])
 
         # Calculate Resistances
         if geom == 'round':
-            self.add_subsystem(name='radial',
-                               subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['T_hp','v_fg','XS:D_od','R_g','P_v','k_wk','LW:A_inter','k_w','LW:L_flux','XS:r_i','XS:D_v','h_fg','alpha'],
-                               promotes_outputs=['R_w','R_wk','R_inter'])
-
+            inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','LW:L_flux','XS:D_od','XS:r_i','XS:D_v']
         elif geom == 'flat':
-            self.add_subsystem(name='radial',
-                               subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['T_hp','v_fg','XS:t_w','R_g','P_v','k_wk','LW:A_inter','k_w','XS:t_wk','h_fg','alpha'],
-                               promotes_outputs=['R_w','R_wk','R_inter'])
+            inpts = ['T_hp','v_fg','R_g','P_v','LW:A_inter','k_w','k_l','epsilon','h_fg','alpha','XS:t_w','XS:t_wk']
 
+        self.add_subsystem(name='radial',
+                           subsys=RadialThermalResistance(num_nodes=nn, geom=geom),
+                           promotes_inputs=inpts,
+                           promotes_outputs=['R_w','R_wk','R_inter'])
+
+
+        self.set_input_defaults('T_hp', 300 * np.ones(nn), units='K')
 
         # Define Resistors
         self.add_subsystem('Rex', Resistor(num_nodes=nn))
@@ -167,29 +166,15 @@ class Bridge(om.Group):
     """ Bridge between evaporator or condensors """
     def initialize(self):
         self.options.declare('num_nodes', types=int, default=1)  
-        self.options.declare('geom', values=['round', 'flat'], default='round')
 
     def setup(self):
         nn = self.options['num_nodes']
-        geom = self.options['geom']
 
         # Compute Resistances
         self.add_subsystem(name='axial',
                            subsys=AxialThermalResistance(num_nodes=nn),
-                           promotes_inputs=['epsilon', 'k_w', 'k_l', 'XS:A_w', 'XS:A_wk','LW:L_flux', 'LW:L_adiabatic'],
-                           promotes_outputs=['k_wk']) 
-
-        if geom == 'round': 
-
-            self.add_subsystem(name='vapor',
-                               subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['XS:D_v', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_flux', 'LW:L_adiabatic'])
-
-        elif geom == 'flat':
-
-            self.add_subsystem(name='vapor',
-                               subsys=VaporThermalResistance(num_nodes=nn, geom=geom),
-                               promotes_inputs=['W', 'H', 'XS:t_w', 'XS:t_wk', 'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'LW:L_flux', 'LW:L_adiabatic'])
+                           promotes_inputs=['k_w', 'k_wk', 'XS:A_w', 'XS:A_wk','LW:L_eff',
+                           'R_g', 'mu_v', 'T_hp', 'h_fg', 'P_v', 'rho_v', 'XS:r_h']) 
 
         # Define Axial Resistors
         self.add_subsystem('Rv', Resistor(num_nodes=nn)) # vapor channel
@@ -197,7 +182,7 @@ class Bridge(om.Group):
         self.add_subsystem('Rwa', Resistor(num_nodes=nn)) # wall 
 
         # connect
-        self.connect('vapor.R_v','Rv.R')
+        self.connect('axial.R_v','Rv.R')
         self.connect('axial.R_aw','Rwa.R')
         self.connect('axial.R_awk', 'Rwka.R')
 
@@ -213,16 +198,10 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
     #                     promotes_inputs=['LW:L_adiabatic',('L1','{}.L_flux'.format(l_name,r_name)],
     #                     promotes_outputs=['L_eff'])
 
-    if geom == 'round': 
-        model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['XS:D_v', 'XS:A_w','XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
-                            #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
-
-    elif geom =='flat':
-        model.add_subsystem(b_name, Bridge(num_nodes=nn, geom=geom),
-                            promotes_inputs=['W', 'H', 'XS:A_w', 'XS:A_wk', 'LW:L_flux', 'LW:L_adiabatic', 'k_w','epsilon'])#,
-                            #promotes_outputs=['k_wk'])  # Connect k_wk manually from one bridge to all RadialStacks
+    inpts = ['XS:A_w', 'XS:A_wk', 'LW:L_eff', 'k_w', 'XS:r_h']
     
+    model.add_subsystem(b_name, Bridge(num_nodes=nn), promotes_inputs=inpts)
+
     # model.set_input_defaults('L_eff', val=0.045)  # TODO set higher up?
     # Link Geometry
     #model.connect('{}.XS:A_w'.format(l_name),'{}.XS:A_w'.format(b_name)) # this can come from either component
@@ -233,8 +212,8 @@ def thermal_link(model, l_comp, r_comp, num_nodes=1, geom='round'):
     model.connect('{}.P_v'.format(r_name),'{}.P_v'.format(b_name))
     model.connect('{}.h_fg'.format(r_name),'{}.h_fg'.format(b_name))
     model.connect('{}.rho_v'.format(r_name),'{}.rho_v'.format(b_name))
-    model.connect('{}.k_l'.format(r_name),'{}.k_l'.format(b_name))
-    model.connect('{}.T_hp'.format(r_name),'{}.T_hp'.format(b_name))
+    # model.connect('{}.radial.k_wk'.format(r_name),'{}.k_wk'.format(b_name))
+    # model.connect('{}.T_hp'.format(r_name),'{}.T_hp'.format(b_name))
 
 
 
