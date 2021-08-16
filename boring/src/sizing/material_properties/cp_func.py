@@ -40,7 +40,7 @@ class PCM_Cp(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         T = inputs['T']
-        T_lo = 333.
+        T_lo = 333.  # TODO: These values are currently hard coded
         T_hi = 338.
         Cp_lo = 1.5
         Cp_hi = 6.5
@@ -50,7 +50,7 @@ class PCM_Cp(om.ExplicitComponent):
 
     def compute_partials(self, inputs, partials):
         T = inputs['T']
-        T_lo = 333.
+        T_lo = 333.  # TODO: These values are currently hard coded
         T_hi = 338.
         Cp_lo = 1.5
         Cp_hi = 6.5

@@ -21,7 +21,7 @@ class TestXlsx2npy(unittest.TestCase):
         # Nothing to add
         print("Setup")
         
-    def test_two_col(self): # test against 2 parameters
+    def _test_two_col(self): # test against 2 parameters
         np_arr = np_arr_    
         #Verification test
         diff = np_arr - t_data

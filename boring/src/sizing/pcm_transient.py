@@ -120,10 +120,10 @@ for cell in np.arange(num_cells):
 p['phase.states:T_cell_0'] = phase.interpolate(ys=[400., 330], nodes='state_input')
 
 p.run_driver()
-p.model.list_inputs(prom_name=True)
-p.model.list_outputs(prom_name=True)
-om.view_connections(p)
-quit()
+# p.model.list_inputs(prom_name=True)
+# p.model.list_outputs(prom_name=True)
+# om.view_connections(p)
+# quit()
 #om.n2(p)
 
 # move cases.sql up and over to the output folder
