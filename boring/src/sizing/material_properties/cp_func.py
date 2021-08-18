@@ -1,5 +1,7 @@
 """
-These helper functions are a placeholder until a derivative friendly method replaces it (akima, convolution)
+Phase change can be modeled as a sudden increase in specific heat over a defined temperature window.
+The function computing specific heat is a sigmoid function for a smooth step pulse function.
+Gradient steepness is determined by the a (sigma) variable.
 
 
 Apparent Heat Capacity Method
