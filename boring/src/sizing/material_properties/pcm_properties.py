@@ -3,6 +3,7 @@ Calculates bulk properties following the method outlined in
 "Experimental investigation on copper foam/hydrated salt composite phase change material for thermal energy storage" T.X. Li, D.L. Wu, F. He, R.Z. Wang
 "Modeling and Analysis of Phase Change Materials for Efficient Thermal Management" Fulya Kaplan et al
 
+Effective Heat Capacity Method
 Apparent Heat Capacity Method  Cp = f(T)  (Need upper and lower Cp, and 2 bounding temperatures)
 Latent Heat Energy Model       T = f(U)  (Need melting temp, and latent heat)
 
