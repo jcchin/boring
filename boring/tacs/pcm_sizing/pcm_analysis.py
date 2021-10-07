@@ -8,11 +8,20 @@ from tacs import TACS, elements, constitutive, functions
 # Constants and assumptions
 # -------------------------
 
+foam_material = 'cu'
+# pcm_material = 'croda'  -> same conductivity for both
+
 # Material properties
-porosity = 0.90
-k_foam = 401.0
-rho_foam = 8960.0
-k_pcm = 2.0
+if foam_material == 'al':
+    porosity = 0.90
+    k_foam = 58.0
+    rho_foam = 8960.0
+else:  # 'cu'
+    porosity = 0.94
+    k_foam = 401.0
+    rho_foam = 8960.0
+
+k_pcm = 0.25
 rho_pcm = 1450.0
 
 bulk_rho = 1. / (porosity / rho_pcm + (1 - porosity) / rho_foam)
@@ -26,12 +35,22 @@ battery_k = 200.0  # ???? https://tfaws.nasa.gov/wp-content/uploads/TFAWS18-PT-1
 discharge_rate = 10.4  # 2C
 voltage = 3.28
 resistance = 15e-3
+Tmax = 19.0
 
-qdot_in = resistance*discharge_rate**2
-h_pipe = 100.0
-Tref = 0.0
+'''
+Compute required heat-pipe interface temperature through energy balance:
+Battery is only heat-source, and heat pipe is only heat sink.
+Assuming heat-pipe interface behavior similar to convection Q = h*A(T-Tref)
+Choose h, then by balance of energy, we can set the interface temperature of T
+'''
 
-def get_elems_and_surfs(names):
+Q = resistance*discharge_rate**2
+Tref = 0.0  # reference temperature of heat pipe (above ambient)
+h = 300.0  # convective heat transfer coefficient to from PCM to heat pipe
+A = (5e-3)*(61e-3)  # area of heat pipe face, m^2
+dT = Q/(h*A) + Tref  # fixed temperature boundary condition at heat pipe interface
+
+def get_elems_and_surfs(forest, names):
     # Get the element numbers and faces for a list of names
     elems = []
     surfs = []
@@ -42,25 +61,6 @@ def get_elems_and_surfs(names):
             surfs.append(oc.info)
 
     return elems, surfs
-
-def addTractionAuxElements(names, forest,
-                           aux, trac):
-
-    octants = forest.getOctants()
-    if isinstance(names, str):
-        face_octs = forest.getOctsWithName(names)
-    else:
-        face_octs = []
-        for name in names:
-            face_octs.extend(forest.getOctsWithName(name))
-
-    # Add the auxiliary elements
-    for i in range(len(face_octs)):
-        index = face_octs[i].tag
-        if index is not None:
-            aux.addElement(index, trac[face_octs[i].info])
-
-    return
 
 def create_forest(comm, depth, htarget):
     '''
@@ -86,23 +86,13 @@ def create_forest(comm, depth, htarget):
         faces.extend(geo.getFaces())
         vols.extend(geo.getVolumes())
 
-    # vols[0].setName('battery')
-    # vols[1].setName('battery')
-    # vols[2].setName('battery')
-    # vols[3].setName('pcm')
-    # vols[4].setName('pcm')
-    # vols[5].setName('pcm')
-
     # Combine the geometries and mesh the assembly
     TMR.setMatchingFaces(all_geos)
 
     # Create the geometry
     geo = TMR.Model(verts, edges, faces, vols)
 
-    #geo.writeModelToTecplot('model.dat', vlabels=False, elabels=False)
-
     # Name the objects that we need to use
-
     faces[29].setName('heat_pipe')
     faces[35].setName('ambient')
     faces[23].setName('ambient')
@@ -120,7 +110,6 @@ def create_forest(comm, depth, htarget):
 
     # Mesh the geometry with the given target size
     mesh.mesh(htarget, opts=opts)
-    # mesh.writeToVTK('battery_mesh.vtk')
 
     # Create a model from the mesh
     model = mesh.createModelFromMesh()
@@ -211,113 +200,82 @@ class CreateMe(TMR.OctCreator):
         return assemblers[0], mg
 
 
-def create_force(forest, assembler):
-
-    force = assembler.createVec()
-    assembler.zeroVariables()
-    aux = TACS.AuxElements()
+def create_force(assembler, forest):
 
     # Get the basis object from one of the elements
     elems = assembler.getElements()
     basis = elems[0].getElementBasis()
     vpn = elems[0].getVarsPerNode()
 
-    # Add the heat flux from the battery discharge
+    # Add the heat flux traction on the clamped end
     tractions = []
-    trac = [-qdot_in]
+    trac = [Q]
     for findex in range(6):
         tractions.append(elements.Traction3D(vpn, findex,
                                              basis, trac))
 
-    addTractionAuxElements('battery', forest,
-                           aux, tractions)
+    force = TopOptUtils.computeTractionLoad('battery',
+                                            forest,
+                                            assembler,
+                                            tractions)
 
-#     # Insulate the sides
-#     tractions = []
-#     trac = [0.0]
-#     for findex in range(6):
-#         tractions.append(elements.Traction3D(vpn, findex,
-#                                              basis, trac))
-#
-#     addTractionAuxElements(['insulated', 'ambient'],
-#                            forest, aux, tractions)
-
-    # Remove the heat from the heat pipe
-    tractions = []
-    for findex in range(6):
-        tractions.append(elements.ConvectiveTraction3D(vpn, findex,
-                                                       vpn-1, h_pipe,
-                                                       Tref, basis))
-
-    addTractionAuxElements('heat_pipe', forest, aux, tractions)
-
-    # Set the auxilliary elements and get the force vector
-    assembler.setAuxElements(aux)
-    assembler.assembleRes(force)
-    force.scale(-1.0)
+    f = force.getArray()
 
     return force
 
-def integrate(assembler, forest, tfinal=300.0,
-              nsteps=30, output=False):
+def solve(assembler, mg, forest):
 
-    # Create the BDF integrator
-    tinit = 0.0
-    order = 2
-    bdf = TACS.BDFIntegrator(assembler,
-                             tinit, tfinal,
-                             nsteps, order)
-    bdf.setPrintLevel(0)
-    bdf.setAbsTol(1e-6)
-    bdf.setRelTol(1e-15)
-    if output:
-        # Set the output file name
-        flag = (TACS.OUTPUT_CONNECTIVITY |
-                TACS.OUTPUT_NODES |
-                TACS.OUTPUT_DISPLACEMENTS |
-                TACS.OUTPUT_EXTRAS)
-        f5 = TACS.ToFH5(assembler,
-                        TACS.PLANE_STRESS_ELEMENT,
-                        flag)
-        bdf.setFH5(f5)
-        bdf.setOutputFrequency(1)
-        bdf.setOutputPrefix('time_history/')
+    # Set the function of interest as the max pcm temperature
+    kstemp = functions.KSTemperature(assembler, 100.0)
+    elems, faces = get_elems_and_surfs(forest, ['pcm'])
+    kstemp.setDomain(elems)
 
-    # Create a vector that will store the instantaneous traction
-    # load at any point in time
-    forces = create_force(forest, assembler)
+    # Set the design variables
+    x_vec = assembler.createDesignVec()
+    assembler.getDesignVars(x_vec)
+    x = x_vec.getArray()
+    x[:] = 1.0
+    assembler.setDesignVars(x_vec)
 
-    # Iterate in time to march the equations of motion forward
-    # in time
-    t_array = np.linspace(tinit, tfinal,
-                          nsteps+1)
-    for i, t in enumerate(t_array):
-        # Iterate forward in time for one time step
-        print("Starting time step {0}".format(i))
-        bdf.iterate(i, forces=forces)
+    force = create_force(assembler, forest)
 
-    # Extract the time history
-    qvals = np.zeros(nsteps+1)
-    tvals = np.zeros(nsteps+1)
-    for time_step in range(nsteps+1):
-        # Extract vectors
-        time, q , _, _ = bdf.getStates(time_step)
-        # Extract Arrays
-        qarray = q.getArray()
-        qvals[time_step] = np.amax(qarray)
-        tvals[time_step] = time
+    u = assembler.createVec()
+    assembler.zeroVariables()
+    mat = mg.getMat()
+    ksm = TACS.KSM(mat, mg, 100, 5, 0)
+    mg.assembleJacobian(1.0, 0.0, 0.0, None)
+    mg.factor()
+    assembler.setBCs(force)
+    ksm.solve(force, u)
+    assembler.setBCs(u)
+    assembler.setVariables(u)
 
-    return tvals, qvals, q
+    pcm_temp = assembler.evalFunctions([kstemp])[0]
+    print("Max PCM temperature is {0}".format(pcm_temp))
+    print("Max allowable temperate is {0}".format(Tmax))
+
+    flag = (TACS.OUTPUT_CONNECTIVITY |
+            TACS.OUTPUT_NODES |
+            TACS.OUTPUT_DISPLACEMENTS |
+            TACS.OUTPUT_EXTRAS)
+
+    f5 = TACS.ToFH5(assembler,
+                    TACS.SCALAR_3D_ELEMENT,
+                    flag)
+    f5.writeToFile('pcm.f5')
+
+    return
 
 
 # Create the communicator
 comm = MPI.COMM_WORLD
 
 # Create the forest
-forest = create_forest(comm, 1, 4e-3)
+forest = create_forest(comm, 1, 2e-3)
 
 # Set the boudnary conditions (None)
 bcs = TMR.BoundaryConditions()
+bcs.addBoundaryCondition('heat_pipe', bc_nums=[0], bc_vals=[dT])
 
 pcm_tags = []
 battery_tags = []
@@ -351,55 +309,5 @@ forest.createTrees(nlevels-1)
 # Create the TACS assembler
 assembler, mg = creator.createMg(forest, nlevels=nlevels, order=2)
 
-force = create_force(forest, assembler)
-
-# Set the design vars to 1
-dv_vec = assembler.createDesignVec()
-x = dv_vec.getArray()
-x[:] = 1.0
-assembler.setDesignVars(dv_vec)
-
-tvals, qvals, qfinal = integrate(assembler, forest)
-
-plt.style.use('mark')
-fig, ax = plt.subplots(1, 1, figsize=(10, 6), constrained_layout=True)
-ax.plot(tvals, qvals)
-plt.show()
-
-assembler.setVariables(qfinal)
-
-# Output for visualization
-flag = (TACS.OUTPUT_CONNECTIVITY |
-        TACS.OUTPUT_NODES |
-        TACS.OUTPUT_DISPLACEMENTS)
-
-f5 = TACS.ToFH5(assembler,
-                TACS.SCALAR_3D_ELEMENT,
-                flag)
-f5.writeToFile('pouch_cell.f5')
-
-# # Solve the steady-state conduction problem
-# u = assembler.createVec()
-# assembler.zeroVariables()
-# mat = mg.getMat()
-# ksm = TACS.KSM(mat, mg, 100, 5, 0)
-# mg.assembleJacobian(1.0, 0.0, 0.0, None)
-# mg.factor()
-# assembler.setBCs(force)
-# ksm.solve(force, u)
-# assembler.setBCs(u)
-# assembler.setVariables(u)
-#
-# # Get the maximum temperature of the PCM
-# print("Max temp = {0}".format(np.amax(u.getArray())))
-#
-# # Output for visualization
-# flag = (TACS.OUTPUT_CONNECTIVITY |
-#         TACS.OUTPUT_NODES |
-#         TACS.OUTPUT_DISPLACEMENTS)
-#
-# f5 = TACS.ToFH5(assembler,
-#                 TACS.SCALAR_3D_ELEMENT,
-#                 flag)
-# f5.writeToFile('pouch_cell.f5')
-
+# Solve the steady-state conduction problem
+solve(assembler, mg, forest)
