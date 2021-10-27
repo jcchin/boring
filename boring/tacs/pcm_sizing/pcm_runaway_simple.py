@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 
 
 # Constants and assumptions
@@ -32,7 +33,7 @@ else:  # 'cu'
 
 if pcm_material == 'croda':
     lh = 197e3  # latent heat, melting, J/kg
-    mt = 44.0  # melting temperature, deg. C
+    mt = 44.01  # melting temperature, deg. C
 
     # solid
     rho_pcm_s = 940.0
@@ -75,21 +76,17 @@ c_battery = 1400.0  # ^ same
 # Thermal runaway heat generation
 duration = 10.0
 total_energy = 16.5*3600.0  # 16.5 W-h -> J
-thermal_pct = 0.25  # percent of total battery energy that can convert to heat during runaway
+thermal_pct = 1.0  # percent of total battery energy that can convert to heat during runaway
 Qdot = thermal_pct*total_energy/duration  # total heat released per second
 
 # Heat-pipe cooling to get steady-state initial condition
-discharge_rate = 10.4  # 2C
-resistance = 15e-3
-Q = resistance*discharge_rate**2
-T0 = 25.0  # Ambient temperature (deg C)
+T0 = 44.0  # Starting uniform temperature (deg C)
 Tref = 0.0  # reference temperature of heat pipe (above ambient)
-h = 300.0  # convective heat transfer coefficient to from PCM to heat pipe
+h = 0.0#100.0  # convective heat transfer coefficient to from PCM to heat pipe
 Aconv = dw*l  # area of heat pipe face, m^2
-dT = Q/(h*Aconv) + Tref + T0 # fixed temperature boundary condition at heat pipe interface
 
 # Discretization in time
-tfinal = 10.0
+tfinal = 40.0
 nsteps = int(500*tfinal+1)
 dt = tfinal/(nsteps-1)
 t = np.linspace(0.0, tfinal, nsteps)
@@ -98,12 +95,14 @@ t = np.linspace(0.0, tfinal, nsteps)
 nelems_battery = 10
 nelems_pcm = 10
 nelems = nelems_battery + nelems_pcm
-x_battery = np.linspace(0.0, t_battery, nelems_battery)
-x_pcm = np.linspace(t_battery, t_battery+t_pcm, nelems_pcm)
+x_battery = np.linspace(0.0, t_battery, nelems_battery+1)
+x_pcm = np.linspace(t_battery, t_battery+t_pcm, nelems_pcm+1)
 dx_battery = t_battery/nelems_battery
 dx_pcm = t_pcm/nelems_pcm
+x_battery = dx_battery + x_battery[0:-1]
+x_pcm = dx_pcm + x_pcm[0:-1]
 x = np.concatenate((x_battery, x_pcm))
-T = dT*np.ones((nsteps, nelems))
+T = T0*np.ones((nsteps, nelems))
 Tmax = np.zeros(nsteps)
 Tmax[0] = T[0, 0]
 pcm_lh = (lh*A*t_pcm*rho_pcm_s/nelems_pcm)*np.ones(nelems_pcm)
@@ -111,6 +110,7 @@ lh_hist = np.zeros((nsteps, nelems_pcm))
 lh_hist[0, :] = np.ones(nelems_pcm)
 lh_pct_hist = np.zeros(nsteps)
 lh_pct_hist[0] = 1.0
+dTdt = np.zeros(nsteps)
 
 # Define some integration constants
 a_battery = dt/(c_battery*rho_battery*dx_battery*A)
@@ -129,6 +129,7 @@ for i in range(nsteps-1):
         q = 0.0
 
     for j in range(nelems):
+        dTdt_j = np.zeros(nelems)
 
         # bottom boundary
         if j == 0:
@@ -182,7 +183,9 @@ for i in range(nsteps-1):
 
             else:  # melted
                 T[i+1, j] = T[i, j] + a_pcm_l*((T[i, j-1] - T[i, j])/R_pcm_l - h*Aconv*(T[i, j] - Tref))
+        dTdt_j[j] = (T[i+1, j]-T[i, j])/dt
 
+    dTdt[i+1] = np.amax(dTdt_j)
     Tmax[i+1] = np.amax(T[i+1, :])
     lh_pct_hist[i+1] = np.sum(pcm_lh)/(lh*A*t_pcm*rho_pcm_s)
     lh_hist[i+1, :] = pcm_lh/(lh*A*t_pcm*rho_pcm_s/nelems_pcm)
@@ -190,7 +193,6 @@ for i in range(nsteps-1):
 # Plot the results
 nsample = int((nsteps-1)/tfinal)
 T = T[0::nsample, :]
-lh_hist = lh_hist[0::nsample, :]
 plot_len = np.shape(T)[0]
 
 plt.style.use('mark')
@@ -210,15 +212,15 @@ ax.set_xlabel(r"$T(t)$ ($^\circ$C)")
 #ax.set_ylabel(r"$x$ (mm)")
 ax.axes.yaxis.set_visible(False)
 # Add the text
-ax.annotate('Battery', (19.0, 0.5*t_battery*1e3), (19.0, 0.5*t_battery*1e3),
+ax.annotate('Battery', (40.0, 0.5*t_battery*1e3), (40.0, 0.5*t_battery*1e3),
             ha='center', rotation=90, annotation_clip=False)
-ax.annotate('PCM', (19.0, t_battery*1e3+0.5*t_pcm*1e3), (19.0, t_battery*1e3+0.5*t_pcm*1e3),
+ax.annotate('PCM', (40.0, t_battery*1e3+0.5*t_pcm*1e3), (40.0, t_battery*1e3+0.5*t_pcm*1e3),
             ha='center', rotation=90, annotation_clip=False)
 # Draw the arrow
-ax.annotate('', (19.5, 0.0), xytext=(19.5, t_battery*1e3),
+ax.annotate('', (40.5, 0.0), xytext=(40.5, t_battery*1e3),
             arrowprops=dict(arrowstyle="<->"),
             annotation_clip=False)
-ax.annotate('', (19.5, t_battery*1e3), xytext=(19.5, t_battery*1e3+t_pcm*1e3),
+ax.annotate('', (40.5, t_battery*1e3), xytext=(40.5, t_battery*1e3+t_pcm*1e3),
             arrowprops=dict(arrowstyle="<->"),
             annotation_clip=False)
 
@@ -226,9 +228,19 @@ plt.savefig('temperature_history.pdf', bbox_inches='tight', transparent=True)
 
 # Plot the latent heat (liquid/solid) over time
 fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
-ax.plot(t[0::nsample], lh_pct_hist[0::nsample])
+ax.plot(t, 100*lh_pct_hist)
 
 ax.set_xlabel(r"$t$ (s)")
 ax.set_ylabel(r"Percent of PCM that is solid")
+ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
 plt.savefig('latent_heat_history.pdf', bbox_inches='tight', transparent=True)
+
+# Plot the max temperature rate of change over time
+fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+ax.plot(t[1::], dTdt[1::])
+
+ax.set_xlabel(r"$t$ (s)")
+ax.set_ylabel(r"dT/dt ($^\circ$C/s)")
+
+plt.savefig('dTdt_history.pdf', bbox_inches='tight', transparent=True)
