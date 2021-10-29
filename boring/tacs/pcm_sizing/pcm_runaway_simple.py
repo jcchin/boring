@@ -87,35 +87,39 @@ Aconv = dw*l  # area of heat pipe face, m^2
 
 # Discretization in time
 tfinal = 40.0
-nsteps = int(2000*tfinal+1)
+nsteps = int(5000*tfinal+1)
 dt = tfinal/(nsteps-1)
 t = np.linspace(0.0, tfinal, nsteps)
 
 # Discretization in space
-nelems_battery = 10
-nelems_pcm = 10
+nelems_battery = 20
+nelems_pcm = 20
 nelems = nelems_battery + nelems_pcm
+nnodes = nelems+1
 x_battery = np.linspace(0.0, t_battery, nelems_battery+1)
 x_pcm = np.linspace(t_battery, t_battery+t_pcm, nelems_pcm+1)
 dx_battery = t_battery/nelems_battery
 dx_pcm = t_pcm/nelems_pcm
-x_battery = dx_battery + x_battery[0:-1]
-x_pcm = dx_pcm + x_pcm[0:-1]
-x = np.concatenate((x_battery, x_pcm))
-T = T0*np.ones((nsteps, nelems))
+x = np.concatenate((x_battery[0:-1], x_pcm))
+T = T0*np.ones((nsteps, nnodes))
 Tmax = np.zeros(nsteps)
 Tmax[0] = T[0, 0]
-pcm_lh = (lh*A*t_pcm*rho_pcm_s/nelems_pcm)*np.ones(nelems_pcm)
-lh_hist = np.zeros((nsteps, nelems_pcm))
-lh_hist[0, :] = np.ones(nelems_pcm)
-lh_pct_hist = np.zeros(nsteps)
-lh_pct_hist[0] = 1.0
-dTdt = np.zeros(nsteps)
+
+# TODO: latent heat
+# pcm_lh = (lh*A*t_pcm*rho_pcm_s/nelems_pcm)*np.ones(nelems_pcm)
+# lh_hist = np.zeros((nsteps, nelems_pcm))
+# lh_hist[0, :] = np.ones(nelems_pcm)
+# lh_pct_hist = np.zeros(nsteps)
+# lh_pct_hist[0] = 1.0
+# dTdt = np.zeros(nsteps)
 
 # Define some integration constants
-a_battery = dt/(c_battery*rho_battery*dx_battery*A)
-a_pcm_s = dt/(bulk_c_s*bulk_rho_s*dx_pcm*A)
-a_pcm_l = dt/(bulk_c_l*bulk_rho_l*dx_pcm*A)
+m_battery = rho_battery*A*t_battery
+m_pcm = bulk_rho_s*A*t_pcm
+
+a_battery = dt/(c_battery*m_battery/nelems_battery)
+a_pcm_s = dt/(bulk_c_s*m_pcm/nelems_pcm)
+a_pcm_l = dt/(bulk_c_l*m_pcm/nelems_pcm)
 
 R_battery = dx_battery/(A*k_battery)
 R_pcm_s = dx_pcm/(A*bulk_k_s)
@@ -199,29 +203,28 @@ for i in range(nsteps-1):
     else:
         q = 0.0
 
-    for j in range(nelems):
-        dTdt_j = np.zeros(nelems)
+    for j in range(nnodes):
 
         # bottom boundary
         if j == 0:
-            #print(a_battery*(T[i, 1] - T[i, 0])/R_battery) # should be negative
-            T[i+1, j] = T[i, j] + a_battery*((T[i, 1] - T[i, 0])/R_battery + q)
+            T[i+1, j] = T[i, j] + 2.0*a_battery*((T[i, 1] - T[i, 0])/R_battery + 0.5*q)
 
         # battery
         elif j < nelems_battery:
             T[i+1, j] = T[i, j] + a_battery*((T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_battery + q)
 
+        # battery-pcm interface
+        elif j == nelems_battery:
+            T[i+1, j] = T[i, j] + 0.5*(a_battery+a_pcm_s)*((T[i, j-1] - T[i, j])/R_battery - (T[i, j] - T[i, j+1])/R_pcm_s + 0.5*q)
+
         # pcm
-        elif j < nelems-1:
-            T[i+1, j] = T[i, j] + a_battery*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_battery #a_pcm_s*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_pcm_s
+        elif j < nnodes-1:
+            T[i+1, j] = T[i, j] + a_pcm_s*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_pcm_s
 
         # heat-pipe boundary
         else:
-            T[i+1, j] = T[i, j] + a_battery*((T[i, j-1] - T[i, j])/R_battery)#a_pcm_s*((T[i, j-1] - T[i, j])/R_pcm_s) #- h*Aconv*(T[i, j] - Tref))
+            T[i+1, j] = T[i, j] + a_pcm_s*((T[i, j-1] - T[i, j])/R_pcm_s)#a_pcm_s*((T[i, j-1] - T[i, j])/R_pcm_s) #- h*Aconv*(T[i, j] - Tref))
 
-        dTdt_j[j] = (T[i+1, j]-T[i, j])/dt
-
-    dTdt[i+1] = np.amax(dTdt_j)
     Tmax[i+1] = np.amax(T[i+1, :])
 
 # Check conservation of energy
@@ -230,21 +233,18 @@ for i in range(nelems):
 
     if i < nelems_battery:
         R_energy -= c_battery*rho_battery*dx_battery*A*(T[-1, i]-T0)
+    elif i == nelems_battery:
+        R_energy -= 0.5*(c_battery*m_battery/nelems_battery + bulk_c_s*m_pcm/nelems_pcm)*(T[-1, i]-T0)
     else:
-        R_energy -= c_battery*rho_battery*dx_battery*A*(T[-1, i]-T0)#bulk_c_s*bulk_rho_s*dx_pcm*A*(T[-1, i]-T0)
+        R_energy -= bulk_c_s*bulk_rho_s*dx_pcm*A*(T[-1, i]-T0)
 
 #print(energy_counter)
 print(f"R(energy) = {R_energy}")
 print(f"max(dT) = {np.amax(Tmax)}")
 
-m_battery = rho_battery*A*t_battery
-m_pcm_s = bulk_rho_s*A*t_pcm
-m_pcm_l = bulk_rho_l*A*t_pcm
-lh_energy = lh*rho_pcm_s*A*t_pcm
-dT_battery = (total_energy-lh_energy)/(m_battery*c_battery+m_pcm_l*bulk_c_l)
+dT_battery = (total_energy)/(m_battery*c_battery+m_pcm*bulk_c_s)
 print(f"Final temperature = {dT_battery+T0}")
 
-asd
 
 # Plot the results
 #nsample = int((nsteps-1)/tfinal)
@@ -261,45 +261,46 @@ cmap = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.coolwarm)
 cmap.set_array([])
 colors = plt.cm.coolwarm(np.linspace(0.0, 1.0, plot_len))
 
-for i in range(plot_len):
-    ax.plot(T[i, :], x*1e3, color=colors[i])
+# for i in range(plot_len):
+#     ax.plot(T[i, :], x*1e3, color=colors[i])
+ax.plot(T[-1, :], x*1e3)
 
 ax.set_xlabel(r"$T(t)$ ($^\circ$C)")
 #ax.set_ylabel(r"$x$ (mm)")
 ax.axes.yaxis.set_visible(False)
 # Add the text
-ax.annotate('Battery', (40.0, 0.5*t_battery*1e3), (40.0, 0.5*t_battery*1e3),
-            ha='center', rotation=90, annotation_clip=False)
-ax.annotate('PCM', (40.0, t_battery*1e3+0.5*t_pcm*1e3), (40.0, t_battery*1e3+0.5*t_pcm*1e3),
-            ha='center', rotation=90, annotation_clip=False)
-# Draw the arrow
-ax.annotate('', (40.5, 0.0), xytext=(40.5, t_battery*1e3),
-            arrowprops=dict(arrowstyle="<->"),
-            annotation_clip=False)
-ax.annotate('', (40.5, t_battery*1e3), xytext=(40.5, t_battery*1e3+t_pcm*1e3),
-            arrowprops=dict(arrowstyle="<->"),
-            annotation_clip=False)
+# ax.annotate('Battery', (40.0, 0.5*t_battery*1e3), (40.0, 0.5*t_battery*1e3),
+#             ha='center', rotation=90, annotation_clip=False)
+# ax.annotate('PCM', (40.0, t_battery*1e3+0.5*t_pcm*1e3), (40.0, t_battery*1e3+0.5*t_pcm*1e3),
+#             ha='center', rotation=90, annotation_clip=False)
+# # Draw the arrow
+# ax.annotate('', (40.5, 0.0), xytext=(40.5, t_battery*1e3),
+#             arrowprops=dict(arrowstyle="<->"),
+#             annotation_clip=False)
+# ax.annotate('', (40.5, t_battery*1e3), xytext=(40.5, t_battery*1e3+t_pcm*1e3),
+#             arrowprops=dict(arrowstyle="<->"),
+#             annotation_clip=False)
 
 plt.savefig('temperature_history.pdf', bbox_inches='tight', transparent=True)
 
-# Plot the latent heat (liquid/solid) over time
-fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
-ax.plot(t, 100*lh_pct_hist)
+# # Plot the latent heat (liquid/solid) over time
+# fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+# ax.plot(t, 100*lh_pct_hist)
+#
+# ax.set_xlabel(r"$t$ (s)")
+# ax.set_ylabel(r"Percent of PCM that is solid")
+# ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+#
+# plt.savefig('latent_heat_history.pdf', bbox_inches='tight', transparent=True)
 
-ax.set_xlabel(r"$t$ (s)")
-ax.set_ylabel(r"Percent of PCM that is solid")
-ax.yaxis.set_major_formatter(mtick.PercentFormatter())
-
-plt.savefig('latent_heat_history.pdf', bbox_inches='tight', transparent=True)
-
-# Plot the max temperature rate of change over time
-fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
-ax.plot(t[1::], dTdt[1::])
-
-ax.set_xlabel(r"$t$ (s)")
-ax.set_ylabel(r"dT/dt ($^\circ$C/s)")
-
-plt.savefig('dTdt_history.pdf', bbox_inches='tight', transparent=True)
+# # Plot the max temperature rate of change over time
+# fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+# ax.plot(t[1::], dTdt[1::])
+#
+# ax.set_xlabel(r"$t$ (s)")
+# ax.set_ylabel(r"dT/dt ($^\circ$C/s)")
+#
+# plt.savefig('dTdt_history.pdf', bbox_inches='tight', transparent=True)
 
 # Plot the maximum temperature over time
 fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
