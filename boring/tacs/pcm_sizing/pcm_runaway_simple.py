@@ -70,19 +70,19 @@ bulk_c_l = 1. / (porosity / c_pcm_l + (1 - porosity) / c_foam)
 
 # battery properties
 rho_battery = 2385.0 #(44e-3)/((61e-3)*(54e-3)*(5.6e-3))  # spec 44g weight/ volume
-k_battery = 200.0  # ???? https://tfaws.nasa.gov/wp-content/uploads/TFAWS18-PT-11.pdf
+k_battery = 0.80  # ???? https://tfaws.nasa.gov/wp-content/uploads/TFAWS18-PT-11.pdf
 c_battery = 800.0  # ^ same
 
 # Thermal runaway heat generation
 duration = 10.0
 total_energy = 16.5*3600.0  # 16.5 W-h -> J
-thermal_pct = 1.0  # percent of total battery energy that can convert to heat during runaway
+thermal_pct = 0.30  # percent of total battery energy that can convert to heat during runaway
 Qdot = thermal_pct*total_energy/duration  # total heat released per second
 
 # Heat-pipe cooling to get steady-state initial condition
 T0 = 44.0  # Starting uniform temperature (deg C)
 Tref = 0.0  # reference temperature of heat pipe (above ambient)
-h = 0.0#100.0  # convective heat transfer coefficient to from PCM to heat pipe
+h = 100.0  # convective heat transfer coefficient to from PCM to heat pipe
 Aconv = dw*l  # area of heat pipe face, m^2
 
 # Discretization in time
@@ -92,108 +92,41 @@ dt = tfinal/(nsteps-1)
 t = np.linspace(0.0, tfinal, nsteps)
 
 # Discretization in space
-nelems_battery = 20
-nelems_pcm = 20
+nelems_battery = 10
+nelems_pcm = 10
 nelems = nelems_battery + nelems_pcm
-nnodes = nelems+1
 x_battery = np.linspace(0.0, t_battery, nelems_battery+1)
 x_pcm = np.linspace(t_battery, t_battery+t_pcm, nelems_pcm+1)
 dx_battery = t_battery/nelems_battery
 dx_pcm = t_pcm/nelems_pcm
-x = np.concatenate((x_battery[0:-1], x_pcm))
-T = T0*np.ones((nsteps, nnodes))
+x_battery = dx_battery + x_battery[0:-1]
+x_pcm = dx_pcm + x_pcm[0:-1]
+x = np.concatenate((x_battery, x_pcm))
+T = T0*np.ones((nsteps, nelems))
 Tmax = np.zeros(nsteps)
 Tmax[0] = T[0, 0]
+dTdt = np.zeros(nsteps)
 
-# TODO: latent heat
-# pcm_lh = (lh*A*t_pcm*rho_pcm_s/nelems_pcm)*np.ones(nelems_pcm)
-# lh_hist = np.zeros((nsteps, nelems_pcm))
-# lh_hist[0, :] = np.ones(nelems_pcm)
-# lh_pct_hist = np.zeros(nsteps)
-# lh_pct_hist[0] = 1.0
-# dTdt = np.zeros(nsteps)
+# Mass of each component
+m_battery = rho_battery*t_battery*A
+m_pcm = bulk_rho_s*t_pcm*A
+
+# Allocate the latent heat to the pcm elements
+pcm_lh = (lh*m_pcm/nelems_pcm)*np.ones(nelems_pcm)
+lh_pct_hist = np.zeros(nsteps)
+lh_pct_hist[0] = 1.0
 
 # Define some integration constants
-m_battery = rho_battery*A*t_battery
-m_pcm = bulk_rho_s*A*t_pcm
-
 a_battery = dt/(c_battery*m_battery/nelems_battery)
 a_pcm_s = dt/(bulk_c_s*m_pcm/nelems_pcm)
 a_pcm_l = dt/(bulk_c_l*m_pcm/nelems_pcm)
 
+# Thermal resistance of each element type
 R_battery = dx_battery/(A*k_battery)
+R_interface_s = (dx_battery + dx_pcm)/(A*(k_battery + bulk_k_s))
+R_interface_l = (dx_battery + dx_pcm)/(A*(k_battery + bulk_k_l))
 R_pcm_s = dx_pcm/(A*bulk_k_s)
 R_pcm_l = dx_pcm/(A*bulk_k_l)
-
-# for i in range(nsteps-1):
-#
-#     # Define the stepwise heat generation
-#     if t[i] <= duration:
-#         q = Qdot*(dx_battery/t_battery)
-#     else:
-#         q = 0.0
-#
-#     for j in range(nelems):
-#         dTdt_j = np.zeros(nelems)
-#
-#         # bottom boundary
-#         if j == 0:
-#             #print(a_battery*(T[i, 1] - T[i, 0])/R_battery) # should be negative
-#             T[i+1, j] = T[i, j] + a_battery*((T[i, 1] - T[i, 0])/R_battery + q)
-#
-#         # battery
-#         elif j < nelems_battery:
-#             T[i+1, j] = T[i, j] + a_battery*((T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_battery + q)
-#
-#         # pcm
-#         elif j < nelems-1:
-#
-#             # Check if the element is melted yet:
-#             if pcm_lh[j-nelems_battery] > 0.0:  # not melted yet
-#
-#                 # Check if the element will get melted this iteration:
-#                 Tkp1 = T[i, j] + a_pcm_s*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_pcm_s
-#                 if Tkp1 >= mt:
-#                     T[i+1, j] = mt  # element temp = melting temp
-#                     Qres = bulk_c_s*bulk_rho_s*dx_pcm*(Tkp1 - mt) # subtract the energy it took to get to melting temperature before reducing the latent heat
-#                     pcm_lh[j-nelems_battery] -= Qres
-#                     # if pcm_lh goes negative, start heating up the liquid
-#                     if pcm_lh[j-nelems_battery] < 0.0:
-#                         T[i+1, j] += a_pcm_l*(-pcm_lh[j-nelems_battery])
-#                         pcm_lh[j-nelems_battery] = 0.0
-#                 else:  # still solid
-#                     T[i+1, j] = Tkp1
-#
-#             else:  # melted
-#                 T[i+1, j] = T[i, j] + a_pcm_l*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_pcm_l
-#
-#         # heat-pipe boundary
-#         else:
-#
-#             # Check if the element is melted yet:
-#             if pcm_lh[j-nelems_battery] > 0.0:  # not melted yet
-#
-#                 # Check if the element will get melted this iteration:
-#                 Tkp1 = T[i, j] + a_pcm_s*((T[i, j-1] - T[i, j])/R_pcm_s - h*Aconv*(T[i, j] - Tref))
-#                 if Tkp1 >= mt:
-#                     T[i+1, j] = mt  # element temp = melting temp
-#                     Qres = bulk_c_s*bulk_rho_s*dx_pcm*(Tkp1 - mt) # subtract the energy it took to get to melting temperature before reducing the latent heat
-#                     pcm_lh[j-nelems_battery] -= Qres
-#                     # if pcm_lh goes negative, start heating up the liquid
-#                     if pcm_lh[j-nelems_battery] < 0.0:
-#                         T[i+1, j] += a_pcm_l*(-pcm_lh[j-nelems_battery])
-#                         pcm_lh[j-nelems_battery] = 0.0
-#                 else:  # still solid
-#                     T[i+1, j] = Tkp1
-#
-#             else:  # melted
-#                 T[i+1, j] = T[i, j] + a_pcm_l*((T[i, j-1] - T[i, j])/R_pcm_l - h*Aconv*(T[i, j] - Tref))
-#         dTdt_j[j] = (T[i+1, j]-T[i, j])/dt
-#
-#     dTdt[i+1] = np.amax(dTdt_j)
-#     Tmax[i+1] = np.amax(T[i+1, :])
-#     # lh_pct_hist[i+1] = np.sum(pcm_lh)/(lh*A*t_pcm*rho_pcm_s)
-#     # lh_hist[i+1, :] = pcm_lh/(lh*A*t_pcm*rho_pcm_s/nelems_pcm)
 
 for i in range(nsteps-1):
 
@@ -203,52 +136,107 @@ for i in range(nsteps-1):
     else:
         q = 0.0
 
-    for j in range(nnodes):
+    dTdt_j = np.zeros(nelems)
+
+    for j in range(nelems):
 
         # bottom boundary
         if j == 0:
-            T[i+1, j] = T[i, j] + 2.0*a_battery*((T[i, 1] - T[i, 0])/R_battery + 0.5*q)
+            T[i+1, j] = T[i, j] + a_battery*((T[i, 1] - T[i, 0])/R_battery + q)
 
         # battery
-        elif j < nelems_battery:
+        elif j < nelems_battery-1:
             T[i+1, j] = T[i, j] + a_battery*((T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_battery + q)
 
-        # battery-pcm interface
+        # battery top surface
+        elif j == nelems_battery-1:
+
+            # Check if the element is melted yet:
+            if pcm_lh[0] > 0.0:  # not melted yet
+                T[i+1, j] = T[i, j] + a_battery*((T[i, j-1] - T[i, j])/R_battery - (T[i, j] - T[i, j+1])/R_interface_s + q)
+            else:
+                T[i+1, j] = T[i, j] + a_battery*((T[i, j-1] - T[i, j])/R_battery - (T[i, j] - T[i, j+1])/R_interface_l + q)
+
+        # pcm bottom surface
         elif j == nelems_battery:
-            T[i+1, j] = T[i, j] + 0.5*(a_battery+a_pcm_s)*((T[i, j-1] - T[i, j])/R_battery - (T[i, j] - T[i, j+1])/R_pcm_s + 0.5*q)
+
+            # Check if the element is melted yet:
+            if pcm_lh[0] > 0.0:  # not melted yet
+
+                # Check if the element will get melted this iteration:
+                Tkp1 = T[i, j] + a_pcm_s*((T[i, j-1] - T[i, j])/R_interface_s - (T[i, j] - T[i, j+1])/R_pcm_s)
+                if Tkp1 >= mt:
+                    T[i+1, j] = mt  # element temp = melting temp
+                    Qres = bulk_c_s*bulk_rho_s*dx_pcm*(Tkp1 - mt) # subtract the energy it took to get to melting temperature before reducing the latent heat
+                    pcm_lh[j-nelems_battery] -= Qres
+                    # if pcm_lh goes negative, start heating up the liquid
+                    if pcm_lh[j-nelems_battery] < 0.0:
+                        T[i+1, j] += a_pcm_l*(-pcm_lh[j-nelems_battery])
+                        pcm_lh[j-nelems_battery] = 0.0
+                else:  # still solid
+                    T[i+1, j] = Tkp1
+
+            else:  # melted
+                T[i+1, j] = T[i, j] + a_pcm_l*((T[i, j-1] - T[i, j])/R_interface_l - (T[i, j] - T[i, j+1])/R_pcm_l)
 
         # pcm
-        elif j < nnodes-1:
-            T[i+1, j] = T[i, j] + a_pcm_s*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_pcm_s
+        elif j < nelems-1:
+
+            # Check if the element is melted yet:
+            if pcm_lh[j-nelems_battery] > 0.0:  # not melted yet
+
+                # Check if the element will get melted this iteration:
+                Tkp1 = T[i, j] + a_pcm_s*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_pcm_s
+                if Tkp1 >= mt:
+                    T[i+1, j] = mt  # element temp = melting temp
+                    Qres = bulk_c_s*bulk_rho_s*dx_pcm*(Tkp1 - mt) # subtract the energy it took to get to melting temperature before reducing the latent heat
+                    pcm_lh[j-nelems_battery] -= Qres
+                    # if pcm_lh goes negative, start heating up the liquid
+                    if pcm_lh[j-nelems_battery] < 0.0:
+                        T[i+1, j] += a_pcm_l*(-pcm_lh[j-nelems_battery])
+                        pcm_lh[j-nelems_battery] = 0.0
+                else:  # still solid
+                    T[i+1, j] = Tkp1
+
+            else:  # melted
+                T[i+1, j] = T[i, j] + a_pcm_l*(T[i, j-1] - 2.0*T[i, j] + T[i, j+1])/R_pcm_l
 
         # heat-pipe boundary
         else:
-            T[i+1, j] = T[i, j] + a_pcm_s*((T[i, j-1] - T[i, j])/R_pcm_s)#a_pcm_s*((T[i, j-1] - T[i, j])/R_pcm_s) #- h*Aconv*(T[i, j] - Tref))
 
+            # Check if the element is melted yet:
+            if pcm_lh[j-nelems_battery] > 0.0:  # not melted yet
+
+                # Check if the element will get melted this iteration:
+                Tkp1 = T[i, j] + a_pcm_s*((T[i, j-1] - T[i, j])/R_pcm_s - h*Aconv*(T[i, j] - Tref))
+                if Tkp1 >= mt:
+                    T[i+1, j] = mt  # element temp = melting temp
+                    Qres = bulk_c_s*bulk_rho_s*dx_pcm*(Tkp1 - mt) # subtract the energy it took to get to melting temperature before reducing the latent heat
+                    pcm_lh[j-nelems_battery] -= Qres
+                    # if pcm_lh goes negative, start heating up the liquid
+                    if pcm_lh[j-nelems_battery] < 0.0:
+                        T[i+1, j] += a_pcm_l*(-pcm_lh[j-nelems_battery])
+                        pcm_lh[j-nelems_battery] = 0.0
+                else:  # still solid
+                    T[i+1, j] = Tkp1
+
+            else:  # melted
+                T[i+1, j] = T[i, j] + a_pcm_l*((T[i, j-1] - T[i, j])/R_pcm_l - h*Aconv*(T[i, j] - Tref))
+        dTdt_j[j] = (T[i+1, j]-T[i, j])/dt
+
+    dTdt[i+1] = np.amax(dTdt_j)
     Tmax[i+1] = np.amax(T[i+1, :])
+    lh_pct_hist[i+1] = np.sum(pcm_lh)/(lh*m_pcm)
 
-# Check conservation of energy
-R_energy = total_energy
-for i in range(nelems):
-
-    if i < nelems_battery:
-        R_energy -= c_battery*rho_battery*dx_battery*A*(T[-1, i]-T0)
-    elif i == nelems_battery:
-        R_energy -= 0.5*(c_battery*m_battery/nelems_battery + bulk_c_s*m_pcm/nelems_pcm)*(T[-1, i]-T0)
-    else:
-        R_energy -= bulk_c_s*bulk_rho_s*dx_pcm*A*(T[-1, i]-T0)
-
-#print(energy_counter)
-print(f"R(energy) = {R_energy}")
 print(f"max(dT) = {np.amax(Tmax)}")
-
-dT_battery = (total_energy)/(m_battery*c_battery+m_pcm*bulk_c_s)
-print(f"Final temperature = {dT_battery+T0}")
-
+print(f"Remaining solid material = {100.0*lh_pct_hist[-1]}")
+if lh_pct_hist[-1] == 0.0:
+    i_melt = np.where(lh_pct_hist==0.0)[0][0]
+    print(f"Time when pcm is fully melted = {t[i_melt]}")
 
 # Plot the results
-#nsample = int((nsteps-1)/tfinal)
-#T = T[0::nsample, :]
+nsample = int((nsteps-1)/tfinal)
+T = T[0::nsample, :]
 plot_len = np.shape(T)[0]
 
 plt.style.use('mark')
@@ -261,9 +249,8 @@ cmap = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.coolwarm)
 cmap.set_array([])
 colors = plt.cm.coolwarm(np.linspace(0.0, 1.0, plot_len))
 
-# for i in range(plot_len):
-#     ax.plot(T[i, :], x*1e3, color=colors[i])
-ax.plot(T[-1, :], x*1e3)
+for i in range(plot_len):
+    ax.plot(T[i, :], x*1e3, color=colors[i])
 
 ax.set_xlabel(r"$T(t)$ ($^\circ$C)")
 #ax.set_ylabel(r"$x$ (mm)")
@@ -283,24 +270,24 @@ ax.axes.yaxis.set_visible(False)
 
 plt.savefig('temperature_history.pdf', bbox_inches='tight', transparent=True)
 
-# # Plot the latent heat (liquid/solid) over time
-# fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
-# ax.plot(t, 100*lh_pct_hist)
-#
-# ax.set_xlabel(r"$t$ (s)")
-# ax.set_ylabel(r"Percent of PCM that is solid")
-# ax.yaxis.set_major_formatter(mtick.PercentFormatter())
-#
-# plt.savefig('latent_heat_history.pdf', bbox_inches='tight', transparent=True)
+# Plot the latent heat (liquid/solid) over time
+fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+ax.plot(t, 100*lh_pct_hist)
 
-# # Plot the max temperature rate of change over time
-# fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
-# ax.plot(t[1::], dTdt[1::])
-#
-# ax.set_xlabel(r"$t$ (s)")
-# ax.set_ylabel(r"dT/dt ($^\circ$C/s)")
-#
-# plt.savefig('dTdt_history.pdf', bbox_inches='tight', transparent=True)
+ax.set_xlabel(r"$t$ (s)")
+ax.set_ylabel(r"Percent of PCM that is solid")
+ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+
+plt.savefig('latent_heat_history.pdf', bbox_inches='tight', transparent=True)
+
+# Plot the max temperature rate of change over time
+fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+ax.plot(t[1::], 60.0*dTdt[1::])
+
+ax.set_xlabel(r"$t$ (s)")
+ax.set_ylabel(r"dT/dt ($^\circ$C/min)")
+
+plt.savefig('dTdt_history.pdf', bbox_inches='tight', transparent=True)
 
 # Plot the maximum temperature over time
 fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
@@ -310,3 +297,13 @@ ax.set_xlabel(r"$t$ (s)")
 ax.set_ylabel(r"max($\Delta$T) ($^\circ$C)")
 
 plt.savefig('dTmax_history.pdf', bbox_inches='tight', transparent=True)
+
+# Plot the PCM-heat pipe interface temperature over time
+fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+ax.plot(t[0::nsample], T[:, -1])
+
+ax.set_xlabel(r"$t$ (s)")
+ax.set_ylabel(r"$\Delta$T ($^\circ$C)")
+ax.set_title("Temperature at PCM-heat-pipe interface")
+
+plt.savefig('dT_heat_pipe_history.pdf', bbox_inches='tight', transparent=True)
