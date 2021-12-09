@@ -11,12 +11,12 @@ w = 54.0e-3  # total width
 l = 61.0e-3  # total length
 A = l*w
 t_battery = 5.60e-3   # thickness of battery
-t_pcm = 7.1e-3    # thickness of pcm
+t_pcm = 4.5e-3    # thickness of pcm
 dw = 10.0e-3  # width of heat-pipe centered on pouch-cell
 
 # Material selection
 foam_material = 'cu'
-pcm_material = 'croda'
+pcm_material = 'PureTemp151'
 
 # Material properties
 if foam_material == 'al':
@@ -41,22 +41,37 @@ if pcm_material == 'croda':
     k_pcm_s = 0.25
 
     # liquid
-    rho_pcm_l = 829.0
+    rho_pcm_l = 830.0
     c_pcm_l = 2.0e3
     k_pcm_l = 0.16
-else:  # 'puretemp'
-    lh = 0.0  # latent heat, melting, J/kg
-    mt = 0.0  # melting temperature, deg. C
+
+elif pcm_material == 'PureTemp108':
+    lh = 180e3  # latent heat, melting, J/kg
+    mt = 108.0  # melting temperature, deg. C
 
     # solid
-    rho_pcm_s = 0.0
-    c_pcm_s = 0.0
-    k_pcm_s = 0.0
+    rho_pcm_s = 870.0
+    c_pcm_s = 2060.0  # not on data sheet - using same value as PureTemp151
+    k_pcm_s = 0.25
 
     # liquid
-    rho_pcm_l = 0.0
-    c_pcm_l = 0.0
-    k_pcm_l = 0.0
+    rho_pcm_l = 800.0
+    c_pcm_l = 2170.0  # not on data sheet - using same value as PureTemp151
+    k_pcm_l = 0.15
+
+elif pcm_material == 'PureTemp151':
+    lh = 217e3  # latent heat, melting, J/kg
+    mt = 151.0  # melting temperature, deg. C
+
+    # solid
+    rho_pcm_s = 1490.0
+    c_pcm_s = 2060.0
+    k_pcm_s = 0.25
+
+    # liquid
+    rho_pcm_l = 1360.0
+    c_pcm_l = 2170.0
+    k_pcm_l = 0.15
 
 # solid pcm bulk properties
 bulk_rho_s = 1. / (porosity / rho_pcm_s + (1 - porosity) / rho_foam)
@@ -76,17 +91,17 @@ c_battery = 800.0  # ^ same
 # Thermal runaway heat generation
 duration = 10.0
 total_energy = 16.5*3600.0  # 16.5 W-h -> J
-thermal_pct = 0.30  # percent of total battery energy that can convert to heat during runaway
+thermal_pct = 0.50  # percent of total battery energy that can convert to heat during runaway
 Qdot = thermal_pct*total_energy/duration  # total heat released per second
 
 # Heat-pipe cooling to get steady-state initial condition
 T0 = 44.0  # Starting uniform temperature (deg C)
 Tref = 0.0  # reference temperature of heat pipe (above ambient)
-h = 100.0  # convective heat transfer coefficient to from PCM to heat pipe
+h = 300.0  # convective heat transfer coefficient to from PCM to heat pipe
 Aconv = dw*l  # area of heat pipe face, m^2
 
 # Discretization in time
-tfinal = 40.0
+tfinal = 180.0
 nsteps = int(5000*tfinal+1)
 dt = tfinal/(nsteps-1)
 t = np.linspace(0.0, tfinal, nsteps)
@@ -239,7 +254,7 @@ nsample = int((nsteps-1)/tfinal)
 T = T[0::nsample, :]
 plot_len = np.shape(T)[0]
 
-plt.style.use('mark')
+plt.style.use('https://raw.githubusercontent.com/markleader/mpl_styles/master/mark.mplstyle')
 
 fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
 
@@ -256,17 +271,17 @@ ax.set_xlabel(r"$T(t)$ ($^\circ$C)")
 #ax.set_ylabel(r"$x$ (mm)")
 ax.axes.yaxis.set_visible(False)
 # Add the text
-# ax.annotate('Battery', (40.0, 0.5*t_battery*1e3), (40.0, 0.5*t_battery*1e3),
-#             ha='center', rotation=90, annotation_clip=False)
-# ax.annotate('PCM', (40.0, t_battery*1e3+0.5*t_pcm*1e3), (40.0, t_battery*1e3+0.5*t_pcm*1e3),
-#             ha='center', rotation=90, annotation_clip=False)
-# # Draw the arrow
-# ax.annotate('', (40.5, 0.0), xytext=(40.5, t_battery*1e3),
-#             arrowprops=dict(arrowstyle="<->"),
-#             annotation_clip=False)
-# ax.annotate('', (40.5, t_battery*1e3), xytext=(40.5, t_battery*1e3+t_pcm*1e3),
-#             arrowprops=dict(arrowstyle="<->"),
-#             annotation_clip=False)
+ax.annotate('Battery', (22.0, 0.5*t_battery*1e3), (22.0, 0.5*t_battery*1e3),
+            ha='center', rotation=90, annotation_clip=False)
+ax.annotate('PCM', (22.0, t_battery*1e3+0.5*t_pcm*1e3), (22.0, t_battery*1e3+0.5*t_pcm*1e3),
+            ha='center', rotation=90, annotation_clip=False)
+# Draw the arrow
+ax.annotate('', (30.0, 0.0), xytext=(30.0, t_battery*1e3),
+            arrowprops=dict(arrowstyle="<->"),
+            annotation_clip=False)
+ax.annotate('', (30.0, t_battery*1e3), xytext=(30.0, t_battery*1e3+t_pcm*1e3),
+            arrowprops=dict(arrowstyle="<->"),
+            annotation_clip=False)
 
 plt.savefig('temperature_history.pdf', bbox_inches='tight', transparent=True)
 
@@ -286,24 +301,128 @@ ax.plot(t[1::], 60.0*dTdt[1::])
 
 ax.set_xlabel(r"$t$ (s)")
 ax.set_ylabel(r"dT/dt ($^\circ$C/min)")
+ax.set_title('Rate of change of battery temperature')
 
 plt.savefig('dTdt_history.pdf', bbox_inches='tight', transparent=True)
+
 
 # Plot the maximum temperature over time
 fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
 ax.plot(t, Tmax)
 
 ax.set_xlabel(r"$t$ (s)")
-ax.set_ylabel(r"max($\Delta$T) ($^\circ$C)")
+ax.set_ylabel(r"max(T) ($^\circ$C)")
 
 plt.savefig('dTmax_history.pdf', bbox_inches='tight', transparent=True)
 
-# Plot the PCM-heat pipe interface temperature over time
+# Plot the temperature on both boundaries on the PCM over time
 fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
-ax.plot(t[0::nsample], T[:, -1])
+ax.plot(t[0::nsample], T[:, -1], label='PCM-heat-pipe boundary')
+ax.plot(t[0::nsample], T[:, nelems_battery], color='tab:red', label='PCM-battery boundary')
 
 ax.set_xlabel(r"$t$ (s)")
-ax.set_ylabel(r"$\Delta$T ($^\circ$C)")
-ax.set_title("Temperature at PCM-heat-pipe interface")
+ax.set_ylabel(r"T ($^\circ$C)")
+ax.set_title("Temperature at PCM boundaries")
+ax.legend()
 
-plt.savefig('dT_heat_pipe_history.pdf', bbox_inches='tight', transparent=True)
+plt.savefig('PCM_boundary_temperature.pdf', bbox_inches='tight', transparent=True)
+
+# Make a combined plot with PCM boundary temperature and cell dT/dt
+
+fig, (ax0, ax1) = plt.subplots(nrows=2, sharex=True, constrained_layout=True, figsize=(10, 8))
+
+(plot1,) = ax0.plot(t[0::nsample], T[:, -1], color='tab:blue', label='PCM-heat-pipe boundary')
+(plot2,) = ax0.plot(t[0::nsample], T[:, nelems_battery], color='tab:red', label='PCM-battery boundary')
+
+ax1.plot(t[1::], 60.0*dTdt[1::], color='tab:blue')
+
+ax0.spines['right'].set_visible(False)
+ax0.spines['top'].set_visible(False)
+ax0.spines['bottom'].set_visible(False)
+ax0.tick_params(axis='x', direction='out', length=0.0, width=0.0)
+ax0.yaxis.set_ticks_position('left')
+ax0.xaxis.set_ticks_position('bottom')
+ax1.spines['right'].set_visible(False)
+ax1.spines['top'].set_visible(False)
+ax0.grid(True)
+ax1.grid(True)
+
+ax1.set_xticks([0.0, 60.0, 120.0, 180.0])
+ax1.set_xticklabels([0, 1, 2, 3])
+
+# Label the maximum PCM temperature
+yticks = ax0.get_yticks()
+yticks = np.append(yticks[0:-1], [np.amax(T[:, nelems_battery])])
+yticklabels = []
+for yt in yticks:
+    yticklabels.append('{0:.0f}'.format(yt))
+ax0.set_yticks(yticks)
+ax0.set_yticklabels(yticklabels)
+
+for label in ax0.get_xticklabels():
+    label.set_visible(False)
+
+# ax0.text(
+#     t[-1],
+#     T[-1, -1],
+#     " — " + plot1.get_label(),
+#     size="medium",
+#     color=plot1.get_color(),
+#     ha="left",
+#     va="center",
+# )
+
+# ax0.text(
+#     t[-1],
+#     T[-1, nelems_battery],
+#     " — " + plot2.get_label(),
+#     size="medium",
+#     color=plot2.get_color(),
+#     ha="left",
+#     va="center",
+# )
+
+t_idx = np.where(t >= 120.0)[0][0]
+T_idx = int(t_idx/nsample)
+ax0.text(
+    t[t_idx],
+    T[T_idx, -1]+10.0,
+    " " + plot1.get_label(),
+    size="medium",
+    color=plot1.get_color(),
+    ha="left",
+    va="bottom",
+    rotation=2.0,
+)
+
+ax0.text(
+    t[t_idx],
+    T[T_idx, nelems_battery]-10.0,
+    " " + plot2.get_label(),
+    size="medium",
+    color=plot2.get_color(),
+    ha="left",
+    va="top",
+    rotation=-5.0,
+)
+
+# Mark where thermal runaway occurs
+ax0.fill_between([0.0, 10.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax0.get_xaxis_transform())
+ax1.fill_between([0.0, 10.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax1.get_xaxis_transform())
+ax1.annotate("", (0.0, 5400.0), xytext=(10.0, 5400.0), arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0),
+             annotation_clip=False)
+ax1.text(
+    0.0,
+    5500.0,
+    "Thermal runaway",
+    size="small",
+    color="black",
+    ha="left",
+    va="bottom"
+)
+
+ax0.set_ylabel(r'Temperature at PCM boundaries ($^\circ$C)', fontsize=12)
+ax1.set_xlabel('Time (min.)')
+ax1.set_ylabel(r'Rate of change of battery temperature ($^\circ$C/min.)', fontsize=12)
+
+plt.savefig("PCM_runaway.pdf", transparent=True)
