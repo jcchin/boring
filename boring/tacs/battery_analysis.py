@@ -105,9 +105,9 @@ class CreateMe(TMR.QuadCreator):
         """
 
         if quad.tag in alum_tags:
-            stiff = constitutive.PlaneStressConstitutive(alum_props)
+            stiff = constitutive.PlaneStressConstitutive(alum_props, t=thickness)
         elif quad.tag in battery_tags:
-            stiff = constitutive.PlaneStressConstitutive(battery_props)
+            stiff = constitutive.PlaneStressConstitutive(battery_props, t=thickness)
         else:
             print("quad not defined")
 
@@ -214,16 +214,16 @@ def integrate(assembler, forest, tfinal=30.0,
         bdf.setOutputPrefix('time_history/')
 
     # Define the functions of interest
-    temp0 = functions.KSTemperature(assembler, 50.0)
-    temp0.setKSTemperatureType('discrete')
+    temp0 = functions.KSTemperature(assembler, 100.0)
+    temp0.setKSTemperatureType('continuous')
     elems, _ = get_elems_and_surfs(['battery_0'])
     temp0.setDomain(elems)
-    temp1 = functions.KSTemperature(assembler, 50.0)
-    temp1.setKSTemperatureType('discrete')
+    temp1 = functions.KSTemperature(assembler, 100.0)
+    temp1.setKSTemperatureType('continuous')
     elems, _ = get_elems_and_surfs(['battery_1'])
     temp1.setDomain(elems)
-    temp2 = functions.KSTemperature(assembler, 50.0)
-    temp2.setKSTemperatureType('discrete')
+    temp2 = functions.KSTemperature(assembler, 100.0)
+    temp2.setKSTemperatureType('continuous')
     elems, _ = get_elems_and_surfs(['battery_2'])
     temp2.setDomain(elems)
 
@@ -311,8 +311,8 @@ for n in ['battery_0', 'battery_1', 'battery_2', 'battery']:
         battery_tags.append(quad.tag)
 
 thickness = 0.065
-alum_rho = 2700.0*thickness
-battery_rho = 1460.0*thickness
+alum_rho = 2700.0
+battery_rho = 1460.0
 alum_props = constitutive.MaterialProperties(rho=alum_rho, E=72.4e9, nu=0.33,
                                              ys=345e6, alpha=24e-6, kappa=204.0,
                                              specific_heat=883.0)

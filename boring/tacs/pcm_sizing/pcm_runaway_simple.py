@@ -11,7 +11,7 @@ w = 54.0e-3  # total width
 l = 61.0e-3  # total length
 A = l*w
 t_battery = 5.60e-3   # thickness of battery
-t_pcm = 4.5e-3    # thickness of pcm
+t_pcm = 3.0e-3    # thickness of pcm
 dw = 10.0e-3  # width of heat-pipe centered on pouch-cell
 
 # Material selection
@@ -91,7 +91,7 @@ c_battery = 800.0  # ^ same
 # Thermal runaway heat generation
 duration = 10.0
 total_energy = 16.5*3600.0  # 16.5 W-h -> J
-thermal_pct = 0.50  # percent of total battery energy that can convert to heat during runaway
+thermal_pct = 0.30  # percent of total battery energy that can convert to heat during runaway
 Qdot = thermal_pct*total_energy/duration  # total heat released per second
 
 # Heat-pipe cooling to get steady-state initial condition
@@ -386,18 +386,18 @@ t_idx = np.where(t >= 120.0)[0][0]
 T_idx = int(t_idx/nsample)
 ax0.text(
     t[t_idx],
-    T[T_idx, -1]+10.0,
+    T[T_idx, -1]-5.0,
     " " + plot1.get_label(),
     size="medium",
     color=plot1.get_color(),
     ha="left",
     va="bottom",
-    rotation=2.0,
+    rotation=-2.5,
 )
 
 ax0.text(
     t[t_idx],
-    T[T_idx, nelems_battery]-10.0,
+    T[T_idx, nelems_battery]-5.0,
     " " + plot2.get_label(),
     size="medium",
     color=plot2.get_color(),
@@ -409,11 +409,11 @@ ax0.text(
 # Mark where thermal runaway occurs
 ax0.fill_between([0.0, 10.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax0.get_xaxis_transform())
 ax1.fill_between([0.0, 10.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax1.get_xaxis_transform())
-ax1.annotate("", (0.0, 5400.0), xytext=(10.0, 5400.0), arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0),
+ax1.annotate("", (0.0, 3220.0), xytext=(10.0, 3220.0), arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0),
              annotation_clip=False)
 ax1.text(
     0.0,
-    5500.0,
+    3280.0,
     "Thermal runaway",
     size="small",
     color="black",
