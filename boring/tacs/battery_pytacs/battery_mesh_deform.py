@@ -8,13 +8,13 @@ from tacs import functions, constitutive, elements, TACS, pyTACS
 def update_points(Xpts0, indices, Xpts_cp, delta):
     # this function warps points using the displacements from curve projections
     # Xpts0: the original surface point coordinates
-    # indices: indices of the independent nodes
+    # indices: indices of the dependent nodes
     # Xpts_cp: original control point coordinates
     # delta: displacements of the control points
 
     Xnew = np.zeros(np.shape(Xpts0))
     Xnew[:, :] = Xpts0[:, :]
-
+    max_update = 0.0
 
     for i in indices:
 
@@ -24,16 +24,20 @@ def update_points(Xpts0, indices, Xpts_cp, delta):
 
         # the vectorized point-based warping we had from older versions.
         rr = xpts_i - Xpts_cp
-        LdefoDist = (rr[:, 0]**2 + rr[:, 1]**2 + 1e-16)**-0.5
-        LdefoDist3 = LdefoDist**1
+        LdefoDist = (rr[:,0]**2 + rr[:,1]**2+1e-16)**-0.5
+        LdefoDist3 = LdefoDist**3
         Wi = LdefoDist3
         den = np.sum(Wi)
         interp = np.zeros(2)
         for iDim in range(2):
             interp[iDim] = np.sum(Wi*delta[:, iDim])/den
+        dx = ((interp[0])**2 + (interp[1])**2)**0.5
+        if dx > max_update:
+            max_update = dx
 
         # finally, update the coord in place
         Xnew[i] = Xnew[i] + interp
+    print(f"Max dependent node shift = {max_update}")
 
     return Xnew
 
@@ -52,20 +56,43 @@ def get_battery_edge_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.1516, ratio=0.7
 
     w = cell_d*m*extra
     l = cell_d*n*extra
-
     battery_edge_idx = []
     for i in range(m):
-            for j in range(n):
-                x0 = (i + 0.5)*w/m
-                y0 = (j + 0.5)*l/n
-                battery_ij_edge_idx = []
-                for k in range(len(Xpts)):
-                    dist = ((Xpts[k, 0] - x0)**2 + (Xpts[k, 1] - y0)**2)**0.5
-                    if np.absolute(dist - cell_d/2.0) <= eps:
-                        battery_ij_edge_idx.append(k)
-                battery_edge_idx.append(battery_ij_edge_idx)
+        for j in range(n):
+            x0 = (i + 0.5)*w/m
+            y0 = (j + 0.5)*l/n
+            for k in range(len(Xpts)):
+                dist = ((Xpts[k, 0] - x0)**2 + (Xpts[k, 1] - y0)**2)**0.5
+                if np.absolute(dist - cell_d/2.0) <= eps:
+                    battery_edge_idx.append(k)
 
     return battery_edge_idx
+
+def get_battery_internal_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.1516, ratio=0.7381, eps=1e-6):
+    """
+    Get the indexes of internal battery nodes
+
+    Inputs:
+    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
+
+    Outputs:
+    battery_internal_idx: indexes in the Xpts array that are the battery edges
+        - sorted in nested array of length 9 for each battery
+    """
+
+    w = cell_d*m*extra
+    l = cell_d*n*extra
+    battery_internal_idx = []
+    for i in range(m):
+        for j in range(n):
+            x0 = (i + 0.5)*w/m
+            y0 = (j + 0.5)*l/n
+            for k in range(len(Xpts)):
+                dist = ((Xpts[k, 0] - x0)**2 + (Xpts[k, 1] - y0)**2)**0.5
+                if dist < cell_d/2.0 - eps:
+                    battery_internal_idx.append(k)
+
+    return battery_internal_idx
 
 def get_hole_edge_nodes(Xpts, m=3, n=3, extra=1.1516, ratio=0.7381, eps=1e-6):
     """
@@ -76,7 +103,6 @@ def get_hole_edge_nodes(Xpts, m=3, n=3, extra=1.1516, ratio=0.7381, eps=1e-6):
 
     Outputs:
     hole_edge_idx: indexes in the Xpts array that are the hole edges
-        - sorted in nested array of length 9 for each battery
     """
 
     w = cell_d*m*extra
@@ -88,14 +114,40 @@ def get_hole_edge_nodes(Xpts, m=3, n=3, extra=1.1516, ratio=0.7381, eps=1e-6):
         for j in range(1, n):
             x0 = i*w/m
             y0 = j*l/n
-            hole_uv_edge_idx = []
             for k in range(len(Xpts)):
                 dist = ((Xpts[k, 0] - x0)**2 + (Xpts[k, 1] - y0)**2)**0.5
                 if np.absolute(dist - hole_r) <= eps:
-                    hole_uv_edge_idx.append(k)
-            hole_edge_idx.append(hole_uv_edge_idx)
+                    hole_edge_idx.append(k)
 
     return hole_edge_idx
+
+def get_border_hole_nodes(Xpts, m=3, n=3, extra=1.1516, ratio=0.7381, eps=1e-6):
+    """
+    Get the indexes of border hole edges nodes
+
+    Inputs:
+    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
+
+    Outputs:
+    border_hole_idx: indexes in the Xpts array that are the hole edges
+    """
+
+    w = cell_d*m*extra
+    l = cell_d*n*extra
+    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+
+    border_uv = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], 
+                 [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1]]
+    border_hole_idx = []
+    for i, j in border_uv:
+        x0 = i*w/m
+        y0 = j*l/n
+        for k in range(len(Xpts)):
+            dist = ((Xpts[k, 0] - x0)**2 + (Xpts[k, 1] - y0)**2)**0.5
+            if np.absolute(dist - hole_r) <= eps:
+                border_hole_idx.append(k)
+
+    return border_hole_idx
 
 def get_border_nodes(Xpts, m=3, n=3, extra=1.1516, eps=1e-6):
     """
@@ -171,26 +223,41 @@ def get_hole_deltas(Xpts0, hole_idx, dratio, m=3, n=3, extra=1.1516, ratio=0.738
     w = cell_d*m*extra
     l = cell_d*n*extra
     hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+    dhole_r = dratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+    print(f"Hole radius change = {dhole_r}")
+    x_holes = np.repeat(np.linspace(0.0, w, m+1)[1:-1], 2)
+    y_holes = np.tile(np.linspace(0.0, l, n+1)[1:-1], 2)
 
-    for i in range(1, m):
-        for j in range(1, n):
-            x0 = i*w/m
-            y0 = j*l/n
-            for k in hole_idx[i][j]
+    hole_deltas = np.zeros((len(hole_idx), 2))
+    max_delta = 0.0
+    for i, idx in enumerate(hole_idx):
+        pt = Xpts0[idx]
+
+        # Find the center of the hole that this point belongs to
+        dist = ((pt[0] - x_holes)**2 + (pt[1] - y_holes)**2)**0.5 - hole_r
+        which_hole = np.argmin(dist)
+        x0 = x_holes[which_hole]
+        y0 = y_holes[which_hole]
+
+        # Get the angle of the point wrt the hole center
+        theta = np.arctan2(pt[1]-y0, pt[0]-x0)
+
+        # Compute the delta for this point
+        hole_deltas[i, 0] = dhole_r*np.cos(theta)
+        hole_deltas[i, 1] = dhole_r*np.sin(theta)
+        dx = ((hole_deltas[i, 0])**2 + (hole_deltas[i, 1])**2)**0.5
+        if dx > max_delta:
+            max_delta = dx
+
+    print(f"Max radius point change = {max_delta}")
 
     return hole_deltas
 
 comm = MPI.COMM_WORLD
 
 # Instantiate FEASolver
-structOptions = {
-    # Specify what type of elements we want in the f5
-    'writeSolution': False,
-    'outputElement': TACS.PLANE_STRESS_ELEMENT,
-}
-
 bdfFile = os.path.join(os.path.dirname(__file__), 'boring_pytacs.bdf')
-FEAAssembler = pyTACS(bdfFile, comm, options=structOptions)
+FEAAssembler = pyTACS(bdfFile, comm)
 
 # Plate geometry
 tplate = 0.065  # 1 cm
@@ -254,24 +321,50 @@ hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 
 # Get the control point node indexes
 battery_edge_idx = get_battery_edge_nodes(Xpts0)
+battery_internal_idx = get_battery_internal_nodes(Xpts0)
 hole_edge_idx = get_hole_edge_nodes(Xpts0)
 border_idx = get_border_nodes(Xpts0)
+border_hole_idx = get_border_hole_nodes(Xpts0)
 edge_cp_idx = get_edge_control_points(Xpts0)
 
 # ------- Try deforming only the hole radius ---------
 
-# Get independent node indices
-indep_idx = []
+# Get dependent node indices
+dep_idx = []
 for i in range(len(Xpts0)):
-    if i not in hole_edge_idx:
-        indep_idx.append(i)
+    if (i not in hole_edge_idx) and (i not in border_idx) and (i not in border_hole_idx) and (i not in battery_edge_idx) and (i not in battery_internal_idx):
+        dep_idx.append(i)
 
+# Get the node locations of the control points
+Xpts0_cp_idx = hole_edge_idx + border_idx + border_hole_idx + battery_edge_idx + battery_internal_idx
+Xpts0_cp = Xpts0[Xpts0_cp_idx[:]]
 
+# Compute the delta of the hole points
+dratio = -0.5
+hole_deltas = get_hole_deltas(Xpts0, hole_edge_idx, dratio)
+# Xcp_new = np.zeros((len(Xpts0_cp_idx), 2))
+# Xcp_new[:, :] = Xpts0[hole_edge_idx, :]
+# Xcp_new[:, :] += hole_deltas[:, :]
+
+# Set the total delta array
+delta = np.zeros((len(Xpts0_cp_idx), 2))
+delta[0:len(hole_edge_idx), :] = hole_deltas[:, :]
+
+# Get the updated locations of the dependent nodes
+Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, delta)
+
+# Update the independent node locations
+Xnew[Xpts0_cp_idx[:], :] += delta[:, :]
 
 # Plot the initial nodes
-# fig = plt.figure()
-# ax = plt.subplot(1,1,1, aspect=1)
-# ax.scatter(Xpts0[:, 0], Xpts0[:, 1], s=2, color="tab:blue")
+fig, (ax0, ax1) = plt.subplots(ncols=2, sharey=True, constrained_layout=True)
+
+xc_battery = np.repeat(np.linspace(0.5*w/m, (m-0.5)*w/m, m), 3)
+yc_battery = np.tile(np.linspace(0.5*l/n, (n-0.5)*l/n, n), 3)
+
+ax0.scatter(Xpts0[:, 0], Xpts0[:, 1], s=2, color="tab:blue")
+ax1.scatter(Xnew[:, 0], Xnew[:, 1], s=2, color="tab:blue")
+
 # for i in range(len(battery_edge_idx)):
 #     ax.scatter(Xpts0[battery_edge_idx[i], 0], Xpts0[battery_edge_idx[i], 1], s=2, color="tab:red")
 
@@ -282,4 +375,4 @@ for i in range(len(Xpts0)):
 # for i in range(len(edge_cp_idx)):
 #     ax.scatter(Xpts0[edge_cp_idx[i], 0], Xpts0[edge_cp_idx[i], 1], s=2, color=colors[i])
 
-# plt.show()
+plt.show()
