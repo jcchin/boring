@@ -37,7 +37,6 @@ def update_points(Xpts0, indices, Xpts_cp, delta):
 
         # finally, update the coord in place
         Xnew[i] = Xnew[i] + interp
-    print(f"Max dependent node shift = {max_update}")
 
     return Xnew
 
@@ -94,6 +93,32 @@ def get_battery_internal_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.1516, ratio
 
     return battery_internal_idx
 
+def get_battery_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.1516, ratio=0.7381, eps=1e-6):
+    """
+    Get the indexes of internal battery nodes
+
+    Inputs:
+    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
+
+    Outputs:
+    battery_internal_idx: indexes in the Xpts array that are the battery edges
+        - sorted in nested array of length 9 for each battery
+    """
+
+    w = cell_d*m*extra
+    l = cell_d*n*extra
+    battery_internal_idx = []
+    for i in range(m):
+        for j in range(n):
+            x0 = (i + 0.5)*w/m
+            y0 = (j + 0.5)*l/n
+            for k in range(len(Xpts)):
+                dist = ((Xpts[k, 0] - x0)**2 + (Xpts[k, 1] - y0)**2)**0.5
+                if dist <= cell_d/2.0 + eps:
+                    battery_internal_idx.append(k)
+
+    return battery_internal_idx
+
 def get_hole_edge_nodes(Xpts, m=3, n=3, extra=1.1516, ratio=0.7381, eps=1e-6):
     """
     Get the indexes of battery edges nodes
@@ -110,8 +135,8 @@ def get_hole_edge_nodes(Xpts, m=3, n=3, extra=1.1516, ratio=0.7381, eps=1e-6):
     hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 
     hole_edge_idx = []
-    for i in range(1, m):
-        for j in range(1, n):
+    for i in range(0, m+1):
+        for j in range(0, n+1):
             x0 = i*w/m
             y0 = j*l/n
             for k in range(len(Xpts)):
@@ -218,18 +243,22 @@ def get_edge_control_points(Xpts, m=3, n=3, cell_d=0.018, extra=1.1516, ratio=0.
 
     return edge_cp_idx
 
-def get_hole_deltas(Xpts0, hole_idx, dratio, m=3, n=3, extra=1.1516, ratio=0.7381):
+def get_hole_deltas(Xpts0, hole_idx, dratio, dextra, m=3, n=3, extra=1.1516, ratio=0.7381):
 
     w = cell_d*m*extra
     l = cell_d*n*extra
+    dw = cell_d*m*dextra
+    dl = cell_d*n*dextra
+
     hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
     dhole_r = dratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    print(f"Hole radius change = {dhole_r}")
-    x_holes = np.repeat(np.linspace(0.0, w, m+1)[1:-1], 2)
-    y_holes = np.tile(np.linspace(0.0, l, n+1)[1:-1], 2)
+
+    x_holes = np.repeat(np.linspace(0.0, w, m+1), 4)
+    y_holes = np.tile(np.linspace(0.0, l, n+1), 4)
+    dx_holes = np.repeat(np.linspace(0.0, dw, m+1), 4)
+    dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4)
 
     hole_deltas = np.zeros((len(hole_idx), 2))
-    max_delta = 0.0
     for i, idx in enumerate(hole_idx):
         pt = Xpts0[idx]
 
@@ -243,15 +272,120 @@ def get_hole_deltas(Xpts0, hole_idx, dratio, m=3, n=3, extra=1.1516, ratio=0.738
         theta = np.arctan2(pt[1]-y0, pt[0]-x0)
 
         # Compute the delta for this point
-        hole_deltas[i, 0] = dhole_r*np.cos(theta)
-        hole_deltas[i, 1] = dhole_r*np.sin(theta)
-        dx = ((hole_deltas[i, 0])**2 + (hole_deltas[i, 1])**2)**0.5
-        if dx > max_delta:
-            max_delta = dx
-
-    print(f"Max radius point change = {max_delta}")
+        hole_deltas[i, 0] = dhole_r*np.cos(theta) + dx_holes[which_hole]
+        hole_deltas[i, 1] = dhole_r*np.sin(theta) + dy_holes[which_hole]
 
     return hole_deltas
+
+def get_battery_deltas(Xpts0, battery_idx, dextra, m=3, n=3, extra=1.1516, ratio=0.7381):
+
+    w = cell_d*m*extra
+    l = cell_d*n*extra
+    dw = cell_d*m*dextra
+    dl = cell_d*n*dextra
+
+    xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
+    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3)
+    dxb = np.repeat(np.linspace(0.5*dw/m, 2.5*dw/m, m), 3)
+    dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3)
+
+    battery_deltas = np.zeros((len(battery_idx), 2))
+    for i, idx in enumerate(battery_idx):
+        pt = Xpts0[idx]
+
+        # Find the center of the hole that this point belongs to
+        dist = ((pt[0] - xb)**2 + (pt[1] - yb)**2)**0.5 - 0.5*cell_d
+        which_battery = np.argmin(dist)
+
+        # Compute the delta for this point
+        battery_deltas[i, 0] = dxb[which_battery]
+        battery_deltas[i, 1] = dyb[which_battery]
+
+    return battery_deltas
+
+def get_border_deltas(Xpts0, border_idx, dratio, dextra, m=3, n=3, extra=1.1516, ratio=0.7381, eps=1e-6):
+
+    w = cell_d*m*extra
+    l = cell_d*n*extra
+    dw = cell_d*m*dextra
+    dl = cell_d*n*dextra
+
+    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+    dhole_r = dratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+
+    x_border_len = (w-2*m*hole_r)/m
+    y_border_len = (l-2*n*hole_r)/n
+    dx_border_len = (dw-2*m*dhole_r)/m
+    dy_border_len = (dl-2*n*dhole_r)/n
+
+    x_ranges = [hole_r+dhole_r, hole_r+dhole_r + (x_border_len+dx_border_len), 
+                3*(hole_r+dhole_r) + (x_border_len+dx_border_len), 3*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 
+                5*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 5*(hole_r+dhole_r) + 3*(x_border_len+dx_border_len)]
+    y_ranges = [hole_r+dhole_r, hole_r+dhole_r + (y_border_len+dy_border_len), 
+                3*(hole_r+dhole_r) + (y_border_len+dy_border_len), 3*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 
+                5*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 5*(hole_r+dhole_r) + 3*(y_border_len+dy_border_len)]
+
+    edge_cp_idx = get_edge_control_points(Xpts0)
+    x_cp = Xpts0[edge_cp_idx[:], 0]
+    y_cp = Xpts0[edge_cp_idx[:], 1]
+    border_deltas = np.zeros((len(border_idx), 2))
+    for i, idx in enumerate(border_idx):
+        pt = Xpts0[idx]
+        if np.absolute(pt[0]) < eps:  # left edge
+            # Check if this is a control point
+            if np.any(np.absolute(pt[1] - y_cp[3]) < eps):
+                cp_idx = np.argmin(np.absolute(pt[1] - y_cp[3]))
+                border_deltas[i, 1] = y_ranges[cp_idx] - pt[1]
+            else:  
+                # Get control points this node is between
+                y1 = y_cp[3][np.argmax(y_cp[3] >= pt[1])-1]
+                y2 = y_cp[3][np.argmax(y_cp[3] >= pt[1])]
+                ynew1 = y_ranges[np.argmax(y_cp[3] >= pt[1])-1]
+                ynew2 = y_ranges[np.argmax(y_cp[3] >= pt[1])]
+                border_deltas[i, 1] = ynew1 + (pt[1] - y1)*(ynew2 - ynew1)/(y2 - y1) - pt[1]
+
+        elif np.absolute(pt[1]) < eps:  # bottom edge
+            # Check if this is a control point
+            if np.any(np.absolute(pt[0] - x_cp[0]) < eps):
+                cp_idx = np.argmin(np.absolute(pt[0] - x_cp[0]))
+                border_deltas[i, 0] = x_ranges[cp_idx] - pt[0]
+            else:  
+                # Get control points this node is between
+                x1 = x_cp[0][np.argmax(x_cp[0] >= pt[0])-1]
+                x2 = x_cp[0][np.argmax(x_cp[0] >= pt[0])]
+                xnew1 = y_ranges[np.argmax(x_cp[0] >= pt[0])-1]
+                xnew2 = y_ranges[np.argmax(x_cp[0] >= pt[0])]
+                border_deltas[i, 0] = xnew1 + (pt[0] - x1)*(xnew2 - xnew1)/(x2 - x1) - pt[0]
+            
+        elif np.absolute(pt[0] - w) < eps:  # right edge
+            # Check if this is a control point
+            if np.any(np.absolute(pt[1] - y_cp[1]) < eps):
+                cp_idx = np.argmin(np.absolute(pt[1] - y_cp[1]))
+                border_deltas[i, 1] = y_ranges[cp_idx] - pt[1]
+            else:  
+                # Get control points this node is between
+                y1 = y_cp[1][np.argmax(y_cp[1] >= pt[1])-1]
+                y2 = y_cp[1][np.argmax(y_cp[1] >= pt[1])]
+                ynew1 = y_ranges[np.argmax(y_cp[1] >= pt[1])-1]
+                ynew2 = y_ranges[np.argmax(y_cp[1] >= pt[1])]
+                border_deltas[i, 1] = ynew1 + (pt[1] - y1)*(ynew2 - ynew1)/(y2 - y1) - pt[1]
+            border_deltas[i, 0] = dw  # shift all right border nodes by dw
+
+        elif np.absolute(pt[1] - l) < eps:  # top edge
+            # Check if this is a control point
+            if np.any(np.absolute(pt[0] - x_cp[2]) < eps):
+                cp_idx = np.argmin(np.absolute(pt[0] - x_cp[2]))
+                border_deltas[i, 0] = x_ranges[cp_idx] - pt[0]
+            else:  
+                # Get control points this node is between
+                x1 = x_cp[2][np.argmax(x_cp[2] >= pt[0])-1]
+                x2 = x_cp[2][np.argmax(x_cp[2] >= pt[0])]
+                xnew1 = y_ranges[np.argmax(x_cp[2] >= pt[0])-1]
+                xnew2 = y_ranges[np.argmax(x_cp[2] >= pt[0])]
+                border_deltas[i, 0] = xnew1 + (pt[0] - x1)*(xnew2 - xnew1)/(x2 - x1) - pt[0]
+            border_deltas[i, 1] = dl  # shift all top border nodes by dl
+
+    return border_deltas
 
 comm = MPI.COMM_WORLD
 
@@ -320,35 +454,45 @@ l = cell_d*n*extra # total length
 hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 
 # Get the control point node indexes
-battery_edge_idx = get_battery_edge_nodes(Xpts0)
-battery_internal_idx = get_battery_internal_nodes(Xpts0)
+# battery_edge_idx = get_battery_edge_nodes(Xpts0)
+# battery_internal_idx = get_battery_internal_nodes(Xpts0)
+battery_idx = get_battery_nodes(Xpts0)
 hole_edge_idx = get_hole_edge_nodes(Xpts0)
 border_idx = get_border_nodes(Xpts0)
-border_hole_idx = get_border_hole_nodes(Xpts0)
+#border_hole_idx = get_border_hole_nodes(Xpts0)
 edge_cp_idx = get_edge_control_points(Xpts0)
-
-# ------- Try deforming only the hole radius ---------
 
 # Get dependent node indices
 dep_idx = []
 for i in range(len(Xpts0)):
-    if (i not in hole_edge_idx) and (i not in border_idx) and (i not in border_hole_idx) and (i not in battery_edge_idx) and (i not in battery_internal_idx):
+    if (i not in hole_edge_idx) and (i not in border_idx) and (i not in battery_idx):
         dep_idx.append(i)
 
 # Get the node locations of the control points
-Xpts0_cp_idx = hole_edge_idx + border_idx + border_hole_idx + battery_edge_idx + battery_internal_idx
+Xpts0_cp_idx = hole_edge_idx + border_idx + battery_idx
 Xpts0_cp = Xpts0[Xpts0_cp_idx[:]]
 
+# Define the change in geometric parameters to be applied
+dratio = 0.2
+dextra = 0.2
+
 # Compute the delta of the hole points
-dratio = -0.5
-hole_deltas = get_hole_deltas(Xpts0, hole_edge_idx, dratio)
-# Xcp_new = np.zeros((len(Xpts0_cp_idx), 2))
-# Xcp_new[:, :] = Xpts0[hole_edge_idx, :]
-# Xcp_new[:, :] += hole_deltas[:, :]
+hole_deltas = get_hole_deltas(Xpts0, hole_edge_idx, dratio, dextra)
+new_hole_pts = Xpts0[hole_edge_idx[:], :] + hole_deltas[:, :]
+
+# Get the delta of the battery nodes
+battery_deltas = get_battery_deltas(Xpts0, battery_idx, dextra)
+new_battery_pts = Xpts0[battery_idx[:], :] + battery_deltas[:, :]
+
+# Get the delta of the border edges
+border_deltas = get_border_deltas(Xpts0, border_idx, dratio, dextra)
+new_border_pts = Xpts0[border_idx[:], :] + border_deltas[:, :]
 
 # Set the total delta array
 delta = np.zeros((len(Xpts0_cp_idx), 2))
 delta[0:len(hole_edge_idx), :] = hole_deltas[:, :]
+delta[len(hole_edge_idx):len(hole_edge_idx)+len(border_idx), :] = border_deltas[:, :]
+delta[len(hole_edge_idx)+len(border_idx):len(hole_edge_idx)+len(border_idx)+len(battery_idx), :] = battery_deltas[:, :]
 
 # Get the updated locations of the dependent nodes
 Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, delta)
@@ -356,23 +500,20 @@ Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, delta)
 # Update the independent node locations
 Xnew[Xpts0_cp_idx[:], :] += delta[:, :]
 
-# Plot the initial nodes
+# Plot the initial and deformed meshes nodes
 fig, (ax0, ax1) = plt.subplots(ncols=2, sharey=True, constrained_layout=True)
-
-xc_battery = np.repeat(np.linspace(0.5*w/m, (m-0.5)*w/m, m), 3)
-yc_battery = np.tile(np.linspace(0.5*l/n, (n-0.5)*l/n, n), 3)
-
 ax0.scatter(Xpts0[:, 0], Xpts0[:, 1], s=2, color="tab:blue")
+# ax0.scatter(new_border_pts[:, 0], new_border_pts[:, 1], s=2, color="tab:red")
+# ax0.scatter(new_hole_pts[:, 0], new_hole_pts[:, 1], s=2, color="tab:red")
+# ax0.scatter(new_battery_pts[:, 0], new_battery_pts[:, 1], s=2, color="tab:red")
 ax1.scatter(Xnew[:, 0], Xnew[:, 1], s=2, color="tab:blue")
 
-# for i in range(len(battery_edge_idx)):
-#     ax.scatter(Xpts0[battery_edge_idx[i], 0], Xpts0[battery_edge_idx[i], 1], s=2, color="tab:red")
-
-# for i in range(len(hole_edge_idx)):
-#     ax.scatter(Xpts0[hole_edge_idx[i], 0], Xpts0[hole_edge_idx[i], 1], s=2, color="tab:green")
-
-# colors = ["C1", "black", "C3", "C4"]
-# for i in range(len(edge_cp_idx)):
-#     ax.scatter(Xpts0[edge_cp_idx[i], 0], Xpts0[edge_cp_idx[i], 1], s=2, color=colors[i])
+ax0.set_aspect("equal")
+ax1.set_aspect("equal")
+#ax0.axis("off")
+#ax1.axis("off")
+ax0.set_title("Original node locations")
+ax1.set_title(r"Deformed mesh: $\Delta$ratio = {0}".format(dratio))
 
 plt.show()
+# plt.savefig(f"deformed_points_dratio_{dratio}.pdf")
