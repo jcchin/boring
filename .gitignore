@@ -8,3 +8,6 @@ testflo*.out
 /test.pdf
 /venv/*
 /.idea/*
+*.f5
+*.vtk
+*.DS_Store
