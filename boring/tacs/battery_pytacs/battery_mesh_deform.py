@@ -1,8 +1,10 @@
 import os
+from pydoc import describe
 import numpy as np
 from mpi4py import MPI
 import matplotlib.pyplot as plt
 
+import openmdao.api as om
 from tacs import functions, constitutive, elements, TACS, pyTACS
 
 def update_points(Xpts0, indices, Xpts_cp, delta):
@@ -404,7 +406,6 @@ def get_battery_delta_derivs(Xpts0, battery_idx, dextra, m=3, n=3, cell_d=0.018,
 
     return ddelta_ddratio, ddelta_ddextra
 
-# TODO: finish these derivatives
 def get_border_delta_derivs(Xpts0, border_idx, dratio, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, eps=1e-6):
 
     w = cell_d*m*extra
@@ -570,16 +571,107 @@ def make_ghost_nodes_for_holes(h, dratio, dextra, m=3, n=3, cell_d=0.018, extra=
 
     return ghost_xpts_hole, ghost_deltas_hole
 
+class MeshDeformComp(om.ExplicitComponent):
+    
+    def initialize(self):
+        self.options.declare("m", types=int, default=3, desc="number of battery columns in the pack")
+        self.options.declare("n", types=int, default=3, desc="number of battery rows in the pack")
+        self.options.declare("cell_d", types=float, default=0.018, desc="battery cell diameter (m)")
+        self.options.declare("extra", types=float, default=1.5, desc="parametrized spacing between cells")
+        self.options.declare("ratio", types=float, default=0.4, desc="parametrized hole size: ratio of hole size to max available space")
+        self.options.declare("nnodes", types=int, desc="number of nodes in the mesh")
+    
+    def setup(self):
+        nnodes = self.options["nnodes"]
+        self.add_input("Xpts0", shape=(nnodes, 2), units="m", desc="Initial mesh coordinates")
+        self.add_input("dratio", val=0.0, units=None, desc="change in ratio parameter from the initial mesh")
+        self.add_input("dextra", val=0.0, units=None, desc="change in extra parameter from the initial mesh")
+
+        self.add_output("Xpts", shape=(nnodes, 2), units="m", desc="Initial mesh coordinates")
+        
+        self.declare_partials(of="Xpts", wrt=["dratio", "dextra"])
+
+    def compute(self, inputs, outputs):
+
+        m = self.options["m"]
+        n = self.options["n"]
+        cell_d = self.options["cell_d"]
+        extra = self.options["extra"]
+        ratio = self.options["ratio"]
+
+        Xpts0 = inputs["Xpts0"]
+        dratio = inputs["dratio"]
+        dextra = inputs["dextra"]
+        Xpts = outputs["Xpts"]
+
+        battery_edge_idx = get_battery_edge_nodes(Xpts0)
+        hole_idx = get_hole_nodes(Xpts0)
+        border_idx = get_border_nodes(Xpts0)
+
+        dep_idx = []
+        for i in range(len(Xpts0)):
+            if (i not in hole_idx) and (i not in border_idx) and (i not in battery_edge_idx):
+                dep_idx.append(i)
+
+        # Compute the deltas of the seed nodes
+        hole_deltas = get_hole_deltas(Xpts0, hole_idx, dratio, dextra)
+        battery_deltas = get_battery_deltas(Xpts0, battery_edge_idx, dextra)
+        border_deltas = get_border_deltas(Xpts0, border_idx, dratio, dextra)
+
+        # Set the total delta array
+        delta = np.zeros((len(Xpts0_cp_idx), 2))
+        delta[0:len(hole_idx), :] = hole_deltas[:, :]
+        delta[len(hole_idx):len(hole_idx)+len(border_idx), :] = border_deltas[:, :]
+        delta[len(hole_idx)+len(border_idx):len(hole_idx)+len(border_idx)+len(battery_edge_idx), :] = battery_deltas[:, :]
+
+        # Get the updated locations of the dependent nodes
+        Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, delta)
+
+        # Update the independent node locations
+        Xnew[Xpts0_cp_idx[:], :] += delta[:, :]
+        Xpts[:, :] = Xnew[:, :]
+
+    def compute_partials(self, inputs, partials):
+
+        m = self.options["m"]
+        n = self.options["n"]
+        cell_d = self.options["cell_d"]
+        extra = self.options["extra"]
+        ratio = self.options["ratio"]
+
+        Xpts0 = inputs["Xpts0"]
+        dratio = inputs["dratio"]
+        dextra = inputs["dextra"]
+
+        dXpts_ddratio = partials["Xpts", "dratio"]
+        dXpts_ddextra = partials["Xpts", "dextra"]
+
+        battery_edge_idx = get_battery_edge_nodes(Xpts0)
+        hole_idx = get_hole_nodes(Xpts0)
+        border_idx = get_border_nodes(Xpts0)
+
+        dbattery_delta_ddratio, dbattery_delta_ddextra = get_battery_delta_derivs(Xpts0, battery_edge_idx, dextra)
+        dhole_delta_ddratio, dhole_delta_ddextra = get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra)
+        dborder_delta_ddratio, dborder_delta_ddextra = get_border_delta_derivs(Xpts0, border_idx, dratio, dextra)
+        
+        dXpts_ddratio[battery_edge_idx, :] = dbattery_delta_ddratio[:, :]
+        dXpts_ddratio[hole_idx, :] = dhole_delta_ddratio[:, :]
+        dXpts_ddratio[border_idx, :] = dborder_delta_ddratio[:, :]
+        dXpts_ddextra[battery_edge_idx, :] = dbattery_delta_ddextra[:, :]
+        dXpts_ddextra[hole_idx, :] = dhole_delta_ddextra[:, :]
+        dXpts_ddextra[border_idx, :] = dborder_delta_ddextra[:, :]
+
+
 comm = MPI.COMM_WORLD
 
 # Instantiate FEASolver
 structOptions = {
     # Specify what type of elements we want in the f5
-    'outputElement': TACS.PLANE_STRESS_ELEMENT,
+    "outputElement": TACS.PLANE_STRESS_ELEMENT,
 }
 
 # Instantiate FEASolver
-bdfFile = os.path.join(os.path.dirname(__file__), 'battery_ratio_0.4_extra_1.5.bdf')
+bdfFile = os.path.join(os.path.dirname(__file__), "battery_ratio_0.4_extra_1.5.bdf")
 FEAAssembler = pyTACS(bdfFile, comm, options=structOptions)
 
 # Plate geometry
@@ -597,7 +689,7 @@ alum_cp = 883.0 # Specific heat J/(kg⋅K)
 def elemCallBack(dvNum, compID, compDescript, elemDescripts, globalDVs, **kwargs):
 
     # Setup property and constitutive objects
-    if compDescript == 'block':
+    if compDescript == "block":
         prop = constitutive.MaterialProperties(rho=alum_rho, kappa=alum_kappa, specific_heat=alum_cp)
     else:  # battery
         prop = constitutive.MaterialProperties(rho=battery_rho, kappa=battery_kappa, specific_heat=battery_cp)
@@ -610,12 +702,10 @@ def elemCallBack(dvNum, compID, compDescript, elemDescripts, globalDVs, **kwargs
     elemList = []
     model = elements.HeatConduction2D(con)
     for elemDescript in elemDescripts:
-        if elemDescript in ['CQUAD4', 'CQUADR']:
+        if elemDescript in ["CQUAD4", "CQUADR"]:
             basis = elements.LinearQuadBasis()
-        elif elemDescript in ['CTRIA3', 'CTRIAR']:
+        elif elemDescript in ["CTRIA3", "CTRIAR"]:
             basis = elements.LinearTriangleBasis()
-        else:
-            print("Uh oh, '%s' not recognized" % (elemDescript))
         elem = elements.Element2D(model, basis)
         elemList.append(elem)
 
@@ -623,7 +713,7 @@ def elemCallBack(dvNum, compID, compDescript, elemDescripts, globalDVs, **kwargs
 
 # Set up constitutive objects and elements
 FEAAssembler.initialize(elemCallBack)
-problem = FEAAssembler.createStaticProblem('problem')
+problem = FEAAssembler.createStaticProblem("problem")
 
 # Get the mesh points
 Xpts0 = FEAAssembler.getOrigNodes()
