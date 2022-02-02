@@ -423,8 +423,13 @@ def get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra, m=3, n=3, cell_d=0.01
     dx_holes = np.repeat(np.linspace(0.0, dw, m+1), 4)
     dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4).flatten()
 
+    pert = 1e-6
+    dr1 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+    dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+    ddr_ddextra_fd = (dr2 - dr1)/pert
+
     ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
-    ddr_ddextra = 0.346574*(ratio+dratio)*0.5*cell_d*(2.0**0.5*(extra+dextra))
+    ddr_ddextra = ddr_ddextra_fd  #0.346574*(ratio+dratio)*0.5*cell_d*(2.0**0.5*(extra+dextra))
     ddw_ddextra = np.repeat(np.linspace(0.0, cell_d*m, m+1), 4)
     ddl_ddextra = np.tile(np.linspace(0.0, cell_d*n, n+1), 4).flatten()
 
@@ -504,8 +509,13 @@ def get_border_delta_derivs(Xpts0, border_idx, dratio, dextra, m=3, n=3, cell_d=
     ddw_ddextra = cell_d*m
     ddl_ddextra = cell_d*n
 
+    pert = 1e-6
+    dr1 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+    dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+    ddr_ddextra_fd = (dr2 - dr1)/pert
+
     ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
-    ddr_ddextra = 0.346574*(ratio+dratio)*0.5*cell_d*(2.0**0.5*(extra+dextra))
+    ddr_ddextra = ddr_ddextra_fd  #0.346574*(ratio+dratio)*0.5*cell_d*(2.0**0.5*(extra+dextra))
 
     ddx_ddratio = -2.0*ddr_ddratio
     ddx_ddextra = ddr_ddextra/m
@@ -643,6 +653,157 @@ def make_ghost_nodes_for_holes(h, dratio, dextra, m=3, n=3, cell_d=0.018, extra=
 
     return ghost_xpts_hole, ghost_deltas_hole
 
+class Intermediates(om.ExplicitComponent):
+
+    def initialize(self):
+        self.options.declare("m", types=int, default=3, desc="number of battery columns in the pack")
+        self.options.declare("n", types=int, default=3, desc="number of battery rows in the pack")
+        self.options.declare("cell_d", types=float, default=0.018, desc="battery cell diameter (m)")
+        self.options.declare("extra", types=float, default=1.5, desc="parametrized spacing between cells")
+        self.options.declare("ratio", types=float, default=0.4, desc="parametrized hole size: ratio of hole size to max available space")
+
+    def setup(self):
+
+        self.add_input("dratio", val=0.0, units=None, desc="change in ratio parameter from the initial mesh")
+        self.add_input("dextra", val=0.0, units=None, desc="change in extra parameter from the initial mesh")
+
+        self.add_output("dw", val=np.zeros(16), units="m")
+        self.add_output("dl", val=np.zeros(16), units="m")
+        self.add_output("dxb", val=np.zeros(9), units="m")
+        self.add_output("dyb", val=np.zeros(9), units="m")
+        self.add_output("dx_holes", val=np.zeros(16), units="m")
+        self.add_output("dy_holes", val=np.zeros(16), units="m")
+        self.add_output("dhole_r", val=0.0, units="m")
+        self.add_output("dx_border_len", val=0.0, units="m")
+        self.add_output("dy_border_len", val=0.0, units="m")
+        self.add_output("x_ranges", val=6*[0.0], units="m")
+        self.add_output("y_ranges", val=6*[0.0], units="m")
+
+        self.declare_partials(of=["dw", "dl", "dxb", "dyb", "dx_holes", "dy_holes",
+                                  "dhole_r", "dx_border_len", "dy_border_len",
+                                  "x_ranges", "y_ranges"],
+                              wrt=["dratio", "dextra"])
+
+    def compute(self, inputs, outputs):
+
+        m = self.options["m"]
+        n = self.options["n"]
+        cell_d = self.options["cell_d"]
+        extra = self.options["extra"]
+        ratio = self.options["ratio"]
+
+        dratio = inputs["dratio"]
+        dextra = inputs["dextra"]
+        
+        dw = outputs["dw"]
+        dl = outputs["dl"]
+        dxb = outputs["dxb"]
+        dyb = outputs["dyb"]
+        dx_holes = outputs["dx_holes"]
+        dy_holes = outputs["dy_holes"]
+        dhole_r = outputs["dhole_r"]
+        dx_border_len = outputs["dx_border_len"]
+        dy_border_len = outputs["dy_border_len"]
+        x_ranges = outputs["x_ranges"]
+        y_ranges = outputs["y_ranges"]
+
+        dw[:] = np.repeat(np.linspace(0.0, cell_d*m*dextra, m+1), 4)
+        dl[:] = np.tile(np.linspace(0.0, cell_d*n*dextra, n+1), 4).flatten(order="F")
+
+        dxb[:] = np.repeat(np.linspace(0.5*cell_d*m*dextra/m, 2.5*cell_d*m*dextra/m, m), 3)
+        dyb[:] = np.tile(np.linspace(0.5*cell_d*n*dextra/n, 2.5*cell_d*n*dextra/m, n), 3).flatten(order="F")
+
+        dx_holes[:] = np.repeat(np.linspace(0.0, cell_d*m*dextra, m+1), 4)
+        dy_holes[:] = np.tile(np.linspace(0.0, cell_d*n*dextra, n+1), 4).flatten(order="F")
+
+        hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+        dhole_r[:] = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+
+        x_border_len = (w-2*m*hole_r)/m
+        y_border_len = (l-2*n*hole_r)/n
+        dx_border_len[:] = cell_d*dextra-2*dhole_r
+        dy_border_len[:] = cell_d*dextra-2*dhole_r
+
+        x_ranges[:] = [hole_r+dhole_r, hole_r+dhole_r + (x_border_len+dx_border_len), 
+                       3*(hole_r+dhole_r) + (x_border_len+dx_border_len), 3*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 
+                       5*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 5*(hole_r+dhole_r) + 3*(x_border_len+dx_border_len)][:]
+        y_ranges[:] = [hole_r+dhole_r, hole_r+dhole_r + (y_border_len+dy_border_len), 
+                       3*(hole_r+dhole_r) + (y_border_len+dy_border_len), 3*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 
+                       5*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 5*(hole_r+dhole_r) + 3*(y_border_len+dy_border_len)][:]
+
+    def compute_partials(self, inputs, partials):
+
+        m = self.options["m"]
+        n = self.options["n"]
+        cell_d = self.options["cell_d"]
+        extra = self.options["extra"]
+        ratio = self.options["ratio"]
+
+        dratio = inputs["dratio"]
+        dextra = inputs["dextra"]
+
+        ddw_ddratio = partials["dw", "dratio"]
+        ddl_ddratio = partials["dl", "dratio"]
+        ddxb_ddratio = partials["dxb", "dratio"]
+        ddyb_ddratio = partials["dyb", "dratio"]
+        ddx_holes_ddratio = partials["dx_holes", "dratio"]
+        ddy_holes_ddratio = partials["dy_holes", "dratio"]
+        ddr_ddratio = partials["dhole_r", "dratio"]
+        ddx_ddratio = partials["dx_border_len", "dratio"]
+        ddy_ddratio = partials["dy_border_len", "dratio"]
+        dx_ranges_ddratio = partials["x_ranges", "dratio"]
+        dy_ranges_ddratio = partials["y_ranges", "dratio"]
+
+        ddw_ddextra = partials["dw", "dextra"]
+        ddl_ddextra = partials["dl", "dextra"]
+        ddxb_ddextra = partials["dxb", "dextra"]
+        ddyb_ddextra = partials["dyb", "dextra"]
+        ddx_holes_ddextra = partials["dx_holes", "dextra"]
+        ddy_holes_ddextra = partials["dy_holes", "dextra"]
+        ddr_ddextra = partials["dhole_r", "dextra"]
+        ddx_ddextra = partials["dx_border_len", "dextra"]
+        ddy_ddextra = partials["dy_border_len", "dextra"]
+        dx_ranges_ddextra = partials["x_ranges", "dextra"]
+        dy_ranges_ddextra = partials["y_ranges", "dextra"]
+
+        ddw_ddextra[:, :] = np.reshape(np.repeat(np.linspace(0.0, cell_d*m, m+1), 4), ddw_ddextra.shape)[:, :]
+        ddl_ddextra[:, :] = np.reshape(np.tile(np.linspace(0.0, cell_d*n, n+1), 4).flatten(order="F"), ddl_ddextra.shape)[:, :]
+
+        ddxb_ddextra[:, :] = np.reshape(np.repeat(np.linspace(0.5*cell_d, 2.5*cell_d, m), 3), ddxb_ddextra.shape)[:, :]
+        ddyb_ddextra[:, :] = np.reshape(np.tile(np.linspace(0.5*cell_d, 2.5*cell_d, n), 3).flatten(order="F"), ddyb_ddextra.shape)[:, :]
+
+        ddx_holes_ddextra[:, :] = np.reshape(np.repeat(np.linspace(0.0, cell_d*m, m+1), 4), ddx_holes_ddextra.shape)[:, :]
+        ddy_holes_ddextra[:, :] = np.reshape(np.tile(np.linspace(0.0, cell_d*n, n+1), 4).flatten(order="F"), ddy_holes_ddextra.shape)[:, :]
+
+        ddr_ddratio[:, :] = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
+
+        # Finite difference this value myself
+        pert = 1e-6
+        dr1 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+        dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+        ddr_ddextra_fd = (dr2 - dr1)/pert
+
+        ddr_ddextra[:, :] = ddr_ddextra_fd #(ratio+dratio)*0.5*cell_d*np.log(2)*2.0**(0.5*(extra+dextra-2.0))
+
+        ddx_ddratio[:, :] = -2.0*ddr_ddratio
+        ddx_ddextra[:, :] = ddr_ddextra/m
+        ddy_ddratio[:, :] = -2.0*ddr_ddratio
+        ddy_ddextra[:, :] = ddr_ddextra/n
+
+        dx_ranges_ddextra[:, :] = [ddr_ddextra, ddr_ddextra + ddx_ddextra, 
+                                   3*ddr_ddextra + ddx_ddextra, 3*ddr_ddextra + 2*ddx_ddextra, 
+                                   5*ddr_ddextra + 2*ddx_ddextra, 5*ddr_ddextra + 3*ddx_ddextra]
+        dx_ranges_ddratio[:, :] = [ddr_ddratio, ddr_ddratio + ddx_ddratio, 
+                                   3*ddr_ddratio + ddx_ddratio, 3*ddr_ddratio + 2*ddx_ddratio, 
+                                   5*ddr_ddratio + 2*ddx_ddratio, 5*ddr_ddratio + 3*ddx_ddratio]
+        dy_ranges_ddextra[:, :] = [ddr_ddextra, ddr_ddextra + ddy_ddextra, 
+                                   3*ddr_ddextra + ddx_ddextra, 3*ddr_ddextra + 2*ddy_ddextra, 
+                                   5*ddr_ddextra + 2*ddy_ddextra, 5*ddr_ddextra + 3*ddy_ddextra]
+        dy_ranges_ddratio[:, :] = [ddr_ddratio, ddr_ddratio + ddy_ddratio, 
+                                   3*ddr_ddratio + ddy_ddratio, 3*ddr_ddratio + 2*ddy_ddratio, 
+                                   5*ddr_ddratio + 2*ddy_ddratio, 5*ddr_ddratio + 3*ddy_ddratio]
+
+
 class MeshDeformComp(om.ExplicitComponent):
     
     def initialize(self):
@@ -656,7 +817,6 @@ class MeshDeformComp(om.ExplicitComponent):
     
     def setup(self):
         nnodes = self.options["nnodes"]
-        # self.add_input("Xpts", shape=(nnodes, 2), units="m", desc="Initial mesh coordinates")
         self.add_input("dratio", val=0.0, units=None, desc="change in ratio parameter from the initial mesh")
         self.add_input("dextra", val=0.0, units=None, desc="change in extra parameter from the initial mesh")
 
@@ -697,8 +857,8 @@ class MeshDeformComp(om.ExplicitComponent):
         # Set the total delta array
         delta = np.zeros((len(Xpts0_cp_idx), 2))
         delta[0:len(hole_idx), :] = hole_deltas[:, :]
-        #delta[len(hole_idx):len(hole_idx)+len(border_idx), :] = border_deltas[:, :]
-        #delta[len(hole_idx)+len(border_idx):len(hole_idx)+len(border_idx)+len(battery_edge_idx), :] = battery_deltas[:, :]
+        delta[len(hole_idx):len(hole_idx)+len(border_idx), :] = border_deltas[:, :]
+        delta[len(hole_idx)+len(border_idx):len(hole_idx)+len(border_idx)+len(battery_edge_idx), :] = battery_deltas[:, :]
 
         # Get the updated locations of the dependent nodes
         # Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, delta)
@@ -738,12 +898,12 @@ class MeshDeformComp(om.ExplicitComponent):
         dhole_delta_ddratio, dhole_delta_ddextra = get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra)
         dborder_delta_ddratio, dborder_delta_ddextra = get_border_delta_derivs(Xpts0, border_idx, dratio, dextra)
         
-        #dXpts_ddratio[battery_edge_idx, :] = dbattery_delta_ddratio[:, :]
+        dXpts_ddratio[battery_edge_idx, :] = dbattery_delta_ddratio[:, :]
         dXpts_ddratio[hole_idx, :] = dhole_delta_ddratio[:, :]
-        #dXpts_ddratio[border_idx, :] = dborder_delta_ddratio[:, :]
-        #dXpts_ddextra[battery_edge_idx, :] = dbattery_delta_ddextra[:, :]
+        dXpts_ddratio[border_idx, :] = dborder_delta_ddratio[:, :]
+        dXpts_ddextra[battery_edge_idx, :] = dbattery_delta_ddextra[:, :]
         dXpts_ddextra[hole_idx, :] = dhole_delta_ddextra[:, :]
-        #dXpts_ddextra[border_idx, :] = dborder_delta_ddextra[:, :]
+        dXpts_ddextra[border_idx, :] = dborder_delta_ddextra[:, :]
 
         # Undo the reshaping of the derivative arrays
         dXpts_ddratio = dXpts_ddratio.flatten()
@@ -853,14 +1013,18 @@ ivc.add_output("dratio", dratio)
 ivc.add_output("dextra", dextra)
 p.model.add_subsystem("ivc", ivc, promotes=["*"])
 
+# Check the intermediate derivatives
+intermediates_comp = Intermediates()
+#p.model.add_subsystem("intermediates", intermediates_comp, promotes=["*"])
+
 mesh_deform_comp = MeshDeformComp(Xpts0=Xpts0, nnodes=nnodes)
 p.model.add_subsystem("mesh_deform_comp", mesh_deform_comp, promotes=["*"])
 
-my_own_fd_func(p, Xpts0)
+#my_own_fd_func(p, Xpts0)
 
-# p.setup(check=True)
-# p.run_model()
-# p.check_partials(compact_print=True)
+p.setup(check=True)
+p.run_model()
+p.check_partials(compact_print=True)
 asd
 # ######
 
