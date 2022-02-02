@@ -7,6 +7,78 @@ import matplotlib.pyplot as plt
 import openmdao.api as om
 from tacs import functions, constitutive, elements, TACS, pyTACS
 
+def my_own_fd_func(prob, Xpts0, h=1e-8):
+
+    # Run the model with the initial inputs
+    prob.setup()
+    prob.run_model()
+    Xpts = prob.get_val("Xpts")
+
+    # Perturb the inputs, re-run the model, and finite-difference the output
+    dratio = prob.get_val("dratio")
+    dextra = prob.get_val("dextra")
+    prob.set_val("dratio", dratio+h)
+    prob.run_model()
+    Xpts_pert = prob.get_val("Xpts")
+    dXpts_ddratio_fd = (Xpts_pert - Xpts)/h
+
+    prob.set_val("dextra", dextra+h)
+    prob.run_model()
+    Xpts_pert = prob.get_val("Xpts")
+    dXpts_ddextra_fd = (Xpts_pert - Xpts)/h
+
+    # Get the analutic derivatives
+    nnodes = np.shape(Xpts0)[0]
+    dXpts_ddratio = np.zeros((nnodes, 2))
+    dXpts_ddextra = np.zeros((nnodes, 2))
+
+    battery_edge_idx = get_battery_edge_nodes(Xpts0)
+    hole_idx = get_hole_nodes(Xpts0)
+    border_idx = get_border_nodes(Xpts0)
+
+    dbattery_delta_ddratio, dbattery_delta_ddextra = get_battery_delta_derivs(Xpts0, battery_edge_idx, dextra)
+    dhole_delta_ddratio, dhole_delta_ddextra = get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra)
+    dborder_delta_ddratio, dborder_delta_ddextra = get_border_delta_derivs(Xpts0, border_idx, dratio, dextra)
+    
+    dXpts_ddratio[battery_edge_idx, :] = dbattery_delta_ddratio[:, :]
+    dXpts_ddratio[hole_idx, :] = dhole_delta_ddratio[:, :]
+    dXpts_ddratio[border_idx, :] = dborder_delta_ddratio[:, :]
+    dXpts_ddextra[battery_edge_idx, :] = dbattery_delta_ddextra[:, :]
+    dXpts_ddextra[hole_idx, :] = dhole_delta_ddextra[:, :]
+    dXpts_ddextra[border_idx, :] = dborder_delta_ddextra[:, :]
+
+    # Print only the non-zero components of the outputs
+    check_idx = battery_edge_idx + hole_idx + border_idx
+
+    diff_ddratio = dXpts_ddratio_fd - dXpts_ddratio
+    diff_ddextra = dXpts_ddextra_fd - dXpts_ddextra
+
+    print(np.amax(np.absolute(dXpts_ddratio_fd)))
+    print(np.amax(np.absolute(dXpts_ddextra_fd)))
+
+    print("dXpts_ddratio:")
+    print(dXpts_ddratio[check_idx, :])
+    print()
+
+    print("dXpts_ddratio - finite difference:")
+    print(dXpts_ddratio_fd[check_idx, :])
+    print()
+
+    print("dXpts_ddextra:")
+    print(dXpts_ddextra[check_idx, :])
+    print()
+
+    print("dXpts_ddextra - finite difference:")
+    print(dXpts_ddextra_fd[check_idx, :])
+    print()
+
+    max_ddratio_rel_error = np.amax(np.absolute((dXpts_ddratio_fd - dXpts_ddratio)))
+    max_ddextra_rel_error = np.amax(np.absolute((dXpts_ddextra_fd - dXpts_ddextra)))
+    print(f"Max absolute error of d/ddratio = {max_ddratio_rel_error}")
+    print(f"Max absolute error of d/ddextra = {max_ddextra_rel_error}")
+
+    return
+
 def update_points(Xpts0, indices, Xpts_cp, delta):
     # this function warps points using the displacements from curve projections
     # Xpts0: the original surface point coordinates
@@ -54,7 +126,7 @@ def get_battery_edge_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, e
     l = cell_d*n*extra
 
     xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3)
+    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
 
     battery_edge_idx = []
     for i in range(len(Xpts)):
@@ -83,7 +155,7 @@ def get_battery_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, eps=1e
     l = cell_d*n*extra
 
     xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3)
+    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
 
     battery_idx = []
     for i in range(len(Xpts)):
@@ -112,7 +184,7 @@ def get_hole_nodes(Xpts, m=3, n=3, extra=1.5, ratio=0.4, eps=1e-6):
     hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 
     x_holes = np.repeat(np.linspace(0.0, w, m+1), 4)
-    y_holes = np.tile(np.linspace(0.0, l, n+1), 4)
+    y_holes = np.tile(np.linspace(0.0, l, n+1), 4).flatten()
 
     hole_idx = []
     for i in range(len(Xpts)):
@@ -203,9 +275,9 @@ def get_hole_deltas(Xpts0, hole_idx, dratio, dextra, m=3, n=3, cell_d=0.018, ext
     dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 
     x_holes = np.repeat(np.linspace(0.0, w, m+1), 4)
-    y_holes = np.tile(np.linspace(0.0, l, n+1), 4)
+    y_holes = np.tile(np.linspace(0.0, l, n+1), 4).flatten()
     dx_holes = np.repeat(np.linspace(0.0, dw, m+1), 4)
-    dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4)
+    dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4).flatten()
 
     hole_deltas = np.zeros((len(hole_idx), 2))
     for i, idx in enumerate(hole_idx):
@@ -234,9 +306,9 @@ def get_battery_deltas(Xpts0, battery_idx, dextra, m=3, n=3, cell_d=0.018, extra
     dl = cell_d*n*dextra
 
     xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3)
+    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
     dxb = np.repeat(np.linspace(0.5*dw/m, 2.5*dw/m, m), 3)
-    dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3)
+    dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3).flatten()
 
     battery_deltas = np.zeros((len(battery_idx), 2))
     for i, idx in enumerate(battery_idx):
@@ -347,14 +419,14 @@ def get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra, m=3, n=3, cell_d=0.01
     dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 
     x_holes = np.repeat(np.linspace(0.0, w, m+1), 4)
-    y_holes = np.tile(np.linspace(0.0, l, n+1), 4)
+    y_holes = np.tile(np.linspace(0.0, l, n+1), 4).flatten()
     dx_holes = np.repeat(np.linspace(0.0, dw, m+1), 4)
-    dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4)
+    dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4).flatten()
 
     ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
     ddr_ddextra = 0.346574*(ratio+dratio)*0.5*cell_d*(2.0**0.5*(extra+dextra))
     ddw_ddextra = np.repeat(np.linspace(0.0, cell_d*m, m+1), 4)
-    ddl_ddextra = np.tile(np.linspace(0.0, cell_d*n, n+1), 4)
+    ddl_ddextra = np.tile(np.linspace(0.0, cell_d*n, n+1), 4).flatten()
 
     ddelta_ddratio = np.zeros((len(hole_idx), 2))
     ddelta_ddextra = np.zeros((len(hole_idx), 2))
@@ -374,8 +446,8 @@ def get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra, m=3, n=3, cell_d=0.01
         ddelta_ddratio[i, 0] = np.cos(theta)*ddr_ddratio
         ddelta_ddratio[i, 1] = np.sin(theta)*ddr_ddratio
 
-        ddelta_ddextra[i, 0] = np.cos(theta)*ddr_ddextra + ddw_ddextra[i]
-        ddelta_ddextra[i, 1] = np.sin(theta)*ddr_ddextra + ddl_ddextra[i]
+        ddelta_ddextra[i, 0] = np.cos(theta)*ddr_ddextra + ddw_ddextra[which_hole]
+        ddelta_ddextra[i, 1] = np.sin(theta)*ddr_ddextra + ddl_ddextra[which_hole]
 
     return ddelta_ddratio, ddelta_ddextra
 
@@ -387,9 +459,9 @@ def get_battery_delta_derivs(Xpts0, battery_idx, dextra, m=3, n=3, cell_d=0.018,
     dl = cell_d*n*dextra
 
     xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3)
+    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
     ddxb_ddextra = np.repeat(np.linspace(0.5*cell_d, 2.5*cell_d, m), 3)
-    ddyb_ddextra = np.tile(np.linspace(0.5*cell_d, 2.5*cell_d, n), 3)
+    ddyb_ddextra = np.tile(np.linspace(0.5*cell_d, 2.5*cell_d, n), 3).flatten()
 
     ddelta_ddratio = np.zeros((len(battery_idx), 2))
     ddelta_ddextra = np.zeros((len(battery_idx), 2))
@@ -547,9 +619,9 @@ def make_ghost_nodes_for_holes(h, dratio, dextra, m=3, n=3, cell_d=0.018, extra=
     dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 
     x_holes = np.repeat(np.linspace(0.0, w, m+1), 4)
-    y_holes = np.tile(np.linspace(0.0, l, n+1), 4)
+    y_holes = np.tile(np.linspace(0.0, l, n+1), 4).flatten()
     dx_holes = np.repeat(np.linspace(0.0, dw, m+1), 4)
-    dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4)
+    dy_holes = np.tile(np.linspace(0.0, dl, n+1), 4).flatten()
 
     num_pts = int(2.0*np.pi*hole_r/h)
     theta = np.linspace(0.0, 2.0*np.pi, num_pts)
@@ -580,10 +652,11 @@ class MeshDeformComp(om.ExplicitComponent):
         self.options.declare("extra", types=float, default=1.5, desc="parametrized spacing between cells")
         self.options.declare("ratio", types=float, default=0.4, desc="parametrized hole size: ratio of hole size to max available space")
         self.options.declare("nnodes", types=int, desc="number of nodes in the mesh")
+        self.options.declare("Xpts0", desc="Copy of initial mesh points which are static")
     
     def setup(self):
         nnodes = self.options["nnodes"]
-        self.add_input("Xpts0", shape=(nnodes, 2), units="m", desc="Initial mesh coordinates")
+        # self.add_input("Xpts", shape=(nnodes, 2), units="m", desc="Initial mesh coordinates")
         self.add_input("dratio", val=0.0, units=None, desc="change in ratio parameter from the initial mesh")
         self.add_input("dextra", val=0.0, units=None, desc="change in extra parameter from the initial mesh")
 
@@ -598,15 +671,18 @@ class MeshDeformComp(om.ExplicitComponent):
         cell_d = self.options["cell_d"]
         extra = self.options["extra"]
         ratio = self.options["ratio"]
+        Xpts0 = self.options["Xpts0"]
 
-        Xpts0 = inputs["Xpts0"]
         dratio = inputs["dratio"]
         dextra = inputs["dextra"]
         Xpts = outputs["Xpts"]
 
-        battery_edge_idx = get_battery_edge_nodes(Xpts0)
         hole_idx = get_hole_nodes(Xpts0)
         border_idx = get_border_nodes(Xpts0)
+        battery_edge_idx = get_battery_edge_nodes(Xpts0)
+
+        Xpts0_cp_idx = hole_idx + border_idx + battery_edge_idx
+        Xpts0_cp = Xpts0[Xpts0_cp_idx[:]]
 
         dep_idx = []
         for i in range(len(Xpts0)):
@@ -615,17 +691,20 @@ class MeshDeformComp(om.ExplicitComponent):
 
         # Compute the deltas of the seed nodes
         hole_deltas = get_hole_deltas(Xpts0, hole_idx, dratio, dextra)
-        battery_deltas = get_battery_deltas(Xpts0, battery_edge_idx, dextra)
         border_deltas = get_border_deltas(Xpts0, border_idx, dratio, dextra)
+        battery_deltas = get_battery_deltas(Xpts0, battery_edge_idx, dextra)
 
         # Set the total delta array
         delta = np.zeros((len(Xpts0_cp_idx), 2))
         delta[0:len(hole_idx), :] = hole_deltas[:, :]
-        delta[len(hole_idx):len(hole_idx)+len(border_idx), :] = border_deltas[:, :]
-        delta[len(hole_idx)+len(border_idx):len(hole_idx)+len(border_idx)+len(battery_edge_idx), :] = battery_deltas[:, :]
+        #delta[len(hole_idx):len(hole_idx)+len(border_idx), :] = border_deltas[:, :]
+        #delta[len(hole_idx)+len(border_idx):len(hole_idx)+len(border_idx)+len(battery_edge_idx), :] = battery_deltas[:, :]
 
         # Get the updated locations of the dependent nodes
-        Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, delta)
+        # Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, delta)
+
+        # don't update the dependent nodes just to check the derivatives of the seed nodes
+        Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, np.zeros((len(Xpts0_cp_idx), 2)))
 
         # Update the independent node locations
         Xnew[Xpts0_cp_idx[:], :] += delta[:, :]
@@ -638,13 +717,18 @@ class MeshDeformComp(om.ExplicitComponent):
         cell_d = self.options["cell_d"]
         extra = self.options["extra"]
         ratio = self.options["ratio"]
+        nnodes = self.options["nnodes"]
+        Xpts0 = self.options["Xpts0"]
 
-        Xpts0 = inputs["Xpts0"]
         dratio = inputs["dratio"]
         dextra = inputs["dextra"]
 
         dXpts_ddratio = partials["Xpts", "dratio"]
         dXpts_ddextra = partials["Xpts", "dextra"]
+
+        # Reshape the derivative arrays
+        dXpts_ddratio = dXpts_ddratio.reshape((nnodes, 2))
+        dXpts_ddextra = dXpts_ddextra.reshape((nnodes, 2))
 
         battery_edge_idx = get_battery_edge_nodes(Xpts0)
         hole_idx = get_hole_nodes(Xpts0)
@@ -654,13 +738,16 @@ class MeshDeformComp(om.ExplicitComponent):
         dhole_delta_ddratio, dhole_delta_ddextra = get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra)
         dborder_delta_ddratio, dborder_delta_ddextra = get_border_delta_derivs(Xpts0, border_idx, dratio, dextra)
         
-        dXpts_ddratio[battery_edge_idx, :] = dbattery_delta_ddratio[:, :]
+        #dXpts_ddratio[battery_edge_idx, :] = dbattery_delta_ddratio[:, :]
         dXpts_ddratio[hole_idx, :] = dhole_delta_ddratio[:, :]
-        dXpts_ddratio[border_idx, :] = dborder_delta_ddratio[:, :]
-        dXpts_ddextra[battery_edge_idx, :] = dbattery_delta_ddextra[:, :]
+        #dXpts_ddratio[border_idx, :] = dborder_delta_ddratio[:, :]
+        #dXpts_ddextra[battery_edge_idx, :] = dbattery_delta_ddextra[:, :]
         dXpts_ddextra[hole_idx, :] = dhole_delta_ddextra[:, :]
-        dXpts_ddextra[border_idx, :] = dborder_delta_ddextra[:, :]
+        #dXpts_ddextra[border_idx, :] = dborder_delta_ddextra[:, :]
 
+        # Undo the reshaping of the derivative arrays
+        dXpts_ddratio = dXpts_ddratio.flatten()
+        dXpts_ddextra = dXpts_ddextra.flatten()
 
 comm = MPI.COMM_WORLD
 
@@ -721,7 +808,8 @@ Xnew_tacs = np.zeros(np.shape(Xpts0))
 
 # Drop the z-values and reshape the vector
 Xpts0 = np.delete(Xpts0, np.arange(2, Xpts0.size, 3))
-Xpts0 = Xpts0.reshape((int(Xpts0.size/2), 2))
+nnodes = int(Xpts0.size/2)
+Xpts0 = Xpts0.reshape((nnodes, 2))
 
 # Parametrize the geometry
 m = 3  # number of rows of battery cells
@@ -738,7 +826,7 @@ border_idx = get_border_nodes(Xpts0)
 
 # Define the change in geometric parameters to be applied
 dratio = 0.3
-dextra = 1.0
+dextra = 0.3
 
 w = cell_d*m*extra
 l = cell_d*n*extra
@@ -747,9 +835,9 @@ dl = cell_d*n*dextra
 hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
 xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3)
+yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
 dxb = np.repeat(np.linspace(0.5*dw/m, 2.5*dw/m, m), 3)
-dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3)
+dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3).flatten()
 
 dr_pct = 100.0*(dhole_r/hole_r)
 dxb_pct = 100.0*(dyb[1]-dyb[0])/(yb[1]-yb[0])
@@ -757,7 +845,24 @@ dxb_pct = 100.0*(dyb[1]-dyb[0])/(yb[1]-yb[0])
 print(f"Hole radius change is {dr_pct}%")
 print(f"Battery spacing change is {dxb_pct}%")
 
-# ------- Use ratio and extra as design variables ------------
+# ###### Try out the openmdao component
+
+p = om.Problem()
+ivc = om.IndepVarComp()
+ivc.add_output("dratio", dratio)
+ivc.add_output("dextra", dextra)
+p.model.add_subsystem("ivc", ivc, promotes=["*"])
+
+mesh_deform_comp = MeshDeformComp(Xpts0=Xpts0, nnodes=nnodes)
+p.model.add_subsystem("mesh_deform_comp", mesh_deform_comp, promotes=["*"])
+
+my_own_fd_func(p, Xpts0)
+
+# p.setup(check=True)
+# p.run_model()
+# p.check_partials(compact_print=True)
+asd
+# ######
 
 # Get dependent node indices
 dep_idx = []
