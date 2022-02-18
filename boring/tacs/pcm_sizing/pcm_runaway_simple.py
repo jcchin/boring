@@ -89,9 +89,9 @@ k_battery = 0.80  # ???? https://tfaws.nasa.gov/wp-content/uploads/TFAWS18-PT-11
 c_battery = 800.0  # ^ same
 
 # Thermal runaway heat generation
-duration = 10.0
+duration = 2.0
 total_energy = 16.5*3600.0  # 16.5 W-h -> J
-thermal_pct = 0.30  # percent of total battery energy that can convert to heat during runaway
+thermal_pct = 0.415  # percent of total battery energy that can convert to heat during runaway
 Qdot = thermal_pct*total_energy/duration  # total heat released per second
 
 # Heat-pipe cooling to get steady-state initial condition
@@ -124,12 +124,17 @@ dTdt = np.zeros(nsteps)
 
 # Mass of each component
 m_battery = rho_battery*t_battery*A
+print("m_battery = {}".format(m_battery))
 m_pcm = bulk_rho_s*t_pcm*A
 
 # Allocate the latent heat to the pcm elements
 pcm_lh = (lh*m_pcm/nelems_pcm)*np.ones(nelems_pcm)
 lh_pct_hist = np.zeros(nsteps)
 lh_pct_hist[0] = 1.0
+
+print("m_pcm = {0}".format(m_pcm))
+print("E_heat = {0}".format(thermal_pct*total_energy))
+print("% of heat absorbed by phase change = {0}".format(lh*m_pcm/(thermal_pct*total_energy)))
 
 # Define some integration constants
 a_battery = dt/(c_battery*m_battery/nelems_battery)
@@ -298,6 +303,7 @@ plt.savefig('latent_heat_history.pdf', bbox_inches='tight', transparent=True)
 # Plot the max temperature rate of change over time
 fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
 ax.plot(t[1::], 60.0*dTdt[1::])
+print("max dT/dt = {0}".format(np.amax(60.0*dTdt[1::])))
 
 ax.set_xlabel(r"$t$ (s)")
 ax.set_ylabel(r"dT/dt ($^\circ$C/min)")
