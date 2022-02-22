@@ -1,8 +1,11 @@
+import subprocess
+import os
+
 import numpy as np
-from scipy import interpolate
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import matplotlib as mpl
+import matplotlib.animation as animation
 
 # Constants and assumptions
 # -------------------------
@@ -448,54 +451,60 @@ def make_a_movie(T):
     # Make the frames
     nplots = np.shape(T)[0]
 
-    # Plot the temperature distribution over time
-    norm = plt.Normalize(vmin=np.amin(T), vmax=0.8*np.amax(T))
-    cmap = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.coolwarm)
-    cmap.set_array([])
-    colors = plt.cm.coolwarm(np.linspace(0.0, 1.0, plot_len))
-
     y = np.array([0, 1])
     Y, X = np.meshgrid(y, x)
 
-    norm = plt.Normalize(vmin=40.0, vmax=300.0)
+    norm = plt.Normalize(vmin=50.0, vmax=450.0)
     cmap = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.coolwarm)
 
-    i = int(nplots/2)
     fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+    files = []
+    for i in range(nplots):
+        plt.cla()
 
-    Zi = np.zeros(np.shape(X))
-    for iy, ix in np.ndindex(X.shape):
-        Zi[iy, ix] = T[i, np.where(x == X[iy, ix])]
-    cf = ax.contourf(Y, X, Zi, norm=norm, cmap="coolwarm", extend="both", levels=np.linspace(40.0, 300.0, 50, endpoint=True))
+        Zi = np.zeros(np.shape(X))
+        for iy, ix in np.ndindex(X.shape):
+            Zi[iy, ix] = T[i, np.where(x == X[iy, ix])]
+        cf = ax.contourf(Y, X, Zi, norm=norm, cmap="coolwarm", extend="both", levels=np.linspace(50.0, 450.0, 50, endpoint=True))
 
-    # Add the text
-    ax.annotate('Battery', (-0.02, 0.5*t_battery), (-0.02, 0.5*t_battery),
-                ha='center', rotation=90, annotation_clip=False)
-    ax.annotate('PCM', (-0.02, t_battery+0.5*t_pcm), (-0.02, t_battery+0.5*t_pcm),
-                ha='center', rotation=90, annotation_clip=False)
-    # Draw the arrow
-    ax.annotate('', (0.0, 0.1*t_battery), xytext=(0.0, t_battery),
-                arrowprops=dict(arrowstyle="<->"),
-                annotation_clip=False)
-    ax.annotate('', (0.0, t_battery), xytext=(0.0, t_battery+t_pcm),
-                arrowprops=dict(arrowstyle="<->"),
-                annotation_clip=False)
+        # Add the text
+        ax.annotate('Battery', (-0.02, 0.5*t_battery), (-0.02, 0.5*t_battery),
+                    ha='center', rotation=90, annotation_clip=False)
+        ax.annotate('PCM', (-0.02, t_battery+0.5*t_pcm), (-0.02, t_battery+0.5*t_pcm),
+                    ha='center', rotation=90, annotation_clip=False)
+        # Draw the arrow
+        ax.annotate('', (0.0, 0.1*t_battery), xytext=(0.0, t_battery),
+                    arrowprops=dict(arrowstyle="<->"),
+                    annotation_clip=False)
+        ax.annotate('', (0.0, t_battery), xytext=(0.0, t_battery+t_pcm),
+                    arrowprops=dict(arrowstyle="<->"),
+                    annotation_clip=False)
 
-    # Adjust the axes
-    ax.grid(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.xaxis.set_visible(False)
-    ax.yaxis.set_visible(False)
-    
-    # Add the colorbar
-    v = np.linspace(40.0, 300.0, 5, endpoint=True)
-    cbar = plt.colorbar(cf, ticks=v)
-    cbar.set_label(r"T ($^\circ$C)")
+        # Adjust the axes
+        ax.grid(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
+        
+        # Add a title
+        ax.set_title(f"Time: {t[0::nsample][i]} s")
 
-    plt.savefig(f"frame{i}.png")
+        # Add the colorbar
+        if i == 0:
+            v = np.linspace(50.0, 450.0, 5, endpoint=True)
+            cbar = plt.colorbar(cf, ticks=v)
+            cbar.set_label(r"T ($^\circ$C)")
+
+        fname = f"temp/frame{i}.png"
+        plt.savefig(fname)
+        files.append(fname)
+
+    cmd = "mencoder mf://temp/frame*.png -mf fps=20:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o output.avi"
+    subprocess.call(cmd, shell=True)
+    subprocess.call("ffmpeg -i output.avi runaway.mp4", shell=True)
 
     return
 
