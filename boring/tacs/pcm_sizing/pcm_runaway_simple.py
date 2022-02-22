@@ -1,7 +1,8 @@
 import numpy as np
+from scipy import interpolate
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-
+import matplotlib as mpl
 
 # Constants and assumptions
 # -------------------------
@@ -358,12 +359,21 @@ ax1.set_xticklabels([0, 1, 2, 3])
 
 # Label the maximum PCM temperature
 yticks = ax0.get_yticks()
-yticks = np.append(yticks[0:-1], [np.amax(T[:, nelems_battery])])
+yticks = np.append(yticks[0:-2], [np.amax(T[:, nelems_battery])])
 yticklabels = []
 for yt in yticks:
     yticklabels.append('{0:.0f}'.format(yt))
 ax0.set_yticks(yticks)
 ax0.set_yticklabels(yticklabels)
+
+# Label the maximum dT/dt
+yticks = ax1.get_yticks()
+yticks = np.append(yticks[0:-2], [60.0*np.amax(dTdt[1::])])
+yticklabels = []
+for yt in yticks:
+    yticklabels.append('{0:.0f}'.format(yt))
+ax1.set_yticks(yticks)
+ax1.set_yticklabels(yticklabels)
 
 for label in ax0.get_xticklabels():
     label.set_visible(False)
@@ -403,12 +413,12 @@ ax0.text(
 
 ax0.text(
     t[t_idx],
-    T[T_idx, nelems_battery]-5.0,
+    T[T_idx, nelems_battery]-15.0,
     " " + plot2.get_label(),
     size="medium",
     color=plot2.get_color(),
     ha="left",
-    va="top",
+    va="bottom",
     rotation=-5.0,
 )
 
@@ -432,3 +442,61 @@ ax1.set_xlabel('Time (min.)')
 ax1.set_ylabel(r'Rate of change of battery temperature ($^\circ$C/min.)', fontsize=12)
 
 plt.savefig("PCM_runaway.pdf", transparent=True)
+
+def make_a_movie(T):
+
+    # Make the frames
+    nplots = np.shape(T)[0]
+
+    # Plot the temperature distribution over time
+    norm = plt.Normalize(vmin=np.amin(T), vmax=0.8*np.amax(T))
+    cmap = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.coolwarm)
+    cmap.set_array([])
+    colors = plt.cm.coolwarm(np.linspace(0.0, 1.0, plot_len))
+
+    y = np.array([0, 1])
+    Y, X = np.meshgrid(y, x)
+
+    norm = plt.Normalize(vmin=40.0, vmax=300.0)
+    cmap = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.coolwarm)
+
+    i = int(nplots/2)
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+
+    Zi = np.zeros(np.shape(X))
+    for iy, ix in np.ndindex(X.shape):
+        Zi[iy, ix] = T[i, np.where(x == X[iy, ix])]
+    cf = ax.contourf(Y, X, Zi, norm=norm, cmap="coolwarm", extend="both", levels=np.linspace(40.0, 300.0, 50, endpoint=True))
+
+    # Add the text
+    ax.annotate('Battery', (-0.02, 0.5*t_battery), (-0.02, 0.5*t_battery),
+                ha='center', rotation=90, annotation_clip=False)
+    ax.annotate('PCM', (-0.02, t_battery+0.5*t_pcm), (-0.02, t_battery+0.5*t_pcm),
+                ha='center', rotation=90, annotation_clip=False)
+    # Draw the arrow
+    ax.annotate('', (0.0, 0.1*t_battery), xytext=(0.0, t_battery),
+                arrowprops=dict(arrowstyle="<->"),
+                annotation_clip=False)
+    ax.annotate('', (0.0, t_battery), xytext=(0.0, t_battery+t_pcm),
+                arrowprops=dict(arrowstyle="<->"),
+                annotation_clip=False)
+
+    # Adjust the axes
+    ax.grid(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.xaxis.set_visible(False)
+    ax.yaxis.set_visible(False)
+    
+    # Add the colorbar
+    v = np.linspace(40.0, 300.0, 5, endpoint=True)
+    cbar = plt.colorbar(cf, ticks=v)
+    cbar.set_label(r"T ($^\circ$C)")
+
+    plt.savefig(f"frame{i}.png")
+
+    return
+
+make_a_movie(T)
