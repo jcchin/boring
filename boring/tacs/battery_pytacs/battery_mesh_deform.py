@@ -7,7 +7,15 @@ import openmdao.api as om
 from tacs import functions, constitutive, elements, TACS, pyTACS
 
 # TODO:
-# - add MeshDeformation class to OM class
+# - check derivatives
+#   [x] battery derivatives
+#   [x] hole derivatives wrt dextra
+#   [x] hole derivatives wrt dratio
+#   [x] border derivatives wrt dextra
+#   [x] border derivatives wrt dratio
+#   [ ] dep node derivatives wrt dextra
+#   [ ] dep node derivatives wrt dratio
+# - why is ddr/ddextra still wrong?
 class MeshDeformation:
     def __init__(self, Xpts0, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, dextra=0.0, dratio=0.0):
 
@@ -56,7 +64,7 @@ class MeshDeformation:
         extra = self.extra
         ratio = self.ratio
         dextra = self.dextra
-        dextra = self.dratio
+        dratio = self.dratio
 
         self.w = cell_d*m*extra
         self.l = cell_d*n*extra
@@ -64,10 +72,10 @@ class MeshDeformation:
         self.dl = cell_d*n*dextra
 
         self.xb = np.repeat(np.linspace(0.5*self.w/m, 2.5*self.w/m, m), 3)
-        self.yb = np.tile(np.linspace(0.5*self.l/n, 2.5*self.l/n, n), 3).flatten()
+        self.yb = np.tile(np.linspace(0.5*self.l/n, 2.5*self.l/n, n), 3).flatten(order="F")
 
         self.x_holes = np.repeat(np.linspace(0.0, self.w, m+1), 4)
-        self.y_holes = np.tile(np.linspace(0.0, self.l, n+1), 4).flatten()
+        self.y_holes = np.tile(np.linspace(0.0, self.l, n+1), 4).flatten(order="F")
 
         self.dxb = np.repeat(np.linspace(0.5*self.dw/m, 2.5*self.dw/m, m), 3)
         self.dyb = np.tile(np.linspace(0.5*self.dl/n, 2.5*self.dl/n, n), 3).flatten(order="F")
@@ -100,7 +108,7 @@ class MeshDeformation:
         extra = self.extra
         ratio = self.ratio
         dextra = self.dextra
-        dextra = self.dratio
+        dratio = self.dratio
 
         self.ddw_ddextra = cell_d*m
         self.ddl_ddextra = cell_d*n
@@ -111,7 +119,14 @@ class MeshDeformation:
         self.ddx_holes_ddextra = np.repeat(np.linspace(0.0, self.ddw_ddextra, m+1), 4)
         self.ddy_holes_ddextra = np.tile(np.linspace(0.0, self.ddl_ddextra, n+1), 4).flatten(order="F")
 
-        self.ddr_ddextra = (np.log(2.0)/4.0)*(ratio+dratio)*cell_d*(2.0**0.5*(extra+dextra))
+        # Finite-difference ddr/ddextra:
+        pert = 1e-10
+        dr1 = self.dhole_r
+        dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+        ddr_ddextra_fd = (dr2-dr1)/pert
+
+        self.ddr_ddextra = ddr_ddextra_fd
+        #self.ddr_ddextra = (np.log(2.0)/4.0)*(ratio+dratio)*cell_d*(2.0**0.5*(extra+dextra))
         self.ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
 
         ddx_ddextra = cell_d - 2.0*self.ddr_ddextra
@@ -476,7 +491,9 @@ class MeshDeformation:
         delta[self.border_start:self.border_end, :] = self.border_deltas[:, :]
         self.delta = delta
 
-        Xnew = self.update_points()
+        #Xnew = self.update_points()
+        Xnew = np.zeros(np.shape(self.Xpts0)) # temp
+        Xnew[:, :] = self.Xpts0[:, :] # temp
         Xnew[self.Xpts0_cp_idx[:], :] += delta[:, :]
 
         return Xnew
@@ -516,6 +533,24 @@ class MeshDeformation:
 
             ddelta_ddextra[i, 0] = np.cos(theta)*ddr_ddextra + ddx_ddextra[which_hole]
             ddelta_ddextra[i, 1] = np.sin(theta)*ddr_ddextra + ddy_ddextra[which_hole]
+
+        # # Compute my own finite-difference derivative wrt dextra here
+        # #ddelta_ddextra_fd = np.zeros((len(hole_idx), 2))
+        # pert = 1e-10
+        # self.eval_geometry()
+        # self.get_hole_deltas()
+        # delta0 = self.hole_deltas
+        # self.dextra += pert
+        # self.eval_geometry()
+        # self.get_hole_deltas()
+        # delta_pert = self.hole_deltas
+        # ddelta_ddextra_fd = (delta_pert - delta0)/pert
+        # self.dextra -= pert
+        # self.eval_geometry()
+
+        # # Write out the finite-difference partial and the analytic derivative
+        # np.savetxt("ddelta_ddextra.csv", ddelta_ddextra, delimiter=",")
+        # np.savetxt("ddelta_ddextra_fd.csv", ddelta_ddextra_fd, delimiter=",")
 
         return ddelta_ddratio, ddelta_ddextra
 
@@ -616,6 +651,7 @@ class MeshDeformation:
                     dynew2_ddextra = dy_ranges_ddextra[np.argmax(y_cp[1] >= pt[1])]
                     ddelta_ddratio[i, 1] = dynew1_ddratio + (dynew2_ddratio - dynew1_ddratio)*(pt[1] - y1)/(y2 - y1)
                     ddelta_ddextra[i, 1] = dynew1_ddextra + (dynew2_ddextra - dynew1_ddextra)*(pt[1] - y1)/(y2 - y1)
+                ddelta_ddextra[i, 0] = self.ddw_ddextra
 
             elif np.absolute(pt[1] - l) < eps:  # top edge
                 # Check if this is a control point
@@ -634,6 +670,7 @@ class MeshDeformation:
                     dxnew2_ddextra = dx_ranges_ddextra[np.argmax(x_cp[2] >= pt[0])]
                     ddelta_ddratio[i, 0] = dxnew1_ddratio + (dxnew2_ddratio - dxnew1_ddratio)*(pt[0] - x1)/(x2 - x1)
                     ddelta_ddextra[i, 0] = dxnew1_ddextra + (dxnew2_ddextra - dxnew1_ddextra)*(pt[0] - x1)/(x2 - x1)
+                ddelta_ddextra[i, 1] = self.ddl_ddextra
 
         return ddelta_ddratio, ddelta_ddextra
 
@@ -654,7 +691,7 @@ class MeshDeformation:
         ddelta_ddratio[self.border_start:self.border_end, :] = border_ddelta_ddratio[:, :]
         ddelta_ddextra[self.border_start:self.border_end, :] = border_ddelta_ddextra[:, :]
 
-        return ddelta_ddratio, ddelta_ddratio
+        return ddelta_ddratio, ddelta_ddextra
 
     def eval_dep_node_derivs(self, seed_ddelta_dx):
 
@@ -689,13 +726,23 @@ class MeshDeformation:
 
         ddelta_ddratio[self.Xpts0_cp_idx[:], :] = seed_ddelta_ddratio[:, :]
         ddelta_ddextra[self.Xpts0_cp_idx[:], :] = seed_ddelta_ddextra[:, :]
-        ddelta_ddratio[self.dep_idx[:], :] = dep_ddelta_ddratio[self.dep_idx[:], :]
-        ddelta_ddextra[self.dep_idx[:], :] = dep_ddelta_ddextra[self.dep_idx[:], :]
+        # ddelta_ddratio[self.dep_idx[:], :] = dep_ddelta_ddratio[self.dep_idx[:], :]
+        # ddelta_ddextra[self.dep_idx[:], :] = dep_ddelta_ddextra[self.dep_idx[:], :]
+        #print(ddelta_ddextra[self.battery_edge_idx[:], :])
+
+        # Perturb dextra and finite-difference the displacement
+        pert = 1e-10
+        Xnew = self.deform_geometry()
+        self.dextra += pert
+        Xnew_pert = self.deform_geometry()
+        dXpts_ddextra_fd = (Xnew_pert - Xnew)/pert
+        self.dextra -= pert
+        np.savetxt("dXnew_ddextra.csv", ddelta_ddextra[self.border_idx[:], :], delimiter=",")
+        np.savetxt("dXnew_ddextra_fd.csv", dXpts_ddextra_fd[self.border_idx[:], :], delimiter=",")
+        np.savetxt("Xpts0.csv", self.Xpts0[self.border_idx[:], :], delimiter=",")
 
         return ddelta_ddratio, ddelta_ddextra
 
-### END OF MESH DEFORMATION CLASS
-### -----------------------------
 
 def update_points(Xpts0, indices, Xpts_cp, delta):
     # this function warps points using the displacements from curve projections
@@ -1453,8 +1500,8 @@ class MeshDeformComp(om.ExplicitComponent):
         Xpts = outputs["Xpts"]
 
         # Update the parameterization
-        self.md.dratio = dratio
-        self.md.dextra = dextra
+        self.md.dratio = dratio[0]
+        self.md.dextra = dextra[0]
 
         # Deform the geometry
         Xnew = self.md.deform_geometry()
@@ -1587,28 +1634,6 @@ dxb_pct = 100.0*(dyb[1]-dyb[0])/(yb[1]-yb[0])
 
 print(f"Hole radius change is {dr_pct}%")
 print(f"Battery spacing change is {dxb_pct}%")
-
-### Test the MeshDeformation class
-# md = MeshDeformation(Xpts0, dratio=dratio, dextra=dextra)
-# Xnew = md.deform_geometry()
-
-# s = 2.0
-# fig, (ax0, ax1) = plt.subplots(ncols=2, constrained_layout=True)
-# ax0.scatter(Xpts0[:, 0], Xpts0[:, 1], s=2, color="tab:blue")
-# ax1.scatter(Xnew[:, 0], Xnew[:, 1], s=2, color="tab:blue")
-# plt.show()
-
-# md.dratio = 0.1
-# md.dextra = 0.1
-# Xnew = md.deform_geometry()
-# ddelta_ddratio, ddelta_ddextra = md.compute_partials()
-
-# fig, (ax0, ax1) = plt.subplots(ncols=2, constrained_layout=True)
-# ax0.scatter(Xpts0[:, 0], Xpts0[:, 1], s=2, color="tab:blue")
-# ax1.scatter(Xnew[:, 0], Xnew[:, 1], s=2, color="tab:blue")
-# plt.show()
-
-#####
 
 ### test the derivative
 # dextra_range = np.linspace(-0.4, 0.4, 20)
