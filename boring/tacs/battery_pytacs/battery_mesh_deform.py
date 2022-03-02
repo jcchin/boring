@@ -6,16 +6,7 @@ import matplotlib.pyplot as plt
 import openmdao.api as om
 from tacs import functions, constitutive, elements, TACS, pyTACS
 
-# TODO:
-# - check derivatives
-#   [x] battery derivatives
-#   [x] hole derivatives wrt dextra
-#   [x] hole derivatives wrt dratio
-#   [x] border derivatives wrt dextra
-#   [x] border derivatives wrt dratio
-#   [ ] dep node derivatives wrt dextra
-#   [ ] dep node derivatives wrt dratio
-# - why is ddr/ddextra still wrong?
+
 class MeshDeformation:
     def __init__(self, Xpts0, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, dextra=0.0, dratio=0.0):
 
@@ -50,7 +41,7 @@ class MeshDeformation:
 
         dep_idx = []
         for i in range(len(Xpts0)):
-            if (i not in hole_idx) and (i not in battery_edge_idx) and (i not in border_idx):
+            if (i not in self.hole_idx) and (i not in self.battery_edge_idx) and (i not in self.border_idx):
                 dep_idx.append(i)
         self.dep_idx = dep_idx
 
@@ -119,14 +110,7 @@ class MeshDeformation:
         self.ddx_holes_ddextra = np.repeat(np.linspace(0.0, self.ddw_ddextra, m+1), 4)
         self.ddy_holes_ddextra = np.tile(np.linspace(0.0, self.ddl_ddextra, n+1), 4).flatten(order="F")
 
-        # Finite-difference ddr/ddextra:
-        pert = 1e-10
-        dr1 = self.dhole_r
-        dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-        ddr_ddextra_fd = (dr2-dr1)/pert
-
-        self.ddr_ddextra = ddr_ddextra_fd
-        #self.ddr_ddextra = (np.log(2.0)/4.0)*(ratio+dratio)*cell_d*(2.0**0.5*(extra+dextra))
+        self.ddr_ddextra = (ratio+dratio)*0.5*cell_d*(2.0**0.5)
         self.ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
 
         ddx_ddextra = cell_d - 2.0*self.ddr_ddextra
@@ -327,8 +311,8 @@ class MeshDeformation:
         dx_holes = self.dx_holes
         dy_holes = self.dy_holes
 
-        hole_deltas = np.zeros((len(hole_idx), 2))
-        for i, idx in enumerate(hole_idx):
+        hole_deltas = np.zeros((len(self.hole_idx), 2))
+        for i, idx in enumerate(self.hole_idx):
             pt = Xpts0[idx]
 
             # Find the center of the hole that this point belongs to
@@ -411,7 +395,7 @@ class MeshDeformation:
                     xnew2 = x_ranges[np.argmax(x_cp[0] >= pt[0])]
                     border_deltas[i, 0] = xnew1 + (pt[0] - x1)*(xnew2 - xnew1)/(x2 - x1) - pt[0]
                 
-            elif np.absolute(pt[0] - w) < eps:  # right edge
+            elif np.absolute(pt[0] - self.w) < eps:  # right edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[1] - y_cp[1]) < eps):
                     cp_idx = np.argmin(np.absolute(pt[1] - y_cp[1]))
@@ -425,7 +409,7 @@ class MeshDeformation:
                     border_deltas[i, 1] = ynew1 + (pt[1] - y1)*(ynew2 - ynew1)/(y2 - y1) - pt[1]
                 border_deltas[i, 0] = self.dw  # shift all right border nodes by dw
 
-            elif np.absolute(pt[1] - l) < eps:  # top edge
+            elif np.absolute(pt[1] - self.l) < eps:  # top edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[0] - x_cp[2]) < eps):
                     cp_idx = np.argmin(np.absolute(pt[0] - x_cp[2]))
@@ -491,9 +475,7 @@ class MeshDeformation:
         delta[self.border_start:self.border_end, :] = self.border_deltas[:, :]
         self.delta = delta
 
-        #Xnew = self.update_points()
-        Xnew = np.zeros(np.shape(self.Xpts0)) # temp
-        Xnew[:, :] = self.Xpts0[:, :] # temp
+        Xnew = self.update_points()
         Xnew[self.Xpts0_cp_idx[:], :] += delta[:, :]
 
         return Xnew
@@ -534,29 +516,12 @@ class MeshDeformation:
             ddelta_ddextra[i, 0] = np.cos(theta)*ddr_ddextra + ddx_ddextra[which_hole]
             ddelta_ddextra[i, 1] = np.sin(theta)*ddr_ddextra + ddy_ddextra[which_hole]
 
-        # # Compute my own finite-difference derivative wrt dextra here
-        # #ddelta_ddextra_fd = np.zeros((len(hole_idx), 2))
-        # pert = 1e-10
-        # self.eval_geometry()
-        # self.get_hole_deltas()
-        # delta0 = self.hole_deltas
-        # self.dextra += pert
-        # self.eval_geometry()
-        # self.get_hole_deltas()
-        # delta_pert = self.hole_deltas
-        # ddelta_ddextra_fd = (delta_pert - delta0)/pert
-        # self.dextra -= pert
-        # self.eval_geometry()
-
-        # # Write out the finite-difference partial and the analytic derivative
-        # np.savetxt("ddelta_ddextra.csv", ddelta_ddextra, delimiter=",")
-        # np.savetxt("ddelta_ddextra_fd.csv", ddelta_ddextra_fd, delimiter=",")
-
         return ddelta_ddratio, ddelta_ddextra
 
     def get_battery_delta_derivs(self):
 
         Xpts0 = self.Xpts0
+        battery_edge_idx = self.battery_edge_idx
         cell_d = self.cell_d
         xb = self.xb
         yb = self.yb
@@ -582,8 +547,6 @@ class MeshDeformation:
     def get_border_delta_derivs(self, eps=1e-6):
 
         Xpts0 = self.Xpts0
-        w = self.w
-        l = self.l
         
         dx_ranges_ddextra = self.dx_ranges_ddextra
         dy_ranges_ddextra = self.dy_ranges_ddextra
@@ -594,9 +557,9 @@ class MeshDeformation:
         x_cp = np.sort(Xpts0[edge_cp_idx[:], 0])
         y_cp = np.sort(Xpts0[edge_cp_idx[:], 1])
 
-        ddelta_ddratio = np.zeros((len(border_idx), 2))
-        ddelta_ddextra = np.zeros((len(border_idx), 2))
-        for i, idx in enumerate(border_idx):
+        ddelta_ddratio = np.zeros((len(self.border_idx), 2))
+        ddelta_ddextra = np.zeros((len(self.border_idx), 2))
+        for i, idx in enumerate(self.border_idx):
             pt = Xpts0[idx]
             if np.absolute(pt[0]) < eps:  # left edge
                 # Check if this is a control point
@@ -634,7 +597,7 @@ class MeshDeformation:
                     ddelta_ddratio[i, 0] = dxnew1_ddratio + (dxnew2_ddratio - dxnew1_ddratio)*(pt[0] - x1)/(x2 - x1)
                     ddelta_ddextra[i, 0] = dxnew1_ddextra + (dxnew2_ddextra - dxnew1_ddextra)*(pt[0] - x1)/(x2 - x1)
 
-            elif np.absolute(pt[0] - w) < eps:  # right edge
+            elif np.absolute(pt[0] - self.w) < eps:  # right edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[1] - y_cp[1]) < eps):
                     cp_idx = np.argmin(np.absolute(pt[1] - y_cp[1]))
@@ -653,7 +616,7 @@ class MeshDeformation:
                     ddelta_ddextra[i, 1] = dynew1_ddextra + (dynew2_ddextra - dynew1_ddextra)*(pt[1] - y1)/(y2 - y1)
                 ddelta_ddextra[i, 0] = self.ddw_ddextra
 
-            elif np.absolute(pt[1] - l) < eps:  # top edge
+            elif np.absolute(pt[1] - self.l) < eps:  # top edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[0] - x_cp[2]) < eps):
                     cp_idx = np.argmin(np.absolute(pt[0] - x_cp[2]))
@@ -726,555 +689,30 @@ class MeshDeformation:
 
         ddelta_ddratio[self.Xpts0_cp_idx[:], :] = seed_ddelta_ddratio[:, :]
         ddelta_ddextra[self.Xpts0_cp_idx[:], :] = seed_ddelta_ddextra[:, :]
-        # ddelta_ddratio[self.dep_idx[:], :] = dep_ddelta_ddratio[self.dep_idx[:], :]
-        # ddelta_ddextra[self.dep_idx[:], :] = dep_ddelta_ddextra[self.dep_idx[:], :]
-        #print(ddelta_ddextra[self.battery_edge_idx[:], :])
+        ddelta_ddratio[self.dep_idx[:], :] = dep_ddelta_ddratio[self.dep_idx[:], :]
+        ddelta_ddextra[self.dep_idx[:], :] = dep_ddelta_ddextra[self.dep_idx[:], :]
 
         # Perturb dextra and finite-difference the displacement
         pert = 1e-10
         Xnew = self.deform_geometry()
-        self.dextra += pert
+        self.dratio += pert
         Xnew_pert = self.deform_geometry()
-        dXpts_ddextra_fd = (Xnew_pert - Xnew)/pert
-        self.dextra -= pert
-        np.savetxt("dXnew_ddextra.csv", ddelta_ddextra[self.border_idx[:], :], delimiter=",")
-        np.savetxt("dXnew_ddextra_fd.csv", dXpts_ddextra_fd[self.border_idx[:], :], delimiter=",")
-        np.savetxt("Xpts0.csv", self.Xpts0[self.border_idx[:], :], delimiter=",")
+        dXpts_ddratio_fd = (Xnew_pert - Xnew)/pert
+        self.dratio -= pert
+
+        # self.dextra += pert
+        # Xnew_pert = self.deform_geometry()
+        # dXpts_ddextra_fd = (Xnew_pert - Xnew)/pert
+        # self.dextra -= pert
+
+        np.savetxt("dXnew_ddratio.csv", ddelta_ddratio, delimiter=",")
+        np.savetxt("dXnew_ddratio_fd.csv", dXpts_ddratio_fd, delimiter=",")
+        # np.savetxt("dXnew_ddextra.csv", ddelta_ddextra, delimiter=",")
+        # np.savetxt("dXnew_ddextra_fd.csv", dXpts_ddextra_fd, delimiter=",")
+        np.savetxt("Xpts0.csv", self.Xpts0, delimiter=",")
 
         return ddelta_ddratio, ddelta_ddextra
-
-
-def update_points(Xpts0, indices, Xpts_cp, delta):
-    # this function warps points using the displacements from curve projections
-    # Xpts0: the original surface point coordinates
-    # indices: indices of the dependent nodes
-    # Xpts_cp: original control point coordinates
-    # delta: displacements of the control points
-
-    Xnew = np.zeros(np.shape(Xpts0))
-    Xnew[:, :] = Xpts0[:, :]
-
-    for i in indices:
-
-        # point coordinates with the baseline design
-        # this is the point we will warp
-        xpts_i = Xpts0[i]
-
-        # the vectorized point-based warping we had from older versions.
-        rr = xpts_i - Xpts_cp
-        LdefoDist = (rr[:,0]**2 + rr[:,1]**2+1e-16)**-0.5
-        LdefoDist3 = LdefoDist**3
-        Wi = LdefoDist3
-        den = np.sum(Wi)
-        interp = np.zeros(2)
-        for iDim in range(2):
-            interp[iDim] = np.sum(Wi*delta[:, iDim])/den
-
-        # finally, update the coord in place
-        Xnew[i] = Xnew[i] + interp
-
-    return Xnew
-
-def get_battery_edge_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, eps=1e-6):
-    """
-    Get the indexes of battery edges nodes
-
-    Inputs:
-    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
-
-    Outputs:
-    battery_edge_idx: indexes in the Xpts array that are the battery edges
-        - sorted in nested array of length 9 for each battery
-    """
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-
-    xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
-
-    battery_edge_idx = []
-    for i in range(len(Xpts)):
-        pt = Xpts[i]
-
-        # Find the center of the hole that this point belongs to
-        dist = ((pt[0] - xb)**2 + (pt[1] - yb)**2)**0.5 - 0.5*cell_d
-        if np.any(np.absolute(dist) < eps):
-            battery_edge_idx.append(i)
-
-    return battery_edge_idx
-
-def get_battery_nodes(Xpts, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, eps=1e-6):
-    """
-    Get the indexes of internal battery nodes
-
-    Inputs:
-    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
-
-    Outputs:
-    battery_internal_idx: indexes in the Xpts array that are the battery edges
-        - sorted in nested array of length 9 for each battery
-    """
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-
-    xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
-
-    battery_idx = []
-    for i in range(len(Xpts)):
-        pt = Xpts[i]
-
-        # Find the center of the hole that this point belongs to
-        dist = ((pt[0] - xb)**2 + (pt[1] - yb)**2)**0.5 - 0.5*cell_d
-        if np.any(dist <= eps):
-            battery_idx.append(i)
-
-    return battery_idx
-
-def get_hole_nodes(Xpts, m=3, n=3, extra=1.5, ratio=0.4, eps=1e-6):
-    """
-    Get the indexes of battery edges nodes
-
-    Inputs:
-    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
-
-    Outputs:
-    hole_idx: indexes in the Xpts array that are the hole edges
-    """
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-
-    x_holes = np.repeat(np.linspace(0.0, w, m+1), 4)
-    y_holes = np.tile(np.linspace(0.0, l, n+1), 4).flatten()
-
-    hole_idx = []
-    for i in range(len(Xpts)):
-        pt = Xpts[i]
-        dist = ((pt[0] - x_holes)**2 + (pt[1] - y_holes)**2)**0.5 - hole_r
-        if np.any(dist < eps):
-            hole_idx.append(i)
-
-    return hole_idx
-
-def get_border_nodes(Xpts, m=3, n=3, extra=1.5, eps=1e-6):
-    """
-    Get the indexes of battery edges nodes
-
-    Inputs:
-    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
-
-    Outputs:
-    border_idx: indexes in the Xpts array that are the pack edges
-    """
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-
-    border_idx = []
-    for i in range(len(Xpts)):
-
-        if np.absolute(Xpts[i, 0]) <= eps:
-            border_idx.append(i)
-        elif np.absolute(Xpts[i, 1]) <= eps:
-            border_idx.append(i)
-        elif np.absolute(Xpts[i, 0] - w) <= eps:
-            border_idx.append(i)
-        elif np.absolute(Xpts[i, 1] - l) <= eps:
-            border_idx.append(i)
-
-    return border_idx
-
-def get_edge_control_points(Xpts, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, eps=1e-6):
-    """
-    Get the indexes of battery edges control point nodes (end nodes of each straight section on border)
-
-    Note: this function negates the m,n option - assumes 3x3 square grid
-
-    Inputs:
-    Xpts: mesh node locations [[x0, y0], [x1, y1], .., [xn, yn]]
-
-    Outputs:
-    border_idx: indexes in the Xpts array that are the pack edge control points
-    """
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-
-    edge_cp_idx = []  # store a nested list of length 4: [[bottom edge cp nodes], [right edge ""], [top edge ""], [left edge ""]] 
-    edge_uv = [[[0, 0], [1, 0], [2, 0], [3, 0]], 
-               [[3, 0], [3, 1], [3, 2], [3, 3]], 
-               [[3, 3], [2, 3], [1, 3], [0, 3]], 
-               [[0, 3], [0, 2], [0, 1], [0, 0]]]  # u,v index of holes on each edge (bottom, right, top, left)
-    pt_offsets = np.array([1, -1, 1, -1, 1, -1])
-    for i in range(4):
-        i_edge_cp_idx = []
-        if i%2 == 0:
-            dp = np.array([1, 0])  # move point in x-direction
-        else:
-            dp = np.array([0, 1])  # move point in y-direction
-        for j in range(4):
-            [u, v] = edge_uv[i][j]
-            x = u*w/m + hole_r*pt_offsets*dp[0]  # array of x-points to find on this edge
-            y = v*l/n + hole_r*pt_offsets*dp[1]  # array of y-points to find on this edge
-            for k in range(len(Xpts)):
-                d = ((x - Xpts[k, 0])**2 + (y - Xpts[k, 1])**2)**0.5
-                if np.any(d < eps):
-                    i_edge_cp_idx.append(k)
-        edge_cp_idx.append(i_edge_cp_idx)
-
-    return edge_cp_idx
-
-def get_hole_deltas(Xpts0, hole_idx, dratio, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4):
-
-    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-
-    x_holes = np.repeat(np.linspace(0.0, cell_d*m*extra, m+1), 4)
-    y_holes = np.tile(np.linspace(0.0, cell_d*n*extra, n+1), 4).flatten()#order="F")
-    dx_holes = np.repeat(np.linspace(0.0, cell_d*m*dextra, m+1), 4)
-    dy_holes = np.tile(np.linspace(0.0, cell_d*n*dextra, n+1), 4).flatten()#order="F")
-
-    hole_deltas = np.zeros((len(hole_idx), 2))
-    for i, idx in enumerate(hole_idx):
-        pt = Xpts0[idx]
-
-        # Find the center of the hole that this point belongs to
-        dist = ((pt[0] - x_holes)**2 + (pt[1] - y_holes)**2)**0.5 - hole_r
-        which_hole = np.argmin(dist)
-        x0 = x_holes[which_hole]
-        y0 = y_holes[which_hole]
-
-        # Get the angle of the point wrt the hole center
-        theta = np.arctan2(pt[1]-y0, pt[0]-x0)
-
-        # Compute the delta for this point
-        hole_deltas[i, 0] = dhole_r*np.cos(theta) + dx_holes[which_hole]
-        hole_deltas[i, 1] = dhole_r*np.sin(theta) + dy_holes[which_hole]
-
-    return hole_deltas
-
-def get_battery_deltas(Xpts0, battery_idx, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4):
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-    dw = cell_d*m*dextra
-    dl = cell_d*n*dextra
-
-    xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
-    dxb = np.repeat(np.linspace(0.5*dw/m, 2.5*dw/m, m), 3)
-    dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3).flatten()
-
-    battery_deltas = np.zeros((len(battery_idx), 2))
-    for i, idx in enumerate(battery_idx):
-        pt = Xpts0[idx]
-
-        # Find the center of the hole that this point belongs to
-        dist = ((pt[0] - xb)**2 + (pt[1] - yb)**2)**0.5 - 0.5*cell_d
-        which_battery = np.argmin(dist)
-
-        # Compute the delta for this point
-        battery_deltas[i, 0] = dxb[which_battery]
-        battery_deltas[i, 1] = dyb[which_battery]
-
-    return battery_deltas
-
-def get_border_deltas(Xpts0, border_idx, dratio, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, eps=1e-6):
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-    dw = cell_d*m*dextra
-    dl = cell_d*n*dextra
-
-    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-
-    x_border_len = (w-2*m*hole_r)/m
-    y_border_len = (l-2*n*hole_r)/n
-    dx_border_len = (dw-2*m*dhole_r)/m
-    dy_border_len = (dl-2*n*dhole_r)/n
-
-    x_ranges = [hole_r+dhole_r, hole_r+dhole_r + (x_border_len+dx_border_len), 
-                3*(hole_r+dhole_r) + (x_border_len+dx_border_len), 3*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 
-                5*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 5*(hole_r+dhole_r) + 3*(x_border_len+dx_border_len)]
-    y_ranges = [hole_r+dhole_r, hole_r+dhole_r + (y_border_len+dy_border_len), 
-                3*(hole_r+dhole_r) + (y_border_len+dy_border_len), 3*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 
-                5*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 5*(hole_r+dhole_r) + 3*(y_border_len+dy_border_len)]
-
-    edge_cp_idx = get_edge_control_points(Xpts0)
-    x_cp = np.sort(Xpts0[edge_cp_idx[:], 0])
-    y_cp = np.sort(Xpts0[edge_cp_idx[:], 1])
-    border_deltas = np.zeros((len(border_idx), 2))
-    for i, idx in enumerate(border_idx):
-        pt = Xpts0[idx]
-        if np.absolute(pt[0]) < eps:  # left edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[1] - y_cp[3]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[1] - y_cp[3]))
-                border_deltas[i, 1] = y_ranges[cp_idx] - pt[1]
-            else:  
-                # Get control points this node is between
-                y1 = y_cp[3][np.argmax(y_cp[3] >= pt[1])-1]
-                y2 = y_cp[3][np.argmax(y_cp[3] >= pt[1])]
-                ynew1 = y_ranges[np.argmax(y_cp[3] >= pt[1])-1]
-                ynew2 = y_ranges[np.argmax(y_cp[3] >= pt[1])]
-                border_deltas[i, 1] = ynew1 + (pt[1] - y1)*(ynew2 - ynew1)/(y2 - y1) - pt[1]
-
-        elif np.absolute(pt[1]) < eps:  # bottom edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[0] - x_cp[0]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[0] - x_cp[0]))
-                border_deltas[i, 0] = x_ranges[cp_idx] - pt[0]
-            else:  
-                # Get control points this node is between
-                x1 = x_cp[0][np.argmax(x_cp[0] >= pt[0])-1]
-                x2 = x_cp[0][np.argmax(x_cp[0] >= pt[0])]
-                xnew1 = x_ranges[np.argmax(x_cp[0] >= pt[0])-1]
-                xnew2 = x_ranges[np.argmax(x_cp[0] >= pt[0])]
-                border_deltas[i, 0] = xnew1 + (pt[0] - x1)*(xnew2 - xnew1)/(x2 - x1) - pt[0]
-            
-        elif np.absolute(pt[0] - w) < eps:  # right edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[1] - y_cp[1]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[1] - y_cp[1]))
-                border_deltas[i, 1] = y_ranges[cp_idx] - pt[1]
-            else:  
-                # Get control points this node is between
-                y1 = y_cp[1][np.argmax(y_cp[1] >= pt[1])-1]
-                y2 = y_cp[1][np.argmax(y_cp[1] >= pt[1])]
-                ynew1 = y_ranges[np.argmax(y_cp[1] >= pt[1])-1]
-                ynew2 = y_ranges[np.argmax(y_cp[1] >= pt[1])]
-                border_deltas[i, 1] = ynew1 + (pt[1] - y1)*(ynew2 - ynew1)/(y2 - y1) - pt[1]
-            border_deltas[i, 0] = dw  # shift all right border nodes by dw
-
-        elif np.absolute(pt[1] - l) < eps:  # top edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[0] - x_cp[2]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[0] - x_cp[2]))
-                border_deltas[i, 0] = x_ranges[cp_idx] - pt[0]
-            else:  
-                # Get control points this node is between
-                x1 = x_cp[2][np.argmax(x_cp[2] >= pt[0])-1]
-                x2 = x_cp[2][np.argmax(x_cp[2] >= pt[0])]
-                xnew1 = x_ranges[np.argmax(x_cp[2] >= pt[0])-1]
-                xnew2 = x_ranges[np.argmax(x_cp[2] >= pt[0])]
-                border_deltas[i, 0] = xnew1 + (pt[0] - x1)*(xnew2 - xnew1)/(x2 - x1) - pt[0]
-            border_deltas[i, 1] = dl  # shift all top border nodes by dl
-
-    return border_deltas
-
-def get_hole_delta_derivs(Xpts0, hole_idx, dratio, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4):
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-    dw = cell_d*m*dextra
-    dl = cell_d*n*dextra
-
-    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-
-    x_holes = np.repeat(np.linspace(0.0, cell_d*m*extra, m+1), 4)
-    y_holes = np.tile(np.linspace(0.0, cell_d*n*extra, n+1), 4).flatten()#order="F")
-    dx_holes = np.repeat(np.linspace(0.0, cell_d*m*dextra, m+1), 4)
-    dy_holes = np.tile(np.linspace(0.0, cell_d*n*dextra, n+1), 4).flatten()#order="F")
-
-    pert = 1e-10
-    dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    ddr_ddextra_fd = (dr2 - dhole_r)/pert
-
-    ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
-    ddr_ddextra = ddr_ddextra_fd
-    ddx_ddextra = np.repeat(np.linspace(0.0, cell_d*m, m+1), 4)
-    ddy_ddextra = np.tile(np.linspace(0.0, cell_d*n, n+1), 4).flatten()#order="F")
-
-    ddelta_ddratio = np.zeros((len(hole_idx), 2))
-    ddelta_ddextra = np.zeros((len(hole_idx), 2))
-    for i, idx in enumerate(hole_idx):
-        pt = Xpts0[idx]
-
-        # Find the center of the hole that this point belongs to
-        dist = ((pt[0] - x_holes)**2 + (pt[1] - y_holes)**2)**0.5 - hole_r
-        which_hole = np.argmin(dist)
-        x0 = x_holes[which_hole]
-        y0 = y_holes[which_hole]
-
-        # Get the angle of the point wrt the hole center
-        theta = np.arctan2(pt[1]-y0, pt[0]-x0)
-
-        # Compute the delta  derivatives for this point
-        ddelta_ddratio[i, 0] = np.cos(theta)*ddr_ddratio
-        ddelta_ddratio[i, 1] = np.sin(theta)*ddr_ddratio
-
-        ddelta_ddextra[i, 0] = np.cos(theta)*ddr_ddextra + ddx_ddextra[which_hole]
-        ddelta_ddextra[i, 1] = np.sin(theta)*ddr_ddextra + ddy_ddextra[which_hole]
-
-    return ddelta_ddratio, ddelta_ddextra
-
-def get_battery_delta_derivs(Xpts0, battery_idx, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4):
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-    dw = cell_d*m*dextra
-    dl = cell_d*n*dextra
-
-    xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-    yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
-    ddxb_ddextra = np.repeat(np.linspace(0.5*cell_d, 2.5*cell_d, m), 3)
-    ddyb_ddextra = np.tile(np.linspace(0.5*cell_d, 2.5*cell_d, n), 3).flatten()
-
-    ddelta_ddratio = np.zeros((len(battery_idx), 2))
-    ddelta_ddextra = np.zeros((len(battery_idx), 2))
-    for i, idx in enumerate(battery_idx):
-        pt = Xpts0[idx]
-
-        # Find the center of the hole that this point belongs to
-        dist = ((pt[0] - xb)**2 + (pt[1] - yb)**2)**0.5 - 0.5*cell_d
-        which_battery = np.argmin(dist)
-
-        # Compute the delta for this point
-        ddelta_ddextra[i, 0] = ddxb_ddextra[which_battery]
-        ddelta_ddextra[i, 1] = ddyb_ddextra[which_battery]
-
-    return ddelta_ddratio, ddelta_ddextra
-
-def get_border_delta_derivs(Xpts0, border_idx, dratio, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4, eps=1e-6):
-
-    w = cell_d*m*extra
-    l = cell_d*n*extra
-    dw = cell_d*m*dextra
-    dl = cell_d*n*dextra
-
-    hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-
-    x_border_len = (w-2*m*hole_r)/m
-    y_border_len = (l-2*n*hole_r)/n
-    dx_border_len = (dw-2*m*dhole_r)/m
-    dy_border_len = (dl-2*n*dhole_r)/n
-
-    x_ranges = [hole_r+dhole_r, hole_r+dhole_r + (x_border_len+dx_border_len), 
-                3*(hole_r+dhole_r) + (x_border_len+dx_border_len), 3*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 
-                5*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 5*(hole_r+dhole_r) + 3*(x_border_len+dx_border_len)]
-    y_ranges = [hole_r+dhole_r, hole_r+dhole_r + (y_border_len+dy_border_len), 
-                3*(hole_r+dhole_r) + (y_border_len+dy_border_len), 3*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 
-                5*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 5*(hole_r+dhole_r) + 3*(y_border_len+dy_border_len)]
-
-    # Define the intermediate derivatives
-    ddw_ddextra = cell_d*m
-    ddl_ddextra = cell_d*n
-
-    pert = 1e-6
-    dr1 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-    ddr_ddextra_fd = (dr2 - dr1)/pert
-
-    ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
-    ddr_ddextra = ddr_ddextra_fd  #0.346574*(ratio+dratio)*0.5*cell_d*(2.0**0.5*(extra+dextra))
-
-    ddx_ddratio = -2.0*ddr_ddratio
-    ddx_ddextra = cell_d - 2.0*ddr_ddextra
-    ddy_ddratio = -2.0*ddr_ddratio
-    ddy_ddextra = cell_d - 2.0*ddr_ddextra
-
-    dx_ranges_ddextra = [ddr_ddextra, ddr_ddextra + ddx_ddextra, 
-                         3*ddr_ddextra + ddx_ddextra, 3*ddr_ddextra + 2*ddx_ddextra, 
-                         5*ddr_ddextra + 2*ddx_ddextra, 5*ddr_ddextra + 3*ddx_ddextra]
-    dx_ranges_ddratio = [ddr_ddratio, ddr_ddratio + ddx_ddratio, 
-                         3*ddr_ddratio + ddx_ddratio, 3*ddr_ddratio + 2*ddx_ddratio, 
-                         5*ddr_ddratio + 2*ddx_ddratio, 5*ddr_ddratio + 3*ddx_ddratio]
-    dy_ranges_ddextra = [ddr_ddextra, ddr_ddextra + ddy_ddextra, 
-                         3*ddr_ddextra + ddx_ddextra, 3*ddr_ddextra + 2*ddy_ddextra, 
-                         5*ddr_ddextra + 2*ddy_ddextra, 5*ddr_ddextra + 3*ddy_ddextra]
-    dy_ranges_ddratio = [ddr_ddratio, ddr_ddratio + ddy_ddratio, 
-                         3*ddr_ddratio + ddy_ddratio, 3*ddr_ddratio + 2*ddy_ddratio, 
-                         5*ddr_ddratio + 2*ddy_ddratio, 5*ddr_ddratio + 3*ddy_ddratio]
-
-    edge_cp_idx = get_edge_control_points(Xpts0)
-    x_cp = np.sort(Xpts0[edge_cp_idx[:], 0])
-    y_cp = np.sort(Xpts0[edge_cp_idx[:], 1])
-
-    ddelta_ddratio = np.zeros((len(border_idx), 2))
-    ddelta_ddextra = np.zeros((len(border_idx), 2))
-    for i, idx in enumerate(border_idx):
-        pt = Xpts0[idx]
-        if np.absolute(pt[0]) < eps:  # left edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[1] - y_cp[3]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[1] - y_cp[3]))
-                ddelta_ddratio[i, 1] = dy_ranges_ddratio[cp_idx]
-                ddelta_ddextra[i, 1] = dy_ranges_ddextra[cp_idx]
-
-            else:
-                # Get control points this node is between
-                y1 = y_cp[3][np.argmax(y_cp[3] >= pt[1])-1]
-                y2 = y_cp[3][np.argmax(y_cp[3] >= pt[1])]
-                dynew1_ddratio = dy_ranges_ddratio[np.argmax(y_cp[3] >= pt[1])-1]
-                dynew2_ddratio = dy_ranges_ddratio[np.argmax(y_cp[3] >= pt[1])]
-                dynew1_ddextra = dy_ranges_ddextra[np.argmax(y_cp[3] >= pt[1])-1]
-                dynew2_ddextra = dy_ranges_ddextra[np.argmax(y_cp[3] >= pt[1])]
-                ddelta_ddratio[i, 1] = dynew1_ddratio + (dynew2_ddratio - dynew1_ddratio)*(pt[1] - y1)/(y2 - y1)
-                ddelta_ddextra[i, 1] = dynew1_ddextra + (dynew2_ddextra - dynew1_ddextra)*(pt[1] - y1)/(y2 - y1)
-
-        elif np.absolute(pt[1]) < eps:  # bottom edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[0] - x_cp[0]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[0] - x_cp[0]))
-                ddelta_ddratio[i, 0] = dx_ranges_ddratio[cp_idx]
-                ddelta_ddextra[i, 0] = dx_ranges_ddextra[cp_idx]
-            
-            else:
-                # Get control points this node is between
-                x1 = x_cp[0][np.argmax(x_cp[0] >= pt[0])-1]
-                x2 = x_cp[0][np.argmax(x_cp[0] >= pt[0])]
-                dxnew1_ddratio = dx_ranges_ddratio[np.argmax(x_cp[0] >= pt[0])-1]
-                dxnew2_ddratio = dx_ranges_ddratio[np.argmax(x_cp[0] >= pt[0])]
-                dxnew1_ddextra = dx_ranges_ddextra[np.argmax(x_cp[0] >= pt[0])-1]
-                dxnew2_ddextra = dx_ranges_ddextra[np.argmax(x_cp[0] >= pt[0])]
-                ddelta_ddratio[i, 0] = dxnew1_ddratio + (dxnew2_ddratio - dxnew1_ddratio)*(pt[0] - x1)/(x2 - x1)
-                ddelta_ddextra[i, 0] = dxnew1_ddextra + (dxnew2_ddextra - dxnew1_ddextra)*(pt[0] - x1)/(x2 - x1)
-
-        elif np.absolute(pt[0] - w) < eps:  # right edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[1] - y_cp[1]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[1] - y_cp[1]))
-                ddelta_ddratio[i, 1] = dy_ranges_ddratio[cp_idx]
-                ddelta_ddextra[i, 1] = dy_ranges_ddextra[cp_idx]
-
-            else:
-                # Get control points this node is between
-                y1 = y_cp[1][np.argmax(y_cp[1] >= pt[1])-1]
-                y2 = y_cp[1][np.argmax(y_cp[1] >= pt[1])]
-                dynew1_ddratio = dy_ranges_ddratio[np.argmax(y_cp[1] >= pt[1])-1]
-                dynew2_ddratio = dy_ranges_ddratio[np.argmax(y_cp[1] >= pt[1])]
-                dynew1_ddextra = dy_ranges_ddextra[np.argmax(y_cp[1] >= pt[1])-1]
-                dynew2_ddextra = dy_ranges_ddextra[np.argmax(y_cp[1] >= pt[1])]
-                ddelta_ddratio[i, 1] = dynew1_ddratio + (dynew2_ddratio - dynew1_ddratio)*(pt[1] - y1)/(y2 - y1)
-                ddelta_ddextra[i, 1] = dynew1_ddextra + (dynew2_ddextra - dynew1_ddextra)*(pt[1] - y1)/(y2 - y1)
-
-        elif np.absolute(pt[1] - l) < eps:  # top edge
-            # Check if this is a control point
-            if np.any(np.absolute(pt[0] - x_cp[2]) < eps):
-                cp_idx = np.argmin(np.absolute(pt[0] - x_cp[2]))
-                ddelta_ddratio[i, 0] = dy_ranges_ddratio[cp_idx]
-                ddelta_ddextra[i, 0] = dy_ranges_ddextra[cp_idx]
-
-            else:
-                # Get control points this node is between
-                x1 = x_cp[2][np.argmax(x_cp[2] >= pt[0])-1]
-                x2 = x_cp[2][np.argmax(x_cp[2] >= pt[0])]
-                dxnew1_ddratio = dx_ranges_ddratio[np.argmax(x_cp[2] >= pt[0])-1]
-                dxnew2_ddratio = dx_ranges_ddratio[np.argmax(x_cp[2] >= pt[0])]
-                dxnew1_ddextra = dx_ranges_ddextra[np.argmax(x_cp[2] >= pt[0])-1]
-                dxnew2_ddextra = dx_ranges_ddextra[np.argmax(x_cp[2] >= pt[0])]
-                ddelta_ddratio[i, 0] = dxnew1_ddratio + (dxnew2_ddratio - dxnew1_ddratio)*(pt[0] - x1)/(x2 - x1)
-                ddelta_ddextra[i, 0] = dxnew1_ddextra + (dxnew2_ddextra - dxnew1_ddextra)*(pt[0] - x1)/(x2 - x1)
-
-    return ddelta_ddratio, ddelta_ddextra
+    
 
 def make_ghost_nodes_for_holes(h, dratio, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4):
     # h: spacing between nodes (1 per distance h)
@@ -1311,156 +749,6 @@ def make_ghost_nodes_for_holes(h, dratio, dextra, m=3, n=3, cell_d=0.018, extra=
 
 
     return ghost_xpts_hole, ghost_deltas_hole
-
-class Intermediates(om.ExplicitComponent):
-
-    def initialize(self):
-        self.options.declare("m", types=int, default=3, desc="number of battery columns in the pack")
-        self.options.declare("n", types=int, default=3, desc="number of battery rows in the pack")
-        self.options.declare("cell_d", types=float, default=0.018, desc="battery cell diameter (m)")
-        self.options.declare("extra", types=float, default=1.5, desc="parametrized spacing between cells")
-        self.options.declare("ratio", types=float, default=0.4, desc="parametrized hole size: ratio of hole size to max available space")
-
-    def setup(self):
-
-        self.add_input("dratio", val=0.0, units=None, desc="change in ratio parameter from the initial mesh")
-        self.add_input("dextra", val=0.0, units=None, desc="change in extra parameter from the initial mesh")
-
-        self.add_output("dw", val=np.zeros(16), units="m")
-        self.add_output("dl", val=np.zeros(16), units="m")
-        self.add_output("dxb", val=np.zeros(9), units="m")
-        self.add_output("dyb", val=np.zeros(9), units="m")
-        self.add_output("dx_holes", val=np.zeros(16), units="m")
-        self.add_output("dy_holes", val=np.zeros(16), units="m")
-        self.add_output("dhole_r", val=0.0, units="m")
-        self.add_output("dx_border_len", val=0.0, units="m")
-        self.add_output("dy_border_len", val=0.0, units="m")
-        self.add_output("x_ranges", val=6*[0.0], units="m")
-        self.add_output("y_ranges", val=6*[0.0], units="m")
-
-        self.declare_partials(of=["dw", "dl", "dxb", "dyb", "dx_holes", "dy_holes",
-                                  "dhole_r", "dx_border_len", "dy_border_len",
-                                  "x_ranges", "y_ranges"],
-                              wrt=["dratio", "dextra"])
-
-    def compute(self, inputs, outputs):
-
-        m = self.options["m"]
-        n = self.options["n"]
-        cell_d = self.options["cell_d"]
-        extra = self.options["extra"]
-        ratio = self.options["ratio"]
-
-        dratio = inputs["dratio"]
-        dextra = inputs["dextra"]
-        
-        dw = outputs["dw"]
-        dl = outputs["dl"]
-        dxb = outputs["dxb"]
-        dyb = outputs["dyb"]
-        dx_holes = outputs["dx_holes"]
-        dy_holes = outputs["dy_holes"]
-        dhole_r = outputs["dhole_r"]
-        dx_border_len = outputs["dx_border_len"]
-        dy_border_len = outputs["dy_border_len"]
-        x_ranges = outputs["x_ranges"]
-        y_ranges = outputs["y_ranges"]
-
-        dw[:] = np.repeat(np.linspace(0.0, cell_d*m*dextra, m+1), 4)
-        dl[:] = np.tile(np.linspace(0.0, cell_d*n*dextra, n+1), 4).flatten(order="F")
-
-        dxb[:] = np.repeat(np.linspace(0.5*cell_d*m*dextra/m, 2.5*cell_d*m*dextra/m, m), 3)
-        dyb[:] = np.tile(np.linspace(0.5*cell_d*n*dextra/n, 2.5*cell_d*n*dextra/m, n), 3).flatten(order="F")
-
-        dx_holes[:] = np.repeat(np.linspace(0.0, cell_d*m*dextra, m+1), 4)
-        dy_holes[:] = np.tile(np.linspace(0.0, cell_d*n*dextra, n+1), 4).flatten(order="F")
-
-        hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-        dhole_r[:] = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-
-        x_border_len = (w-2*m*hole_r)/m
-        y_border_len = (l-2*n*hole_r)/n
-        dx_border_len[:] = cell_d*dextra-2*dhole_r
-        dy_border_len[:] = cell_d*dextra-2*dhole_r
-
-        x_ranges[:] = [hole_r+dhole_r, hole_r+dhole_r + (x_border_len+dx_border_len), 
-                       3*(hole_r+dhole_r) + (x_border_len+dx_border_len), 3*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 
-                       5*(hole_r+dhole_r) + 2*(x_border_len+dx_border_len), 5*(hole_r+dhole_r) + 3*(x_border_len+dx_border_len)][:]
-        y_ranges[:] = [hole_r+dhole_r, hole_r+dhole_r + (y_border_len+dy_border_len), 
-                       3*(hole_r+dhole_r) + (y_border_len+dy_border_len), 3*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 
-                       5*(hole_r+dhole_r) + 2*(y_border_len+dy_border_len), 5*(hole_r+dhole_r) + 3*(y_border_len+dy_border_len)][:]
-
-    def compute_partials(self, inputs, partials):
-
-        m = self.options["m"]
-        n = self.options["n"]
-        cell_d = self.options["cell_d"]
-        extra = self.options["extra"]
-        ratio = self.options["ratio"]
-
-        dratio = inputs["dratio"]
-        dextra = inputs["dextra"]
-
-        ddw_ddratio = partials["dw", "dratio"]
-        ddl_ddratio = partials["dl", "dratio"]
-        ddxb_ddratio = partials["dxb", "dratio"]
-        ddyb_ddratio = partials["dyb", "dratio"]
-        ddx_holes_ddratio = partials["dx_holes", "dratio"]
-        ddy_holes_ddratio = partials["dy_holes", "dratio"]
-        ddr_ddratio = partials["dhole_r", "dratio"]
-        ddx_ddratio = partials["dx_border_len", "dratio"]
-        ddy_ddratio = partials["dy_border_len", "dratio"]
-        dx_ranges_ddratio = partials["x_ranges", "dratio"]
-        dy_ranges_ddratio = partials["y_ranges", "dratio"]
-
-        ddw_ddextra = partials["dw", "dextra"]
-        ddl_ddextra = partials["dl", "dextra"]
-        ddxb_ddextra = partials["dxb", "dextra"]
-        ddyb_ddextra = partials["dyb", "dextra"]
-        ddx_holes_ddextra = partials["dx_holes", "dextra"]
-        ddy_holes_ddextra = partials["dy_holes", "dextra"]
-        ddr_ddextra = partials["dhole_r", "dextra"]
-        ddx_ddextra = partials["dx_border_len", "dextra"]
-        ddy_ddextra = partials["dy_border_len", "dextra"]
-        dx_ranges_ddextra = partials["x_ranges", "dextra"]
-        dy_ranges_ddextra = partials["y_ranges", "dextra"]
-
-        ddw_ddextra[:, :] = np.reshape(np.repeat(np.linspace(0.0, cell_d*m, m+1), 4), ddw_ddextra.shape)[:, :]
-        ddl_ddextra[:, :] = np.reshape(np.tile(np.linspace(0.0, cell_d*n, n+1), 4).flatten(order="F"), ddl_ddextra.shape)[:, :]
-
-        ddxb_ddextra[:, :] = np.reshape(np.repeat(np.linspace(0.5*cell_d, 2.5*cell_d, m), 3), ddxb_ddextra.shape)[:, :]
-        ddyb_ddextra[:, :] = np.reshape(np.tile(np.linspace(0.5*cell_d, 2.5*cell_d, n), 3).flatten(order="F"), ddyb_ddextra.shape)[:, :]
-
-        ddx_holes_ddextra[:, :] = np.reshape(np.repeat(np.linspace(0.0, cell_d*m, m+1), 4), ddx_holes_ddextra.shape)[:, :]
-        ddy_holes_ddextra[:, :] = np.reshape(np.tile(np.linspace(0.0, cell_d*n, n+1), 4).flatten(order="F"), ddy_holes_ddextra.shape)[:, :]
-
-        ddr_ddratio[:, :] = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
-
-        # Finite difference this value myself
-        pert = 1e-10
-        dr1 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-        dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-        ddr_ddextra_fd = (dr2 - dr1)/pert
-
-        ddr_ddextra[:, :] = ddr_ddextra_fd[:]
-
-        ddx_ddratio[:, :] = -2.0*ddr_ddratio
-        ddx_ddextra[:, :] = cell_d - 2.0*ddr_ddextra
-        ddy_ddratio[:, :] = -2.0*ddr_ddratio
-        ddy_ddextra[:, :] = cell_d - 2.0*ddr_ddextra
-
-        dx_ranges_ddextra[:, :] = [ddr_ddextra, ddr_ddextra + ddx_ddextra, 
-                                   3*ddr_ddextra + ddx_ddextra, 3*ddr_ddextra + 2*ddx_ddextra, 
-                                   5*ddr_ddextra + 2*ddx_ddextra, 5*ddr_ddextra + 3*ddx_ddextra]
-        dx_ranges_ddratio[:, :] = [ddr_ddratio, ddr_ddratio + ddx_ddratio, 
-                                   3*ddr_ddratio + ddx_ddratio, 3*ddr_ddratio + 2*ddx_ddratio, 
-                                   5*ddr_ddratio + 2*ddx_ddratio, 5*ddr_ddratio + 3*ddx_ddratio]
-        dy_ranges_ddextra[:, :] = [ddr_ddextra, ddr_ddextra + ddy_ddextra, 
-                                   3*ddr_ddextra + ddx_ddextra, 3*ddr_ddextra + 2*ddy_ddextra, 
-                                   5*ddr_ddextra + 2*ddy_ddextra, 5*ddr_ddextra + 3*ddy_ddextra]
-        dy_ranges_ddratio[:, :] = [ddr_ddratio, ddr_ddratio + ddy_ddratio, 
-                                   3*ddr_ddratio + ddy_ddratio, 3*ddr_ddratio + 2*ddy_ddratio, 
-                                   5*ddr_ddratio + 2*ddy_ddratio, 5*ddr_ddratio + 3*ddy_ddratio]
 
 
 class MeshDeformComp(om.ExplicitComponent):
@@ -1506,19 +794,6 @@ class MeshDeformComp(om.ExplicitComponent):
         # Deform the geometry
         Xnew = self.md.deform_geometry()
         Xpts[:, :] = Xnew[:, :]
-
-        # # Finite difference the mesh deformation and output a csv
-        # pert = 1e-10
-        # Xpert = np.zeros(np.shape(Xpts))
-        # dextra += pert
-        # battery_deltas = get_battery_deltas(Xpts0, battery_edge_idx, dextra)
-        # delta = np.zeros((len(Xpts0_cp_idx), 2))
-        # delta[0:len(battery_edge_idx), :] = battery_deltas[:, :]
-        # Xnew = update_points(Xpts0, dep_idx, Xpts0_cp, np.zeros((len(Xpts0_cp_idx), 2)))
-        # Xnew[Xpts0_cp_idx[:], :] += delta[:, :]
-        # Xpert[:, :] = Xnew[:, :]
-        # dXpts_ddextra_fd = (Xpert - Xpts)/pert
-        # np.savetxt("dXpts_ddextra_fd.csv", dXpts_ddextra_fd, delimiter=",")
 
     def compute_partials(self, inputs, partials):
 
@@ -1608,52 +883,34 @@ cell_d = 0.018  # diameter of the cell
 extra = 1.5  # extra space along the diagonal, in [1, infty)
 ratio = 0.4  # cell diameter/cutout diamter, in [0, 1]
 
-# Get the control point node indexes
-battery_edge_idx = get_battery_edge_nodes(Xpts0)
-battery_idx = get_battery_nodes(Xpts0)
-hole_idx = get_hole_nodes(Xpts0)
-border_idx = get_border_nodes(Xpts0)
+# # Get the control point node indexes
+# battery_edge_idx = get_battery_edge_nodes(Xpts0)
+# battery_idx = get_battery_nodes(Xpts0)
+# hole_idx = get_hole_nodes(Xpts0)
+# border_idx = get_border_nodes(Xpts0)
 
 # Define the change in geometric parameters to be applied
 dratio = 0.3
 dextra = 0.3
 
-w = cell_d*m*extra
-l = cell_d*n*extra
-dw = cell_d*m*dextra
-dl = cell_d*n*dextra
-hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
-yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
-dxb = np.repeat(np.linspace(0.5*dw/m, 2.5*dw/m, m), 3)
-dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3).flatten()
+# w = cell_d*m*extra
+# l = cell_d*n*extra
+# dw = cell_d*m*dextra
+# dl = cell_d*n*dextra
+# hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+# dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
+# xb = np.repeat(np.linspace(0.5*w/m, 2.5*w/m, m), 3)
+# yb = np.tile(np.linspace(0.5*l/n, 2.5*l/n, n), 3).flatten()
+# dxb = np.repeat(np.linspace(0.5*dw/m, 2.5*dw/m, m), 3)
+# dyb = np.tile(np.linspace(0.5*dl/n, 2.5*dl/m, n), 3).flatten()
 
-dr_pct = 100.0*(dhole_r/hole_r)
-dxb_pct = 100.0*(dyb[1]-dyb[0])/(yb[1]-yb[0])
+# dr_pct = 100.0*(dhole_r/hole_r)
+# dxb_pct = 100.0*(dyb[1]-dyb[0])/(yb[1]-yb[0])
 
-print(f"Hole radius change is {dr_pct}%")
-print(f"Battery spacing change is {dxb_pct}%")
+# print(f"Hole radius change is {dr_pct}%")
+# print(f"Battery spacing change is {dxb_pct}%")
 
-### test the derivative
-# dextra_range = np.linspace(-0.4, 0.4, 20)
-# dfdx = np.zeros(len(dextra_range))
-# dfdx_fd = np.zeros(len(dextra_range))
-# for i in range(len(dextra_range)):
-#     pert = 1e-10
-#     dr1 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra_range[i])) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-#     dr2 = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra_range[i]+pert)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
-#     dfdx_fd[i] = (dr2 - dr1)/pert
-#     dfdx[i] = (np.log(2.0)/4.0)*(ratio+dratio)*cell_d*(2.0**0.5*(extra+dextra_range[i]))
 
-# fig = plt.figure(figsize=(6,6))
-# ax = plt.subplot()
-# ax.plot(dextra_range, dfdx, label="Analytic")
-# ax.plot(dextra_range, dfdx_fd, label="FD")
-# ax.legend()
-# plt.show()
-
-###
 
 
 # ###### Try out the openmdao component
