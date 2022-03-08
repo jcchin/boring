@@ -692,24 +692,24 @@ class MeshDeformation:
         ddelta_ddratio[self.dep_idx[:], :] = dep_ddelta_ddratio[self.dep_idx[:], :]
         ddelta_ddextra[self.dep_idx[:], :] = dep_ddelta_ddextra[self.dep_idx[:], :]
 
-        # Perturb dextra and finite-difference the displacement
-        pert = 1e-10
-        Xnew = self.deform_geometry()
-        self.dratio += pert
-        Xnew_pert = self.deform_geometry()
-        dXpts_ddratio_fd = (Xnew_pert - Xnew)/pert
-        self.dratio -= pert
-
-        # self.dextra += pert
+        # # Perturb dextra and finite-difference the displacement
+        # pert = 1e-10
+        # Xnew = self.deform_geometry()
+        # self.dratio += pert
         # Xnew_pert = self.deform_geometry()
-        # dXpts_ddextra_fd = (Xnew_pert - Xnew)/pert
-        # self.dextra -= pert
+        # dXpts_ddratio_fd = (Xnew_pert - Xnew)/pert
+        # self.dratio -= pert
 
-        np.savetxt("dXnew_ddratio.csv", ddelta_ddratio, delimiter=",")
-        np.savetxt("dXnew_ddratio_fd.csv", dXpts_ddratio_fd, delimiter=",")
-        # np.savetxt("dXnew_ddextra.csv", ddelta_ddextra, delimiter=",")
-        # np.savetxt("dXnew_ddextra_fd.csv", dXpts_ddextra_fd, delimiter=",")
-        np.savetxt("Xpts0.csv", self.Xpts0, delimiter=",")
+        # # self.dextra += pert
+        # # Xnew_pert = self.deform_geometry()
+        # # dXpts_ddextra_fd = (Xnew_pert - Xnew)/pert
+        # # self.dextra -= pert
+
+        # np.savetxt("dXnew_ddratio.csv", ddelta_ddratio, delimiter=",")
+        # np.savetxt("dXnew_ddratio_fd.csv", dXpts_ddratio_fd, delimiter=",")
+        # # np.savetxt("dXnew_ddextra.csv", ddelta_ddextra, delimiter=",")
+        # # np.savetxt("dXnew_ddextra_fd.csv", dXpts_ddextra_fd, delimiter=",")
+        # np.savetxt("Xpts0.csv", self.Xpts0, delimiter=",")
 
         return ddelta_ddratio, ddelta_ddextra
     

@@ -20,7 +20,7 @@ dw = 10.0e-3  # width of heat-pipe centered on pouch-cell
 
 # Material selection
 foam_material = 'cu'
-pcm_material = 'PureTemp151'
+pcm_material = 'croda'
 
 # Material properties
 if foam_material == 'al':
@@ -37,7 +37,7 @@ else:  # 'cu'
 
 if pcm_material == 'croda':
     lh = 197e3  # latent heat, melting, J/kg
-    mt = 44.01  # melting temperature, deg. C
+    mt = 47.0  # melting temperature, deg. C
 
     # solid
     rho_pcm_s = 940.0
@@ -45,7 +45,7 @@ if pcm_material == 'croda':
     k_pcm_s = 0.25
 
     # liquid
-    rho_pcm_l = 830.0
+    rho_pcm_l = 829.0
     c_pcm_l = 2.0e3
     k_pcm_l = 0.16
 
@@ -426,10 +426,10 @@ ax0.text(
 )
 
 # Mark where thermal runaway occurs
-ax0.fill_between([0.0, 10.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax0.get_xaxis_transform())
-ax1.fill_between([0.0, 10.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax1.get_xaxis_transform())
-ax1.annotate("", (0.0, 3220.0), xytext=(10.0, 3220.0), arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0),
-             annotation_clip=False)
+ax0.fill_between([0.0, 2.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax0.get_xaxis_transform())
+ax1.fill_between([0.0, 2.0], 0.0, 1.0, color='tab:gray', alpha=0.3, transform=ax1.get_xaxis_transform())
+# ax1.annotate("", (0.0, 3220.0), xytext=(2.0, 3220.0), arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0),
+#              annotation_clip=False)
 ax1.text(
     0.0,
     3280.0,
@@ -437,7 +437,8 @@ ax1.text(
     size="small",
     color="black",
     ha="left",
-    va="bottom"
+    va="bottom",
+    rotation="vertical"
 )
 
 ax0.set_ylabel(r'Temperature at PCM boundaries ($^\circ$C)', fontsize=12)
@@ -508,4 +509,4 @@ def make_a_movie(T):
 
     return
 
-make_a_movie(T)
+#make_a_movie(T)
