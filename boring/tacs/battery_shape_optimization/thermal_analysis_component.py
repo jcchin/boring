@@ -12,8 +12,7 @@ def setup_assembler():
     comm = MPI.COMM_WORLD
 
     # Name of the bdf file to get the mesh
-    bdfFile = os.path.join(os.path.dirname(__file__), 'battery_ratio_0.4_extra_1.5.bdf')#'battery_pack.bdf')
-
+    bdfFile = os.path.join(os.path.dirname(__file__), 'battery_pack.bdf')#ratio_0.4_extra_1.5.bdf')
     # Instantiate the pyTACS object
     FEAAssembler = pyTACS(bdfFile, comm)
 
@@ -35,7 +34,7 @@ def setup_assembler():
     def elemCallBack(dvNum, compID, compDescript, elemDescripts, globalDVs, **kwargs):
 
         # Setup property and constitutive objects
-        if compDescript == 'Block':  # If the bdf file labels this component as "block", then it is aluminum
+        if compDescript == 'Block': #'block':  # If the bdf file labels this component as "block", then it is aluminum
             prop = constitutive.MaterialProperties(rho=alum_rho, kappa=alum_kappa, specific_heat=alum_cp)
         else:  # otherwise it is a battery
             prop = constitutive.MaterialProperties(rho=battery_rho, kappa=battery_kappa, specific_heat=battery_cp)
@@ -70,12 +69,12 @@ def setup_assembler():
     for i, t in enumerate(timeSteps):
         if t <= 2.0:  # only apply the load for the first 2 seconds
             # select the component of the battery undergoing thermal runaway
-            compIDs = FEAAssembler.selectCompIDs(include=["Battery.00"])
-            transientProblem.addLoadToComponents(i, compIDs, [6000.0])
+            compIDs = FEAAssembler.selectCompIDs(include=["Battery.00"])#"battery9"])
+            transientProblem.addLoadToComponents(i, compIDs, [12000.0])
 
     # Define the functions of interest as maximum temperature within 2 different batteries
-    compIDs_01 = FEAAssembler.selectCompIDs(["Battery.01"])  # adjecent battery
-    compIDs_04 = FEAAssembler.selectCompIDs(["Battery.04"])  # diagonal battery
+    compIDs_01 = FEAAssembler.selectCompIDs(["Battery.01"])#battery6"])  # adjecent battery
+    compIDs_04 = FEAAssembler.selectCompIDs(["Battery.04"])#battery5"])  # diagonal battery
 
     transientProblem.addFunction('mass', functions.StructuralMass)
     transientProblem.addFunction('ks_temp_adjacent', functions.KSTemperature,
@@ -115,6 +114,7 @@ class ThermalAnalysisComp(om.ExplicitComponent):
 
         funcs = {}
         self.transient_problem.evalFunctions(funcs)
+        self.transient_problem.writeSolution()
 
         outputs["mass"] = funcs["Transient_mass"]
         outputs["ks_temp_adjacent"] = funcs["Transient_ks_temp_adjacent"]

@@ -4,8 +4,6 @@ from battery_mesh_deformation import MeshDeformComp
 from thermal_analysis_component import ThermalAnalysisComp
 
 # TODO:
-# - Fix bdf file to get a more intermediate starting point
-# - Output designs
 # - Find way to get T4/T1 ratio to constriain
 # - Make optimization curve
 
@@ -21,11 +19,12 @@ def make_problem():
 
     # Create the finite-element analysis component but don't set it as a subsystem yet
     analysis_comp = ThermalAnalysisComp()
+    fea_assembler = analysis_comp.fea_assembler
 
     # Get the original finite-element node locations and set up the mesh-deformation component
-    Xpts0 = analysis_comp.fea_assembler.getOrigNodes()
+    Xpts0 = fea_assembler.getOrigNodes()
     nnodes = int(len(Xpts0)/3)
-    mesh_deformation_comp = MeshDeformComp(Xpts0=Xpts0, nnodes=nnodes, extra=1.1516, ratio=0.7381)
+    mesh_deformation_comp = MeshDeformComp(Xpts0=Xpts0, nnodes=nnodes, extra=1.1516, ratio=0.7381) #extra=1.5, ratio=0.4)
     prob.model.add_subsystem("mesh_deformation", mesh_deformation_comp, promotes_inputs=["dratio", "dextra"], promotes_outputs=["Xpts"])
 
     # Add the analysis subsystem after the mesh_deformation component so that Xpts flows the right direction
@@ -36,17 +35,20 @@ def make_problem():
     prob.driver.options["optimizer"] = "SLSQP"
 
     # Define the optimization problem
-    prob.model.add_design_var("dratio", lower=-0.50, upper=0.05)
-    prob.model.add_design_var("dextra", lower=-0.05, upper=0.5)
+    prob.model.add_design_var("dratio", lower=-0.4881, upper=0.0119)  # ratio in [0.25, 0.75]
+    prob.model.add_design_var("dextra", lower=-0.01516, upper=0.8484)  # extra in [1.1, 2.00]
 
-    prob.model.add_objective("mass", index=0)
-    prob.model.add_constraint("ks_temp_adjacent", upper=100.0, scaler=1e2)  # Max temp = 135 degC; assume starting at 35 degC
-    prob.model.add_constraint("ks_temp_diagonal", upper=100.0, scaler=1e2)
+    prob.model.add_objective("mass", index=0, scaler=26.0)
+    prob.model.add_constraint("ks_temp_adjacent", upper=100.0, scaler=50.0)  # Max temp = 135 degC; assume starting at 35 degC
+    prob.model.add_constraint("ks_temp_diagonal", upper=100.0, scaler=50.0)
 
     prob.setup()
     om.n2(prob, show_browser=False, outfile="battery_shape_optimization.html")
 
-    return prob
+    return prob, fea_assembler
 
-p = make_problem()
+p, fea_assembler = make_problem()
 p.run_driver()
+dratio = p.get_val("dratio")
+dextra = p.get_val("dextra")
+print(f"dratio = {dratio}, dextra = {dextra}")
