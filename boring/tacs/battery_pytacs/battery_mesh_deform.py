@@ -19,7 +19,10 @@ class MeshDeformation:
         self.dextra = dextra
         self.dratio = dratio
         self.eps = 1e-6
-        
+        self.var_dtype = np.float64
+        if (type(dextra)==np.complex128) or (type(dratio)==np.complex128):
+            self.var_dtype = np.complex128
+
         # Evaluate the initial geometry objects
         self.eval_geometry()
 
@@ -46,7 +49,7 @@ class MeshDeformation:
         self.dep_idx = dep_idx
 
         return
-    
+
     def eval_geometry(self):
 
         m = self.m
@@ -56,6 +59,9 @@ class MeshDeformation:
         ratio = self.ratio
         dextra = self.dextra
         dratio = self.dratio
+
+        if (type(dextra)==np.complex128) or (type(dratio)==np.complex128):
+            self.var_dtype = np.complex128
 
         self.w = cell_d*m*extra
         self.l = cell_d*n*extra
@@ -82,11 +88,11 @@ class MeshDeformation:
         dx_border_len = cell_d*dextra-2*self.dhole_r
         dy_border_len = cell_d*dextra-2*self.dhole_r
 
-        self.x_ranges = [self.hole_r+self.dhole_r, self.hole_r+self.dhole_r + (x_border_len+dx_border_len), 
-                         3*(self.hole_r+self.dhole_r) + (x_border_len+dx_border_len), 3*(self.hole_r+self.dhole_r) + 2*(x_border_len+dx_border_len), 
+        self.x_ranges = [self.hole_r+self.dhole_r, self.hole_r+self.dhole_r + (x_border_len+dx_border_len),
+                         3*(self.hole_r+self.dhole_r) + (x_border_len+dx_border_len), 3*(self.hole_r+self.dhole_r) + 2*(x_border_len+dx_border_len),
                          5*(self.hole_r+self.dhole_r) + 2*(x_border_len+dx_border_len), 5*(self.hole_r+self.dhole_r) + 3*(x_border_len+dx_border_len)][:]
-        self.y_ranges = [self.hole_r+self.dhole_r, self.hole_r+self.dhole_r + (y_border_len+dy_border_len), 
-                         3*(self.hole_r+self.dhole_r) + (y_border_len+dy_border_len), 3*(self.hole_r+self.dhole_r) + 2*(y_border_len+dy_border_len), 
+        self.y_ranges = [self.hole_r+self.dhole_r, self.hole_r+self.dhole_r + (y_border_len+dy_border_len),
+                         3*(self.hole_r+self.dhole_r) + (y_border_len+dy_border_len), 3*(self.hole_r+self.dhole_r) + 2*(y_border_len+dy_border_len),
                          5*(self.hole_r+self.dhole_r) + 2*(y_border_len+dy_border_len), 5*(self.hole_r+self.dhole_r) + 3*(y_border_len+dy_border_len)][:]
 
         return
@@ -118,17 +124,17 @@ class MeshDeformation:
         ddx_ddratio = -2.0*self.ddr_ddratio
         ddy_ddratio = -2.0*self.ddr_ddratio
 
-        self.dx_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddx_ddextra, 
-                                  3.0*self.ddr_ddextra + ddx_ddextra, 3.0*self.ddr_ddextra + 2.0*ddx_ddextra, 
+        self.dx_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddx_ddextra,
+                                  3.0*self.ddr_ddextra + ddx_ddextra, 3.0*self.ddr_ddextra + 2.0*ddx_ddextra,
                                   5.0*self.ddr_ddextra + 2.0*ddx_ddextra, 5.0*self.ddr_ddextra + 3.0*ddx_ddextra][:]
-        self.dy_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddy_ddextra, 
-                                  3.0*self.ddr_ddextra + ddy_ddextra, 3.0*self.ddr_ddextra + 2.0*ddy_ddextra, 
+        self.dy_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddy_ddextra,
+                                  3.0*self.ddr_ddextra + ddy_ddextra, 3.0*self.ddr_ddextra + 2.0*ddy_ddextra,
                                   5.0*self.ddr_ddextra + 2.0*ddy_ddextra, 5.0*self.ddr_ddextra + 3.0*ddy_ddextra][:]
-        self.dx_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddx_ddratio, 
-                                  3.0*self.ddr_ddratio + ddx_ddratio, 3.0*self.ddr_ddratio + 2.0*ddx_ddratio, 
+        self.dx_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddx_ddratio,
+                                  3.0*self.ddr_ddratio + ddx_ddratio, 3.0*self.ddr_ddratio + 2.0*ddx_ddratio,
                                   5.0*self.ddr_ddratio + 2.0*ddx_ddratio, 5.0*self.ddr_ddratio + 3.0*ddx_ddratio][:]
-        self.dy_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddy_ddratio, 
-                                  3.0*self.ddr_ddratio + ddy_ddratio, 3.0*self.ddr_ddratio + 2.0*ddy_ddratio, 
+        self.dy_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddy_ddratio,
+                                  3.0*self.ddr_ddratio + ddy_ddratio, 3.0*self.ddr_ddratio + 2.0*ddy_ddratio,
                                   5.0*self.ddr_ddratio + 2.0*ddy_ddratio, 5.0*self.ddr_ddratio + 3.0*ddy_ddratio][:]
 
         return
@@ -150,7 +156,7 @@ class MeshDeformation:
         eps = self.eps
         xb = self.xb
         yb = self.yb
-        
+
         battery_edge_idx = []
         for i in range(len(Xpts0)):
             pt = Xpts0[i]
@@ -274,10 +280,10 @@ class MeshDeformation:
         l = self.l
         hole_r = self.hole_r
 
-        edge_cp_idx = []  # store a nested list of length 4: [[bottom edge cp nodes], [right edge ""], [top edge ""], [left edge ""]] 
-        edge_uv = [[[0, 0], [1, 0], [2, 0], [3, 0]], 
-                   [[3, 0], [3, 1], [3, 2], [3, 3]], 
-                   [[3, 3], [2, 3], [1, 3], [0, 3]], 
+        edge_cp_idx = []  # store a nested list of length 4: [[bottom edge cp nodes], [right edge ""], [top edge ""], [left edge ""]]
+        edge_uv = [[[0, 0], [1, 0], [2, 0], [3, 0]],
+                   [[3, 0], [3, 1], [3, 2], [3, 3]],
+                   [[3, 3], [2, 3], [1, 3], [0, 3]],
                    [[0, 3], [0, 2], [0, 1], [0, 0]]]  # u,v index of holes on each edge (bottom, right, top, left)
         pt_offsets = np.array([1, -1, 1, -1, 1, -1])
         for i in range(4):
@@ -311,13 +317,13 @@ class MeshDeformation:
         dx_holes = self.dx_holes
         dy_holes = self.dy_holes
 
-        hole_deltas = np.zeros((len(self.hole_idx), 2))
+        hole_deltas = np.zeros((len(self.hole_idx), 2), dtype=self.var_dtype)
         for i, idx in enumerate(self.hole_idx):
             pt = Xpts0[idx]
 
             # Find the center of the hole that this point belongs to
             dist = ((pt[0] - x_holes)**2 + (pt[1] - y_holes)**2)**0.5 - hole_r
-            which_hole = np.argmin(dist)
+            which_hole = np.argmin(dist.real)
             x0 = x_holes[which_hole]
             y0 = y_holes[which_hole]
 
@@ -341,13 +347,13 @@ class MeshDeformation:
         dxb = self.dxb
         dyb = self.dyb
 
-        battery_deltas = np.zeros((len(self.battery_edge_idx), 2))
+        battery_deltas = np.zeros((len(self.battery_edge_idx), 2), dtype=self.var_dtype)
         for i, idx in enumerate(self.battery_edge_idx):
             pt = Xpts0[idx]
 
             # Find the center of the hole that this point belongs to
             dist = ((pt[0] - xb)**2 + (pt[1] - yb)**2)**0.5 - 0.5*cell_d
-            which_battery = np.argmin(dist)
+            which_battery = np.argmin(dist.real)
 
             # Compute the delta for this point
             battery_deltas[i, 0] = dxb[which_battery]
@@ -366,15 +372,15 @@ class MeshDeformation:
 
         x_cp = np.sort(Xpts0[self.edge_cp_idx[:], 0])
         y_cp = np.sort(Xpts0[self.edge_cp_idx[:], 1])
-        border_deltas = np.zeros((len(self.border_idx), 2))
+        border_deltas = np.zeros((len(self.border_idx), 2), dtype=self.var_dtype)
         for i, idx in enumerate(self.border_idx):
             pt = Xpts0[idx]
             if np.absolute(pt[0]) < eps:  # left edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[1] - y_cp[3]) < eps):
-                    cp_idx = np.argmin(np.absolute(pt[1] - y_cp[3]))
+                    cp_idx = np.argmin(np.absolute(pt[1] - y_cp[3]).real)
                     border_deltas[i, 1] = y_ranges[cp_idx] - pt[1]
-                else:  
+                else:
                     # Get control points this node is between
                     y1 = y_cp[3][np.argmax(y_cp[3] >= pt[1])-1]
                     y2 = y_cp[3][np.argmax(y_cp[3] >= pt[1])]
@@ -385,22 +391,22 @@ class MeshDeformation:
             elif np.absolute(pt[1]) < eps:  # bottom edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[0] - x_cp[0]) < eps):
-                    cp_idx = np.argmin(np.absolute(pt[0] - x_cp[0]))
+                    cp_idx = np.argmin(np.absolute(pt[0] - x_cp[0]).real)
                     border_deltas[i, 0] = x_ranges[cp_idx] - pt[0]
-                else:  
+                else:
                     # Get control points this node is between
                     x1 = x_cp[0][np.argmax(x_cp[0] >= pt[0])-1]
                     x2 = x_cp[0][np.argmax(x_cp[0] >= pt[0])]
                     xnew1 = x_ranges[np.argmax(x_cp[0] >= pt[0])-1]
                     xnew2 = x_ranges[np.argmax(x_cp[0] >= pt[0])]
                     border_deltas[i, 0] = xnew1 + (pt[0] - x1)*(xnew2 - xnew1)/(x2 - x1) - pt[0]
-                
+
             elif np.absolute(pt[0] - self.w) < eps:  # right edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[1] - y_cp[1]) < eps):
-                    cp_idx = np.argmin(np.absolute(pt[1] - y_cp[1]))
+                    cp_idx = np.argmin(np.absolute(pt[1] - y_cp[1]).real)
                     border_deltas[i, 1] = y_ranges[cp_idx] - pt[1]
-                else:  
+                else:
                     # Get control points this node is between
                     y1 = y_cp[1][np.argmax(y_cp[1] >= pt[1])-1]
                     y2 = y_cp[1][np.argmax(y_cp[1] >= pt[1])]
@@ -412,9 +418,9 @@ class MeshDeformation:
             elif np.absolute(pt[1] - self.l) < eps:  # top edge
                 # Check if this is a control point
                 if np.any(np.absolute(pt[0] - x_cp[2]) < eps):
-                    cp_idx = np.argmin(np.absolute(pt[0] - x_cp[2]))
+                    cp_idx = np.argmin(np.absolute(pt[0] - x_cp[2]).real)
                     border_deltas[i, 0] = x_ranges[cp_idx] - pt[0]
-                else:  
+                else:
                     # Get control points this node is between
                     x1 = x_cp[2][np.argmax(x_cp[2] >= pt[0])-1]
                     x2 = x_cp[2][np.argmax(x_cp[2] >= pt[0])]
@@ -435,7 +441,7 @@ class MeshDeformation:
         # delta: displacements of the control points
 
         Xpts_cp = self.Xpts0[self.Xpts0_cp_idx, :]
-        Xnew = np.zeros(np.shape(self.Xpts0))
+        Xnew = np.zeros(np.shape(self.Xpts0), dtype=self.var_dtype)
         Xnew[:, :] = self.Xpts0[:, :]
 
         for i in self.dep_idx:
@@ -450,7 +456,7 @@ class MeshDeformation:
             LdefoDist3 = LdefoDist**3
             Wi = LdefoDist3
             den = np.sum(Wi)
-            interp = np.zeros(2)
+            interp = np.zeros(2, dtype=self.var_dtype)
             for iDim in range(2):
                 interp[iDim] = np.sum(Wi*self.delta[:, iDim])/den
 
@@ -469,7 +475,7 @@ class MeshDeformation:
         self.get_border_deltas()
         self.get_battery_deltas()
 
-        delta = np.zeros((len(self.Xpts0_cp_idx), 2))
+        delta = np.zeros((len(self.Xpts0_cp_idx), 2), dtype=self.var_dtype)
         delta[self.hole_start:self.hole_end, :] = self.hole_deltas[:, :]
         delta[self.battery_start:self.battery_end, :] = self.battery_deltas[:, :]
         delta[self.border_start:self.border_end, :] = self.border_deltas[:, :]
@@ -547,7 +553,7 @@ class MeshDeformation:
     def get_border_delta_derivs(self, eps=1e-6):
 
         Xpts0 = self.Xpts0
-        
+
         dx_ranges_ddextra = self.dx_ranges_ddextra
         dy_ranges_ddextra = self.dy_ranges_ddextra
         dx_ranges_ddratio = self.dx_ranges_ddratio
@@ -585,7 +591,7 @@ class MeshDeformation:
                     cp_idx = np.argmin(np.absolute(pt[0] - x_cp[0]))
                     ddelta_ddratio[i, 0] = dx_ranges_ddratio[cp_idx]
                     ddelta_ddextra[i, 0] = dx_ranges_ddextra[cp_idx]
-                
+
                 else:
                     # Get control points this node is between
                     x1 = x_cp[0][np.argmax(x_cp[0] >= pt[0])-1]
@@ -712,7 +718,7 @@ class MeshDeformation:
         # np.savetxt("Xpts0.csv", self.Xpts0, delimiter=",")
 
         return ddelta_ddratio, ddelta_ddextra
-    
+
 
 def make_ghost_nodes_for_holes(h, dratio, dextra, m=3, n=3, cell_d=0.018, extra=1.5, ratio=0.4):
     # h: spacing between nodes (1 per distance h)
@@ -752,7 +758,7 @@ def make_ghost_nodes_for_holes(h, dratio, dextra, m=3, n=3, cell_d=0.018, extra=
 
 
 class MeshDeformComp(om.ExplicitComponent):
-    
+
     def initialize(self):
         self.options.declare("m", types=int, default=3, desc="number of battery columns in the pack")
         self.options.declare("n", types=int, default=3, desc="number of battery rows in the pack")
@@ -761,7 +767,7 @@ class MeshDeformComp(om.ExplicitComponent):
         self.options.declare("ratio", types=float, default=0.4, desc="parametrized hole size: ratio of hole size to max available space")
         self.options.declare("nnodes", types=int, desc="number of nodes in the mesh")
         self.options.declare("Xpts0", desc="Copy of initial mesh points which are static")
-    
+
     def setup(self):
         Xpts0 = self.options["Xpts0"]
         m = self.options["m"]
@@ -771,14 +777,19 @@ class MeshDeformComp(om.ExplicitComponent):
         ratio = self.options["ratio"]
         nnodes = self.options["nnodes"]
 
+        # Reshape the node vector before passing it to the mesh deformation component
+        Xpts0 = np.delete(Xpts0, np.arange(2, Xpts0.size, 3))
+        nnodes = int(Xpts0.size/2)
+        Xpts0 = Xpts0.reshape((nnodes, 2))
+
         # Initialize the mesh deformation object
         self.md = MeshDeformation(Xpts0, m=m, n=n, cell_d=cell_d, extra=extra, ratio=ratio)
 
         self.add_input("dratio", val=0.0, units=None, desc="change in ratio parameter from the initial mesh")
         self.add_input("dextra", val=0.0, units=None, desc="change in extra parameter from the initial mesh")
 
-        self.add_output("Xpts", shape=(nnodes, 2), units="m", desc="Initial mesh coordinates")
-        
+        self.add_output("Xpts", shape=(3*nnodes,), units="m", desc="Initial mesh coordinates")
+
         self.declare_partials(of="Xpts", wrt=["dratio", "dextra"])
 
     def compute(self, inputs, outputs):
@@ -793,7 +804,8 @@ class MeshDeformComp(om.ExplicitComponent):
 
         # Deform the geometry
         Xnew = self.md.deform_geometry()
-        Xpts[:, :] = Xnew[:, :]
+        Xpts[0::3] = Xnew[:, 0]
+        Xpts[1::3] = Xnew[:, 1]
 
     def compute_partials(self, inputs, partials):
 
@@ -802,17 +814,11 @@ class MeshDeformComp(om.ExplicitComponent):
         dXpts_ddratio = partials["Xpts", "dratio"]
         dXpts_ddextra = partials["Xpts", "dextra"]
 
-        # Reshape the derivative arrays
-        dXpts_ddratio = dXpts_ddratio.reshape((nnodes, 2))
-        dXpts_ddextra = dXpts_ddextra.reshape((nnodes, 2))
-
         ddelta_ddratio, ddelta_ddextra = self.md.compute_partials()
-        dXpts_ddratio[:] = ddelta_ddratio[:]
-        dXpts_ddextra[:] = ddelta_ddextra[:]
-
-        # Undo the reshaping of the derivative arrays
-        dXpts_ddratio = dXpts_ddratio.flatten()
-        dXpts_ddextra = dXpts_ddextra.flatten()
+        dXpts_ddratio[0::3, 0] = ddelta_ddratio[:, 0]
+        dXpts_ddratio[1::3, 0] = ddelta_ddratio[:, 1]
+        dXpts_ddextra[0::3, 0] = ddelta_ddextra[:, 0]
+        dXpts_ddextra[1::3, 0] = ddelta_ddextra[:, 1]
 
 comm = MPI.COMM_WORLD
 
@@ -845,7 +851,7 @@ def elemCallBack(dvNum, compID, compDescript, elemDescripts, globalDVs, **kwargs
         prop = constitutive.MaterialProperties(rho=alum_rho, kappa=alum_kappa, specific_heat=alum_cp)
     else:  # battery
         prop = constitutive.MaterialProperties(rho=battery_rho, kappa=battery_kappa, specific_heat=battery_cp)
-    
+
     # Set one thickness dv for every component
     con = constitutive.PlaneStressConstitutive(prop, t=tplate, tNum=-1)
 
@@ -872,9 +878,9 @@ Xpts0 = FEAAssembler.getOrigNodes()
 Xnew_tacs = np.zeros(np.shape(Xpts0))
 
 # Drop the z-values and reshape the vector
-Xpts0 = np.delete(Xpts0, np.arange(2, Xpts0.size, 3))
-nnodes = int(Xpts0.size/2)
-Xpts0 = Xpts0.reshape((nnodes, 2))
+# Xpts0 = np.delete(Xpts0, np.arange(2, Xpts0.size, 3))
+nnodes = int(Xpts0.size/3)
+# Xpts0 = Xpts0.reshape((nnodes, 2))
 
 # Parametrize the geometry
 m = 3  # number of rows of battery cells
@@ -928,9 +934,9 @@ p.model.add_subsystem("ivc", ivc, promotes=["*"])
 mesh_deform_comp = MeshDeformComp(Xpts0=Xpts0, nnodes=nnodes)
 p.model.add_subsystem("mesh_deform_comp", mesh_deform_comp, promotes=["*"])
 
-p.setup(check=True)
+p.setup(check=True, force_alloc_complex=True)
 p.run_model()
-p.check_partials(compact_print=False)
+p.check_partials(compact_print=False, method="cs")
 asd
 # ######
 
