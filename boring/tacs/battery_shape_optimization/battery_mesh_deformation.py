@@ -17,7 +17,7 @@ class MeshDeformation:
         self.ratio = ratio
         self.dextra = dextra
         self.dratio = dratio
-        self.eps = 1e-6
+        self.eps = 1e-4
 
         # Evaluate the initial geometry objects
         self.eval_geometry()
@@ -61,17 +61,17 @@ class MeshDeformation:
         self.dw = cell_d*m*dextra
         self.dl = cell_d*n*dextra
 
-        self.xb = np.repeat(np.linspace(0.5*self.w/m, 2.5*self.w/m, m), 3)
-        self.yb = np.tile(np.linspace(0.5*self.l/n, 2.5*self.l/n, n), 3).flatten(order="F")
+        self.xb = np.repeat(np.linspace(0.5*self.w/m, (m-0.5)*self.w/m, m), n)
+        self.yb = np.tile(np.linspace(0.5*self.l/n, (n-0.5)*self.l/n, n), m).flatten(order="F")
 
-        self.x_holes = np.repeat(np.linspace(0.0, self.w, m+1), 4)
-        self.y_holes = np.tile(np.linspace(0.0, self.l, n+1), 4).flatten(order="F")
+        self.x_holes = np.repeat(np.linspace(0.0, self.w, m+1), n+1)
+        self.y_holes = np.tile(np.linspace(0.0, self.l, n+1), m+1).flatten(order="F")
 
-        self.dxb = np.repeat(np.linspace(0.5*self.dw/m, 2.5*self.dw/m, m), 3)
-        self.dyb = np.tile(np.linspace(0.5*self.dl/n, 2.5*self.dl/n, n), 3).flatten(order="F")
+        self.dxb = np.repeat(np.linspace(0.5*self.dw/m, (m-0.5)*self.dw/m, m), n)
+        self.dyb = np.tile(np.linspace(0.5*self.dl/n, (n-0.5)*self.dl/n, n), m).flatten(order="F")
 
-        self.dx_holes = np.repeat(np.linspace(0.0, self.dw, m+1), 4)
-        self.dy_holes = np.tile(np.linspace(0.0, self.dl, n+1), 4).flatten(order="F")
+        self.dx_holes = np.repeat(np.linspace(0.0, self.dw, m+1), n+1)
+        self.dy_holes = np.tile(np.linspace(0.0, self.dl, n+1), m+1).flatten(order="F")
 
         self.hole_r = ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
         self.dhole_r = (ratio+dratio)*0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0) - ratio*0.5*cell_d*((2.0**0.5*extra) - 1.0)
@@ -81,12 +81,17 @@ class MeshDeformation:
         dx_border_len = cell_d*dextra-2*self.dhole_r
         dy_border_len = cell_d*dextra-2*self.dhole_r
 
-        self.x_ranges = [self.hole_r+self.dhole_r, self.hole_r+self.dhole_r + (x_border_len+dx_border_len),
-                         3*(self.hole_r+self.dhole_r) + (x_border_len+dx_border_len), 3*(self.hole_r+self.dhole_r) + 2*(x_border_len+dx_border_len),
-                         5*(self.hole_r+self.dhole_r) + 2*(x_border_len+dx_border_len), 5*(self.hole_r+self.dhole_r) + 3*(x_border_len+dx_border_len)][:]
-        self.y_ranges = [self.hole_r+self.dhole_r, self.hole_r+self.dhole_r + (y_border_len+dy_border_len),
-                         3*(self.hole_r+self.dhole_r) + (y_border_len+dy_border_len), 3*(self.hole_r+self.dhole_r) + 2*(y_border_len+dy_border_len),
-                         5*(self.hole_r+self.dhole_r) + 2*(y_border_len+dy_border_len), 5*(self.hole_r+self.dhole_r) + 3*(y_border_len+dy_border_len)][:]
+        x_ranges = []
+        for i in range(m):
+            x_ranges.append((2*i+1)*(self.hole_r+self.dhole_r)+i*(x_border_len+dx_border_len))
+            x_ranges.append((2*i+1)*(self.hole_r+self.dhole_r)+(i+1)*(x_border_len+dx_border_len))
+        self.x_ranges = x_ranges[:]
+
+        y_ranges = []
+        for i in range(n):
+            y_ranges.append((2*i+1)*(self.hole_r+self.dhole_r)+i*(y_border_len+dy_border_len))
+            y_ranges.append((2*i+1)*(self.hole_r+self.dhole_r)+(i+1)*(y_border_len+dy_border_len))
+        self.y_ranges = y_ranges[:]
 
         return
 
@@ -103,11 +108,11 @@ class MeshDeformation:
         self.ddw_ddextra = cell_d*m
         self.ddl_ddextra = cell_d*n
 
-        self.ddxb_ddextra = np.repeat(np.linspace(0.5*self.ddw_ddextra/m, 2.5*self.ddw_ddextra/m, m), 3)
-        self.ddyb_ddextra = np.tile(np.linspace(0.5*self.ddl_ddextra/n, 2.5*self.ddl_ddextra/n, n), 3).flatten(order="F")
+        self.ddxb_ddextra = np.repeat(np.linspace(0.5*self.ddw_ddextra/m, (m-0.5)*self.ddw_ddextra/m, m), n)
+        self.ddyb_ddextra = np.tile(np.linspace(0.5*self.ddl_ddextra/n, (n-0.5)*self.ddl_ddextra/n, n), m).flatten(order="F")
 
-        self.ddx_holes_ddextra = np.repeat(np.linspace(0.0, self.ddw_ddextra, m+1), 4)
-        self.ddy_holes_ddextra = np.tile(np.linspace(0.0, self.ddl_ddextra, n+1), 4).flatten(order="F")
+        self.ddx_holes_ddextra = np.repeat(np.linspace(0.0, self.ddw_ddextra, m+1), n+1)
+        self.ddy_holes_ddextra = np.tile(np.linspace(0.0, self.ddl_ddextra, n+1), m+1).flatten(order="F")
 
         self.ddr_ddextra = (ratio+dratio)*0.5*cell_d*(2.0**0.5)
         self.ddr_ddratio = 0.5*cell_d*((2.0**0.5*(extra+dextra)) - 1.0)
@@ -117,18 +122,39 @@ class MeshDeformation:
         ddx_ddratio = -2.0*self.ddr_ddratio
         ddy_ddratio = -2.0*self.ddr_ddratio
 
-        self.dx_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddx_ddextra,
-                                  3.0*self.ddr_ddextra + ddx_ddextra, 3.0*self.ddr_ddextra + 2.0*ddx_ddextra,
-                                  5.0*self.ddr_ddextra + 2.0*ddx_ddextra, 5.0*self.ddr_ddextra + 3.0*ddx_ddextra][:]
-        self.dy_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddy_ddextra,
-                                  3.0*self.ddr_ddextra + ddy_ddextra, 3.0*self.ddr_ddextra + 2.0*ddy_ddextra,
-                                  5.0*self.ddr_ddextra + 2.0*ddy_ddextra, 5.0*self.ddr_ddextra + 3.0*ddy_ddextra][:]
-        self.dx_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddx_ddratio,
-                                  3.0*self.ddr_ddratio + ddx_ddratio, 3.0*self.ddr_ddratio + 2.0*ddx_ddratio,
-                                  5.0*self.ddr_ddratio + 2.0*ddx_ddratio, 5.0*self.ddr_ddratio + 3.0*ddx_ddratio][:]
-        self.dy_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddy_ddratio,
-                                  3.0*self.ddr_ddratio + ddy_ddratio, 3.0*self.ddr_ddratio + 2.0*ddy_ddratio,
-                                  5.0*self.ddr_ddratio + 2.0*ddy_ddratio, 5.0*self.ddr_ddratio + 3.0*ddy_ddratio][:]
+        dx_ranges_ddextra = []
+        dx_ranges_ddratio = []
+        for i in range(m):
+            dx_ranges_ddextra.append((2*i+1)*self.ddr_ddextra + i*ddx_ddextra)
+            dx_ranges_ddextra.append((2*i+1)*self.ddr_ddextra + (i+1)*ddx_ddextra)
+            dx_ranges_ddratio.append((2*i+1)*self.ddr_ddratio + i*ddx_ddratio)
+            dx_ranges_ddratio.append((2*i+1)*self.ddr_ddratio + (i+1)*ddx_ddratio)
+
+        dy_ranges_ddextra = []
+        dy_ranges_ddratio = []
+        for i in range(n):
+            dy_ranges_ddextra.append((2*i+1)*self.ddr_ddextra + i*ddy_ddextra)
+            dy_ranges_ddextra.append((2*i+1)*self.ddr_ddextra + (i+1)*ddy_ddextra)
+            dy_ranges_ddratio.append((2*i+1)*self.ddr_ddratio + i*ddy_ddratio)
+            dy_ranges_ddratio.append((2*i+1)*self.ddr_ddratio + (i+1)*ddy_ddratio)
+
+        self.dx_ranges_ddextra = dx_ranges_ddextra[:]
+        self.dx_ranges_ddratio = dx_ranges_ddratio[:]
+        self.dy_ranges_ddextra = dy_ranges_ddextra[:]
+        self.dy_ranges_ddratio = dy_ranges_ddratio[:]
+
+        # self.dx_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddx_ddextra,
+        #                           3.0*self.ddr_ddextra + ddx_ddextra, 3.0*self.ddr_ddextra + 2.0*ddx_ddextra,
+        #                           5.0*self.ddr_ddextra + 2.0*ddx_ddextra, 5.0*self.ddr_ddextra + 3.0*ddx_ddextra][:]
+        # self.dy_ranges_ddextra = [self.ddr_ddextra, self.ddr_ddextra + ddy_ddextra,
+        #                           3.0*self.ddr_ddextra + ddy_ddextra, 3.0*self.ddr_ddextra + 2.0*ddy_ddextra,
+        #                           5.0*self.ddr_ddextra + 2.0*ddy_ddextra, 5.0*self.ddr_ddextra + 3.0*ddy_ddextra][:]
+        # self.dx_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddx_ddratio,
+        #                           3.0*self.ddr_ddratio + ddx_ddratio, 3.0*self.ddr_ddratio + 2.0*ddx_ddratio,
+        #                           5.0*self.ddr_ddratio + 2.0*ddx_ddratio, 5.0*self.ddr_ddratio + 3.0*ddx_ddratio][:]
+        # self.dy_ranges_ddratio = [self.ddr_ddratio, self.ddr_ddratio + ddy_ddratio,
+        #                           3.0*self.ddr_ddratio + ddy_ddratio, 3.0*self.ddr_ddratio + 2.0*ddy_ddratio,
+        #                           5.0*self.ddr_ddratio + 2.0*ddy_ddratio, 5.0*self.ddr_ddratio + 3.0*ddy_ddratio][:]
 
         return
 
@@ -276,21 +302,41 @@ class MeshDeformation:
         hole_r = self.hole_r
 
         edge_cp_idx = []  # store a nested list of length 4: [[bottom edge cp nodes], [right edge ""], [top edge ""], [left edge ""]]
-        edge_uv = [[[0, 0], [1, 0], [2, 0], [3, 0]],
-                   [[3, 0], [3, 1], [3, 2], [3, 3]],
-                   [[3, 3], [2, 3], [1, 3], [0, 3]],
-                   [[0, 3], [0, 2], [0, 1], [0, 0]]]  # u,v index of holes on each edge (bottom, right, top, left)
-        pt_offsets = np.array([1, -1, 1, -1, 1, -1])
+
+        edge_uv_0 = []
+        for i in range(m+1):
+            edge_uv_0.append([i, 0])
+
+        edge_uv_1 = []
+        for i in range(n+1):
+            edge_uv_1.append([m, i])
+
+        edge_uv_2 = []
+        for i in range(m, -1, -1):
+            edge_uv_2.append([i, n])
+
+        edge_uv_3 = []
+        for i in range(n, -1, -1):
+            edge_uv_3.append([0, i])
+
+        edge_uv = [edge_uv_0, edge_uv_1, edge_uv_2, edge_uv_3]
+
+        xpt_offsets = np.array(m*[1, -1])
+        ypt_offsets = np.array(n*[1, -1])
         for i in range(4):
             i_edge_cp_idx = []
-            if i%2 == 0:
-                dp = np.array([1, 0])  # move point in x-direction
+            if i%2 == 0:  # bottom or top edge
+                jlen = m+1
             else:
-                dp = np.array([0, 1])  # move point in y-direction
-            for j in range(4):
+                jlen = n+1
+            for j in range(jlen):
                 [u, v] = edge_uv[i][j]
-                x = u*w/m + hole_r*pt_offsets*dp[0]  # array of x-points to find on this edge
-                y = v*l/n + hole_r*pt_offsets*dp[1]  # array of y-points to find on this edge
+                if i%2 == 0:  # bottom or top edge
+                    x = u*w/m + hole_r*xpt_offsets  # array of x-points to find on this edge
+                    y = np.ones(2*m)*v*l/n   # array of y-points to find on this edge
+                else:  # left or right edge
+                    x = np.ones(2*n)*u*w/m  # array of x-points to find on this edge
+                    y = v*l/n + hole_r*ypt_offsets  # array of y-points to find on this edge
                 for k in range(len(Xpts0)):
                     d = ((x - Xpts0[k, 0])**2 + (y - Xpts0[k, 1])**2)**0.5
                     if np.any(d < eps):
@@ -756,3 +802,94 @@ class MeshDeformComp(om.ExplicitComponent):
         dXpts_ddratio[1::3, 0] = ddelta_ddratio[:, 1]
         dXpts_ddextra[0::3, 0] = ddelta_ddextra[:, 0]
         dXpts_ddextra[1::3, 0] = ddelta_ddextra[:, 1]
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    # Create the TACS object to get the initial nodes
+    comm = MPI.COMM_WORLD
+
+    # Instantiate FEASolver
+    #bdfFile = os.path.join(os.path.dirname(__file__), "battery_ratio_0.4_extra_1.5.bdf")
+    bdfFile = os.path.join(os.path.dirname(__file__), "battery_4x4.bdf")
+    FEAAssembler = pyTACS(bdfFile, comm)
+
+    # Plate geometry
+    tplate = 0.065
+
+    # Material properties
+    battery_rho = 1460.0  # density kg/m^3
+    battery_kappa = 1.3  # Thermal conductivity W/(m⋅K)
+    battery_cp = 880.0  # Specific heat J/(kg⋅K)
+
+    alum_rho = 2700.0  # density kg/m^3
+    alum_kappa = 204.0  # Thermal conductivity W/(m⋅K)
+    alum_cp = 883.0  # Specific heat J/(kg⋅K)
+
+    def elemCallBack(dvNum, compID, compDescript, elemDescripts, globalDVs, **kwargs):
+
+        # Setup property and constitutive objects
+        if compDescript == "Block":
+            prop = constitutive.MaterialProperties(rho=alum_rho, kappa=alum_kappa, specific_heat=alum_cp)
+        else:  # battery
+            prop = constitutive.MaterialProperties(rho=battery_rho, kappa=battery_kappa, specific_heat=battery_cp)
+
+        # Set one thickness dv for every component
+        con = constitutive.PlaneStressConstitutive(prop, t=tplate, tNum=-1)
+
+        # For each element type in this component,
+        # pass back the appropriate tacs element object
+        elemList = []
+        model = elements.HeatConduction2D(con)
+        for elemDescript in elemDescripts:
+            if elemDescript in ["CQUAD4", "CQUADR"]:
+                basis = elements.LinearQuadBasis()
+            elif elemDescript in ["CTRIA3", "CTRIAR"]:
+                basis = elements.LinearTriangleBasis()
+            elem = elements.Element2D(model, basis)
+            elemList.append(elem)
+
+        return elemList
+
+    # Set up constitutive objects and elements
+    FEAAssembler.initialize(elemCallBack)
+    problem = FEAAssembler.createStaticProblem("problem")
+
+    # Get the mesh points
+    Xpts0 = FEAAssembler.getOrigNodes()
+
+    # Drop the z-values and reshape the vector
+    Xpts0 = np.delete(Xpts0, np.arange(2, Xpts0.size, 3))
+    nnodes = int(Xpts0.size/2)
+    Xpts0 = Xpts0.reshape((nnodes, 2))
+
+    # Parametrize the initial geometry
+    m = 4  # number of rows of battery cells
+    n = 4  # number of columns of battery cells
+    cell_d = 0.018  # diameter of the cell
+    extra = 1.5  # extra space along the diagonal, in [1, infty)
+    ratio = 0.4  # cell diameter/cutout diamter, in [0, 1]
+
+    # Define the change in geometric parameters to be applied
+    dratio = 0.3
+    dextra = 0.3
+
+    # Deform the mesh
+    md = MeshDeformation(Xpts0, m=m, n=n, cell_d=cell_d, extra=extra, ratio=ratio, dextra=dextra, dratio=dratio)
+    Xnew = md.deform_geometry()
+
+    # Plot the initial and deformed meshes nodes
+    s = 2.0
+    fig, (ax0, ax1) = plt.subplots(ncols=2, constrained_layout=True)
+    ax0.scatter(Xpts0[:, 0], Xpts0[:, 1], s=s, color="tab:blue")
+    ax0.scatter(Xpts0[md.Xpts0_cp_idx[:], 0], Xpts0[md.Xpts0_cp_idx[:], 1], s=s, color="tab:red")
+    ax1.scatter(Xnew[:, 0], Xnew[:, 1], s=s, color="tab:blue")
+
+    ax0.set_aspect("equal")
+    ax1.set_aspect("equal")
+    ax0.axis("off")
+    ax1.axis("off")
+    ax0.set_title("Original mesh")
+    ax1.set_title("Deformed mesh")
+
+    plt.show()
