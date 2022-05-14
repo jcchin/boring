@@ -62,5 +62,5 @@ def make_grid_geometry(m=3, n=3, cell_d=0.018, extra=1.1516, ratio=0.7381):
 ctx = egads.context()
 
 # Create the egads battery model and save it as a step file
-battery_model = make_grid_geometry(m=3, n=3)
+battery_model = make_grid_geometry(m=3, n=3, ratio=0.4, extra=1.5)
 battery_model.saveModel('battery_3d.step', overwrite=True)
