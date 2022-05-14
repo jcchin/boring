@@ -893,3 +893,19 @@ if __name__ == "__main__":
     ax1.set_title("Deformed mesh")
 
     plt.show()
+
+    # Check the OpenMDAO components and the derivatives
+    Xpts0 = FEAAssembler.getOrigNodes()
+    prob = om.Problem()
+
+    ivc = om.IndepVarComp()
+    ivc.add_output("dratio", val=0.0, units=None)
+    ivc.add_output("dextra", val=0.0, units=None)
+    prob.model.add_subsystem("ivc", ivc, promotes_outputs=["*"])
+
+    md_comp = MeshDeformComp(m=m, n=n, cell_d=cell_d, extra=extra, ratio=ratio, Xpts0=Xpts0, nnodes=nnodes)
+    prob.model.add_subsystem("mesh_deformation", md_comp, promotes_inputs=["dratio", "dextra"], promotes_outputs=["Xpts"])
+
+    prob.setup()
+    prob.run_model()
+    prob.check_partials(compact_print=True)
